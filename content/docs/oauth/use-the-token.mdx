@@ -1,0 +1,49 @@
+---
+title: Using the Scoped OAuth Token
+description: Execute inference calls using the user-provided OAuth access token.
+---
+
+# Using the Scoped OAuth Token
+
+The `access_token` returned by `/oauth/token` is a standard Zorveus inference key (`zrv_...`). Pass it directly in the `Authorization: Bearer zrv_...` header or OpenAI SDK `apiKey` parameter.
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```python
+from openai import OpenAI
+
+# Initialize client using the OAuth access token
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_oauth_token_from_exchange",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Hello Zorveus!"}],
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_oauth_token_from_exchange",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [{ role: "user", content: "Hello Zorveus!" }],
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+</CodeGroup>

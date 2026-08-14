@@ -1,0 +1,18 @@
+---
+title: Token Revocation
+description: Programmatically revoke OAuth access tokens or handle user-initiated disconnections.
+---
+
+# Token Revocation
+
+<ApiEndpoint method="POST" path="/oauth/revoke" auth="oauth_bearer" />
+
+Applications or users can revoke an active OAuth connection at any time.
+
+```bash
+curl -X POST https://api.zorveus.com/oauth/revoke \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=zrv_client_your_client_id" \
+  -d "client_secret=zrv_client_secret_your_client_secret" \
+  -d "token=zrv_oauth_token_to_revoke"
+```

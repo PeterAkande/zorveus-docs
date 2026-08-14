@@ -1,0 +1,19 @@
+---
+title: Authentication & Credentials
+description: Complete matrix of credentials, headers, and security levels across Zorveus.
+---
+
+# Authentication & Credentials
+
+Zorveus uses distinct authentication schemes depending on the caller and security context.
+
+---
+
+## Authentication Matrix
+
+| Credential Type | Header / Location | Target Surface | Permitted Caller |
+| :--- | :--- | :--- | :--- |
+| **Inference Key** (`zrv_...`) | `Authorization: Bearer zrv_...` | `api.zorveus.com/v1` | Server backends & authorized clients |
+| **Service Key** (`zrv_service_...`) | `Authorization: Bearer zrv_service_...` | `api.zorveus.com` | Backend server automation ONLY |
+| **OAuth Client Secret** | Form-encoded POST body | `/oauth/token` | Confidential OAuth backends ONLY |
+| **Dashboard Session** | Cookie (`session=...`) + `X-CSRF-Token` | `app.zorveus.com` | Authenticated browser sessions |

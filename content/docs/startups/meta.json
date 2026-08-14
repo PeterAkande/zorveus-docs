@@ -1,0 +1,14 @@
+{
+  "title": "Startup Management",
+  "root": true,
+  "pages": [
+    "apps",
+    "inference-keys",
+    "product-users",
+    "credit-grants",
+    "service-keys",
+    "provider-credentials",
+    "automatic-routing",
+    "members"
+  ]
+}

@@ -1,0 +1,58 @@
+---
+title: Content Moderation
+description: Check inputs and outputs against safety and content moderation models.
+---
+
+# Content Moderation
+
+<ApiEndpoint method="POST" path="/v1/moderations" auth="inference_key" />
+
+Screen text inputs against safety policies using moderation endpoints.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.moderations.create(
+    model="openai/text-moderation-latest",
+    input="Sample text content for automated compliance screening.",
+)
+
+result = response.results[0]
+print(f"Flagged: {result.flagged}")
+print(f"Categories: {result.categories}")
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const response = await client.moderations.create({
+    model: "openai/text-moderation-latest",
+    input: "Sample text content for automated compliance screening.",
+  });
+
+  console.log(response.results[0]);
+}
+
+main();
+```
+
+</CodeGroup>

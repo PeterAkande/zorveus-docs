@@ -1,0 +1,60 @@
+---
+title: Audio Transcription & Speech
+description: Transcribe audio files (STT) and synthesize natural speech (TTS) through Zorveus.
+---
+
+# Audio Transcription & Speech
+
+<ApiEndpoint method="POST" path="/v1/audio/speech" auth="inference_key" />
+
+Zorveus routes text-to-speech (`/v1/audio/speech`) and audio transcription (`/v1/audio/transcriptions`) requests using OpenAI-compatible audio models.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Text-to-Speech (TTS)
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.audio.speech.create(
+    model="openai/tts-1",
+    voice="alloy",
+    input="Welcome to Zorveus. Your unified AI billing and gateway platform.",
+)
+
+response.stream_to_file("output.mp3")
+```
+
+```typescript
+import OpenAI from "openai";
+import fs from "fs";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const mp3 = await client.audio.speech.create({
+    model: "openai/tts-1",
+    voice: "alloy",
+    input: "Welcome to Zorveus. Your unified AI billing and gateway platform.",
+  });
+
+  const buffer = Buffer.from(await mp3.arrayBuffer());
+  await fs.promises.writeFile("output.mp3", buffer);
+}
+
+main();
+```
+
+</CodeGroup>

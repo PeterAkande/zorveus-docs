@@ -1,0 +1,174 @@
+---
+title: OAuth App Quickstart
+description: Allow users to connect their Zorveus AI wallet to your application using Authorization Code with PKCE.
+---
+
+# OAuth App Quickstart
+
+If you build developer tools, IDE extensions, or SaaS platforms where users bring their own AI funding, you can use **Zorveus OAuth 2.0 with PKCE (Proof Key for Code Exchange)**.
+
+---
+
+## Interactive Flow Visualizer
+
+<SequenceDiagram flow="oauth-pkce" />
+
+---
+
+## 1. App Registration
+
+1. In [app.zorveus.com](https://app.zorveus.com), create or select a **Developer Organization**.
+2. Create an application and specify your registered **Redirect URIs** (e.g. `https://myapp.com/api/auth/callback/zorveus`).
+3. Note your **Client ID** (`zrv_client_...`) and initial **Client Secret** (`zrv_client_secret_...`).
+
+---
+
+## 2. Step-by-Step PKCE Implementation
+
+<Steps>
+  <Step title="Generate Code Verifier and Code Challenge">
+    Create a high-entropy cryptographic random string (`code_verifier`) between 43 and 128 characters, then hash it with SHA-256 and Base64URL-encode the output (`code_challenge`).
+  </Step>
+  <Step title="Redirect User to Authorization Screen">
+    Navigate the user's browser to the Zorveus consent endpoint:
+    ```text
+    https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&scope=inference%3Awrite&code_challenge=E9Melhoa2OwvFrGMTJguCH5ZiXV6lURbI7...&code_challenge_method=S256&state=random_state_string
+    ```
+  </Step>
+  <Step title="User Grants Consent">
+    The user signs in to Zorveus, selects their funding organization (personal or team), and sets an optional spending cap.
+  </Step>
+  <Step title="Exchange Code for Scoped Inference Token">
+    Upon redirect to your `redirect_uri` with `?code=...&state=...`, your backend makes a server-to-server POST request to exchange the code for an inference token:
+  </Step>
+</Steps>
+
+---
+
+## 3. Server-Side Token Exchange
+
+Your backend exchanges the short-lived authorization code using the plaintext `code_verifier`:
+
+<CodeGroup titles={["Node.js (TypeScript)", "Python", "cURL"]}>
+
+```typescript
+async function exchangeCodeForToken(code: string, codeVerifier: string) {
+  const response = await fetch("https://api.zorveus.com/oauth/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: "zrv_client_your_client_id",
+      client_secret: "zrv_client_secret_your_client_secret",
+      code: code,
+      code_verifier: codeVerifier,
+      redirect_uri: "https://myapp.com/callback",
+    }),
+  });
+
+  const data = await response.json();
+  // Returns { access_token: "zrv_...", token_type: "Bearer", expires_in: ... }
+  return data.access_token;
+}
+```
+
+```python
+import requests
+
+def exchange_code_for_token(code: str, code_verifier: str):
+    response = requests.post(
+        "https://api.zorveus.com/oauth/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "grant_type": "authorization_code",
+            "client_id": "zrv_client_your_client_id",
+            "client_secret": "zrv_client_secret_your_client_secret",
+            "code": code,
+            "code_verifier": code_verifier,
+            "redirect_uri": "https://myapp.com/callback",
+        },
+    )
+    data = response.json()
+    return data["access_token"]
+```
+
+```bash
+curl -X POST https://api.zorveus.com/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "client_id=zrv_client_your_client_id" \
+  -d "client_secret=zrv_client_secret_your_client_secret" \
+  -d "code=auth_code_from_redirect" \
+  -d "code_verifier=original_plain_code_verifier" \
+  -d "redirect_uri=https://myapp.com/callback"
+```
+
+</CodeGroup>
+
+---
+
+## 4. Make Inference with the Scoped Token
+
+The resulting `access_token` (`zrv_...`) is a standard Zorveus inference key scoped strictly to the user's selected organization, allowed models, and spending cap.
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```python
+from openai import OpenAI
+
+# Use the token obtained from OAuth token exchange
+user_oauth_token = "zrv_..."
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key=user_oauth_token,
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Generate a weekly team standup update."}],
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const userOAuthToken = "zrv_...";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: userOAuthToken,
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "user", content: "Generate a weekly team standup update." },
+    ],
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+</CodeGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="OAuth Architecture Deep Dive" icon="shield" href="/oauth/overview">
+    Read the full OAuth reference covering reauthorization, scopes, and revocation.
+  </Card>
+  <Card title="Publishing & App Review" icon="rocket" href="/oauth/app-review">
+    Understand the lifecycle from Draft apps to Public Verified status.
+  </Card>
+</CardGroup>

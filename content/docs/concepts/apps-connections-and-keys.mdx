@@ -1,0 +1,63 @@
+---
+title: Apps, Connections, and Keys
+description: Understand the relational hierarchy linking Organizations, Apps, App Connections, and Inference Keys.
+---
+
+# Apps, Connections, and Keys
+
+A common point of confusion is the relationship between an **App**, an **App Connection**, and an **Inference Key**. In Zorveus, these represent separate logical layers.
+
+---
+
+## The Resource Hierarchy
+
+```text
+Organization (e.g. Startup Acme Corp)
+  └── App (e.g. Acme Code Reviewer)
+        └── App Connection (Binding App to Funding Org)
+              ├── Policy: Allowed Models (e.g. "openai/*", "anthropic/*")
+              ├── Policy: Spending Cap ($50.00 / month)
+              ├── Policy: Credit Mode (Enforce / Optional)
+              └── Inference Keys (Active & Historical)
+                    ├── zrv_live_key_918241... (Active)
+                    └── zrv_old_key_110948... (Revoked)
+```
+
+### 1. App
+An **App** is a registered product identity. It defines the application's public name, logo, allowed model catalog, OAuth scopes, and redirect URIs. An app is not a credential and cannot make inference calls on its own.
+
+### 2. App Connection
+An **App Connection** binds an App to a specific funding Organization:
+- `org_programmatic`: Created by a startup to fund its own internal application.
+- `user_oauth`: Created when a user grants OAuth consent for a third-party app to draw from their wallet.
+
+The connection owns the enforceable policy: allowed model wildcards, credit enforcement mode, and periodic spending caps.
+
+### 3. Inference Key
+An **Inference Key** (`zrv_...`) is the cryptographic secret issued under an App Connection. It authenticates requests against `https://api.zorveus.com/v1`. Only active, non-revoked inference keys can execute inference.
+
+---
+
+## Comparison of Zorveus Credentials
+
+| Credential | Prefix / Format | Target Endpoint | Usage Location | Privilege Level |
+| :--- | :--- | :--- | :--- | :--- |
+| **Inference Key** | `zrv_...` | `https://api.zorveus.com/v1` | Server backend or safe client | Scoped to connection model policy & cap |
+| **Service Key** | `zrv_service_...` | `https://api.zorveus.com` | Backend server ONLY | High (manages product users, grants, org) |
+| **OAuth Client Secret** | `zrv_client_secret_...` | `/oauth/token` | OAuth backend ONLY | Confidential client authentication |
+| **Provider Credential** | `sk-...` / encrypted | Upstream provider | Stored securely in Zorveus | Upstream provider account secret |
+| **Dashboard Session** | `session=...` Cookie | `https://app.zorveus.com` | User browser | Authenticated dashboard session |
+
+<Callout type="danger" title="Never Mix Service Keys and Inference Keys">
+  Never paste a Service Key into the OpenAI client `api_key` parameter. The inference gateway (`/v1/chat/completions`) only accepts Inference Keys (`zrv_...`).
+</Callout>
+
+---
+
+## Key Lifecycle and Rotation
+
+Inference keys support seamless rotation without downtime:
+1. Generate a new secondary inference key under the active connection.
+2. Update your production environment variables to use the new key.
+3. Verify that requests succeed on the new key.
+4. Revoke the old key from the dashboard or via the Management API.

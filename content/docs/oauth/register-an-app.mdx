@@ -1,0 +1,26 @@
+---
+title: Registering an OAuth App
+description: Register a connectable application, configure redirect URIs, scopes, and test users.
+---
+
+# Registering an OAuth App
+
+<ApiEndpoint method="POST" path="/apps" auth="dashboard_session" />
+
+To build connectable applications, register your app inside a **Developer Organization** in the [Zorveus Dashboard](https://app.zorveus.com).
+
+---
+
+## App Registration Fields
+
+| Field | Description | Example |
+| :--- | :--- | :--- |
+| **`name`** | User-facing application name shown on consent screen | `Cursor IDE Extension` |
+| **`redirect_uris`** | Exact matching HTTPS redirect destinations | `https://myapp.com/api/auth/callback` |
+| **`allowed_models`** | Model families your app will request | `openai/*`, `anthropic/*` |
+| **`scopes`** | Permissions requested (`inference:write`, `models:read`) | `inference:write` |
+| **`cap_policy`** | Default, minimum, and maximum recommended monthly spending caps | Default: `$20.00` |
+
+<Callout type="warning" title="Exact Matching Redirect URIs">
+  Zorveus enforces strict string matching on `redirect_uri`. Wildcards, path traversals, or scheme variations (e.g. `http://` in production) will be rejected during authorization requests.
+</Callout>

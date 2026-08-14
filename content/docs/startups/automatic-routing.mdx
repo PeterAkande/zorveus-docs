@@ -1,0 +1,16 @@
+---
+title: Automatic Routing
+description: Understand exact and wildcard routing policies, priority ordering, and provider fallback resolution.
+---
+
+# Automatic Routing
+
+Zorveus dynamically evaluates provider credentials to route each inference request to the most cost-effective and available provider.
+
+---
+
+## Priority and Resolution Ordering
+
+1. **Active Status**: Only enabled credentials with valid health status are considered.
+2. **Priority Value**: Credentials with higher priority values (e.g. `priority: 20` vs `priority: 10`) are selected first.
+3. **Managed Fallback**: If no matching BYOK credential is found, requests fall back to Zorveus-managed routes (if wallet balance is available).

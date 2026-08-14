@@ -1,0 +1,7 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="zorveus-mark-title">
+  <title id="zorveus-mark-title">Zorveus mark</title>
+  <rect x="4" y="4" width="32" height="32" rx="10" fill="#171717"/>
+  <path d="M13 11.5H27" stroke="#4DFFB4" stroke-width="4.25" stroke-linecap="round"/>
+  <path d="M27 11.5L10 28.5H27" stroke="#4DFFB4" stroke-width="4.25" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="4.75" y="4.75" width="30.5" height="30.5" rx="9.25" stroke="#4DFFB4" stroke-opacity="0.35" stroke-width="1.5"/>
+</svg>

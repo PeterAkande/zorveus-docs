@@ -1,0 +1,11 @@
+{
+  "title": "Accounts & Orgs",
+  "root": true,
+  "pages": [
+    "account-security",
+    "organizations",
+    "members-and-invites",
+    "connected-apps",
+    "notification-settings"
+  ]
+}

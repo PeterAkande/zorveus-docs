@@ -1,0 +1,52 @@
+---
+title: Credit Grants
+description: Issue consumable, expiring AI credit balances to specific product users.
+---
+
+# Credit Grants
+
+<ApiEndpoint method="POST" path="/product-users/{product_user_id}/credit-grants" auth="service_key" />
+
+Credit grants allocate dollar amounts from your startup's budget to individual customers.
+
+<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_service_your_service_key" />
+
+---
+
+## Issue a Credit Grant
+
+<CodeGroup titles={["cURL", "Python"]}>
+
+```bash
+curl -X POST https://api.zorveus.com/product-users/usr_cust_94821/credit-grants \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_service_your_service_key" \
+  -d '{
+    "amount": "10.00",
+    "currency": "USD",
+    "expires_at": "2026-12-31T23:59:59Z",
+    "description": "Welcome promotion credit grant"
+  }'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "https://api.zorveus.com/product-users/usr_cust_94821/credit-grants",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": "Bearer zrv_service_your_service_key",
+    },
+    json={
+        "amount": "10.00",
+        "currency": "USD",
+        "expires_at": "2026-12-31T23:59:59Z",
+        "description": "Welcome promotion credit grant",
+    },
+)
+
+print(response.json())
+```
+
+</CodeGroup>

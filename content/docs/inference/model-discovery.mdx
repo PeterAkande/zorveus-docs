@@ -1,0 +1,102 @@
+---
+title: Model Discovery
+description: Query the models endpoint to discover live available models permitted for your inference key.
+---
+
+# Model Discovery
+
+<ApiEndpoint method="GET" path="/v1/models" auth="inference_key" />
+
+The `/v1/models` endpoint returns the dynamic list of concrete model IDs your inference key is currently authorized to route.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Policy Expansion Semantics
+
+When your App Connection defines wildcard policies like `*` or `openai/*`, the `/v1/models` endpoint **expands those wildcards into concrete routable model IDs** (e.g. `openai/gpt-4.1-mini`, `openai/gpt-4.1`, `anthropic/claude-3-7-sonnet`).
+
+Wildcard strings are policy configurations—not valid target model identifiers in chat completion requests.
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+models = client.models.list()
+for model in models.data:
+    print(f"Available Model: {model.id} (Owner: {model.owned_by})")
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const models = await client.models.list();
+  for (const model of models.data) {
+    console.log(`Available Model: ${model.id} (Owner: ${model.owned_by})`);
+  }
+}
+
+main();
+```
+
+```bash
+curl https://api.zorveus.com/v1/models \
+  -H "Authorization: Bearer zrv_your_inference_key"
+```
+
+</CodeGroup>
+
+<ApiRunner method="GET" path="/v1/models" />
+
+---
+
+## Expected Response
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "openai/gpt-4.1-mini",
+      "object": "model",
+      "created": 1723580000,
+      "owned_by": "openai"
+    },
+    {
+      "id": "openai/gpt-4.1",
+      "object": "model",
+      "created": 1723580000,
+      "owned_by": "openai"
+    },
+    {
+      "id": "anthropic/claude-3-7-sonnet",
+      "object": "model",
+      "created": 1723580000,
+      "owned_by": "anthropic"
+    },
+    {
+      "id": "gemini/gemini-2.5-flash",
+      "object": "model",
+      "created": 1723580000,
+      "owned_by": "google"
+    }
+  ]
+}
+```

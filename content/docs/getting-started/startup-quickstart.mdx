@@ -1,0 +1,204 @@
+---
+title: Startup Quickstart
+description: Send your first AI request through Zorveus using the standard OpenAI SDK and verify usage in your dashboard.
+---
+
+# Startup Quickstart
+
+This guide walks you through setting up a startup organization in Zorveus, generating an inference key, and sending your first AI completion.
+
+<KeyInserter type="inference" label="Test Key Inserter" placeholder="zrv_your_inference_key" />
+
+---
+
+## 1. Prerequisites
+
+Before writing code, complete these 3 steps in the [Zorveus Dashboard](https://app.zorveus.com):
+
+<Steps>
+  <Step title="Create a Startup Organization">
+    Log in to [app.zorveus.com](https://app.zorveus.com) and create or select your company's **Startup** organization.
+  </Step>
+  <Step title="Register an App">
+    Navigate to **Apps** and create a new application (e.g. `My AI Assistant`).
+  </Step>
+  <Step title="Generate an Inference Key">
+    Under your app's **Inference Keys** tab, click **Create Key**. Copy and save the generated key (`zrv_...`) immediately.
+  </Step>
+</Steps>
+
+<Callout type="note" title="One-Time Secret Display">
+  Inference keys are returned in plaintext only upon creation or rotation. Zorveus stores only cryptographic hashes and cannot retrieve the raw secret later.
+</Callout>
+
+---
+
+## 2. Send Your First Request
+
+Zorveus is 100% compatible with the official OpenAI SDKs across all major languages. You only need to set `baseURL` to `https://api.zorveus.com/v1` and use your `zrv_...` key.
+
+<CodeGroup titles={["cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "JavaScript (Node.js)", "Go"]}>
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [
+      {"role": "system", "content": "You are a helpful coding assistant."},
+      {"role": "user", "content": "Write a Python function to check for prime numbers."}
+    ],
+    "temperature": 0.7
+  }'
+```
+
+```python
+from openai import OpenAI
+
+# Initialize standard OpenAI client with Zorveus gateway base URL
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "system", "content": "You are a helpful coding assistant."},
+        {"role": "user", "content": "Write a Python function to check for prime numbers."},
+    ],
+    temperature=0.7,
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "system", content: "You are a helpful coding assistant." },
+      { role: "user", content: "Write a Python function to check for prime numbers." },
+    ],
+    temperature: 0.7,
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```javascript
+const { OpenAI } = require("openai");
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const response = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "system", content: "You are a helpful coding assistant." },
+      { role: "user", content: "Write a Python function to check for prime numbers." },
+    ],
+  });
+
+  console.log(response.choices[0].message.content);
+}
+
+main();
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/sashabaranov/go-openai"
+)
+
+func main() {
+	config := openai.DefaultConfig("zrv_your_inference_key")
+	config.BaseURL = "https://api.zorveus.com/v1"
+
+	client := openai.NewClientWithConfig(config)
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: "openai/gpt-4.1-mini",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleSystem,
+					Content: "You are a helpful coding assistant.",
+				},
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: "Write a Python function to check for prime numbers.",
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("Inference Error: %v\n", err)
+		return
+	}
+
+	fmt.Println(resp.Choices[0].Message.Content)
+}
+```
+
+</CodeGroup>
+
+<ApiRunner
+  method="POST"
+  path="/v1/chat/completions"
+  defaultBody='{\n  "model": "openai/gpt-4.1-mini",\n  "messages": [\n    {"role": "user", "content": "Write a Python function to check for prime numbers."}\n  ]\n}'
+/>
+
+---
+
+## 3. Verify Observable Results
+
+After running the code:
+1. Open your dashboard at [app.zorveus.com](https://app.zorveus.com).
+2. Navigate to **Usage & Analytics**.
+3. You will observe a new usage event recording:
+   - Request timestamp and status (`200 OK`)
+   - Prompt and completion token counts
+   - Provider cost and Zorveus wallet debit
+   - Attribution to your app and active inference key
+
+---
+
+## 4. Policy Configuration Notes
+
+<Callout type="tip" title="Server-Side Policy Enforcement">
+  Model permissions, spending caps, and routing rules are configured server-side inside Zorveus. The client SDK does not send billing caps or routing directives—the gateway enforces them automatically based on the resolved `zrv_...` key.
+</Callout>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Product-User Metering" icon="layers" href="/getting-started/product-user-quickstart">
+    Attribute inference requests to individual customers using `external_user_id`.
+  </Card>
+  <Card title="Bring Your Own Key" icon="key" href="/getting-started/byok-quickstart">
+    Route requests through your own provider credentials to avoid Zorveus markup.
+  </Card>
+</CardGroup>

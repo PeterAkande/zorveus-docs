@@ -1,0 +1,45 @@
+---
+title: Models and Routing
+description: Learn about provider-prefixed model names, wildcard policies, credential resolution, and managed routing.
+---
+
+# Models and Routing
+
+Zorveus provides a unified OpenAI-compatible routing layer across OpenAI, Anthropic, Google Gemini, NVIDIA NIM, and OpenRouter.
+
+---
+
+## Model Naming Convention
+
+Model identifiers in Zorveus use a standardized `provider/model_name` convention:
+
+| Model ID | Target Provider | Description |
+| :--- | :--- | :--- |
+| `openai/gpt-4.1-mini` | OpenAI | Fast, cost-efficient reasoning model |
+| `openai/gpt-4.1` | OpenAI | High-intelligence flagship reasoning model |
+| `anthropic/claude-3-7-sonnet` | Anthropic | Hybrid reasoning and coding model |
+| `gemini/gemini-2.5-flash` | Google Gemini | Ultra-high speed multimodal model |
+| `openrouter/deepseek-r1` | OpenRouter | Open-weights deep reasoning model |
+
+<Callout type="tip" title="Unprefixed Aliases">
+  Standard aliases like `gpt-4o-mini` or `claude-3-5-sonnet` automatically resolve to their canonical provider-prefixed routes when allowed by your connection model policy.
+</Callout>
+
+---
+
+## Model Policies and Wildcards
+
+When configuring an App or App Connection, you specify allowed model patterns:
+- `*`: Allows all current and future models available on the platform.
+- `openai/*`: Allows any model hosted by OpenAI.
+- `anthropic/claude-3-*`: Allows any Claude 3/3.5/3.7 variant.
+- `openai/gpt-4.1-mini`: Restricts the key strictly to a single model.
+
+---
+
+## Credential Resolution Priority
+
+When an inference request arrives:
+1. **Connection-Specific Override**: Checks if the app connection has an explicitly bound provider key.
+2. **Organization BYOK Credential**: Checks if the organization has an active BYOK credential matching the requested model policy (sorted by priority).
+3. **Zorveus-Funded Credential**: Falls back to Zorveus-managed enterprise provider infrastructure (debiting the organization wallet).

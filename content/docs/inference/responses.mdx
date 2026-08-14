@@ -1,0 +1,46 @@
+---
+title: Responses API
+description: Execute modern OpenAI Responses API calls with structured outputs and automated state tracking.
+---
+
+# Responses API
+
+<ApiEndpoint method="POST" path="/v1/responses" auth="inference_key" />
+
+The Responses API provides a simplified, conversation-first interface for generating answers, multi-modal reasoning, and tool calls.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Python (OpenAI SDK)", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.responses.create(
+    model="openai/gpt-4.1-mini",
+    input="What are three core benefits of edge computing?",
+)
+
+print(response.output_text)
+```
+
+```bash
+curl https://api.zorveus.com/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "input": "What are three core benefits of edge computing?"
+  }'
+```
+
+</CodeGroup>

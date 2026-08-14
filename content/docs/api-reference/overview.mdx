@@ -1,0 +1,37 @@
+---
+title: API Reference Overview
+description: Complete REST API Reference for the Zorveus Management and Product API on api.zorveus.com.
+---
+
+# API Reference Overview
+
+The Zorveus Product and Management API provides programmatic access to manage organizations, apps, inference keys, product users, and provider credentials.
+
+## Production Server
+
+```text
+https://api.zorveus.com
+```
+
+## Authentication Types
+
+- **Service Key**: Use `Authorization: Bearer zrv_service_...` for server-to-server operations.
+- **Dashboard Session**: Use browser session cookie and `X-CSRF-Token` for dashboard operations.
+- **Inference Key**: Use `Authorization: Bearer zrv_...` for inference endpoints on `https://api.zorveus.com/v1`.
+
+## API Groups
+
+<CardGroup cols={2}>
+  <Card title="Product Users & Credits" icon="layers" href="/api-reference/product-users">
+    Manage customer identities and issue credit grants.
+  </Card>
+  <Card title="Provider Credentials" icon="key" href="/api-reference/provider-credentials">
+    Store and configure BYOK provider keys.
+  </Card>
+  <Card title="Apps & Connections" icon="terminal" href="/api-reference/apps">
+    Manage applications and programmatic inference connections.
+  </Card>
+  <Card title="Wallets & Top-Ups" icon="shield" href="/api-reference/wallet">
+    Inspect ledger transactions, wallet balances, and top-up checkouts.
+  </Card>
+</CardGroup>

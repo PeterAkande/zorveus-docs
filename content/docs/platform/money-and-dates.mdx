@@ -1,0 +1,24 @@
+---
+title: Money and Dates Representation
+description: Exact decimal string representations and ISO 8601 timestamps used throughout Zorveus.
+---
+
+# Money and Dates Representation
+
+Zorveus adheres to strict formatting standards across all data representations.
+
+---
+
+## Monetary Values
+
+- **Exact Decimal Strings**: All currency amounts (balances, caps, costs, grant amounts) are encoded as fixed-point decimal strings (e.g. `"10.00"`, `"0.000150"`).
+- **Zero Floating Point Inaccuracies**: Decimal strings eliminate binary floating-point representation artifacts across diverse client programming languages.
+
+---
+
+## Timestamps
+
+- **ISO 8601 with UTC Offset**: All dates and timestamps are timezone-aware UTC strings:
+  ```text
+  2026-08-13T20:45:00Z
+  ```

@@ -1,0 +1,19 @@
+{
+  "title": "Inference API",
+  "root": true,
+  "pages": [
+    "overview",
+    "chat-completions",
+    "responses",
+    "streaming",
+    "tool-calling",
+    "product-user-metadata",
+    "embeddings",
+    "images",
+    "audio",
+    "moderation",
+    "rerank",
+    "realtime",
+    "model-discovery"
+  ]
+}

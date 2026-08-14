@@ -1,0 +1,50 @@
+---
+title: The Authorization Request
+description: Construct PKCE authorization URLs, code challenges, and state parameters.
+---
+
+# The Authorization Request
+
+<ApiEndpoint method="GET" path="/oauth/authorize" auth="oauth_bearer" />
+
+The authorization request initiates the browser-based OAuth consent flow on `https://app.zorveus.com/oauth/authorize`.
+
+---
+
+## Query Parameters
+
+<ParamField name="response_type" type="string" required>
+  Must be set to `code`.
+</ParamField>
+
+<ParamField name="client_id" type="string" required>
+  Your registered application Client ID (`zrv_client_...`).
+</ParamField>
+
+<ParamField name="redirect_uri" type="string" required>
+  URL-encoded callback destination matching your registered list.
+</ParamField>
+
+<ParamField name="scope" type="string" required>
+  Space-separated permissions (e.g. `inference:write`).
+</ParamField>
+
+<ParamField name="code_challenge" type="string" required>
+  Base64URL-encoded SHA-256 hash of your plaintext `code_verifier`.
+</ParamField>
+
+<ParamField name="code_challenge_method" type="string" required>
+  Must be set to `S256`.
+</ParamField>
+
+<ParamField name="state" type="string" required>
+  High-entropy CSRF mitigation token verified upon callback return.
+</ParamField>
+
+---
+
+## Example Authorization URL
+
+```text
+https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&scope=inference%3Awrite&code_challenge=E9Melhoa2OwvFrGMTJguCH5ZiXV6lURbI7e1J0q_ges&code_challenge_method=S256&state=94a1b08c99e2
+```

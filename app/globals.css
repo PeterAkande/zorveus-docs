@@ -1,0 +1,268 @@
+@import "fumadocs-ui/style.css";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+:root {
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 155 100% 65%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 63.9%;
+  --accent: 155 100% 65%;
+  --accent-foreground: 0 0% 4%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --ring: 155 100% 65%;
+
+  --color-mint: #4DFFB4;
+  --color-mint-dark: #38CC8D;
+  --color-zorveus-dark: #0A0A0B;
+  --color-zorveus-card: #121214;
+  --color-zorveus-border: #222226;
+}
+
+body {
+  background-color: #0A0A0B;
+  color: #E4E4E7;
+  font-family: var(--font-sans);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272A;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3F3F46;
+}
+
+/* =========================================================================
+   Explicit Card Container & Geometry Rules (Guaranteed 20px padding & layout)
+   ========================================================================= */
+
+.zorveus-card-container {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  padding: 20px !important;
+  border-radius: 12px !important;
+  border: 1px solid #222226 !important;
+  background-color: #121214 !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.zorveus-card-container:hover {
+  border-color: rgba(161, 161, 170, 0.4) !important;
+  background-color: #161619 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+.zorveus-card-icon-box {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 8px !important;
+  border: 1px solid #27272A !important;
+  background-color: rgba(39, 39, 42, 0.3) !important;
+  color: #D4D4D8 !important;
+  transition: all 0.2s ease !important;
+}
+
+.zorveus-card-container:hover .zorveus-card-icon-box {
+  border-color: rgba(77, 255, 180, 0.4) !important;
+  color: #4DFFB4 !important;
+}
+
+/* Global prose overrides for interactive cards */
+.prose a:has(.group),
+.prose a.group,
+.prose .card-container a,
+.zorveus-card-container,
+a.group {
+  text-decoration: none !important;
+}
+
+.prose a:has(.group) *,
+.prose a.group * {
+  text-decoration: none !important;
+}
+
+/* =========================================================================
+   Sidebar Refinements & Layout Ergonomics
+   ========================================================================= */
+
+#nd-sidebar,
+.fd-sidebar {
+  background-color: #0A0A0B !important;
+  border-right: 1px solid #1E1E22 !important;
+  font-family: var(--font-sans) !important;
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
+}
+
+/* Remove default padding from inner wrappers */
+#nd-sidebar > div,
+.fd-sidebar > div,
+.fd-sidebar-body,
+.fd-sidebar-nav,
+#nd-sidebar nav {
+  padding-left: 0 !important;
+  padding-inline-start: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Category header titles */
+#nd-sidebar p.text-muted-foreground,
+.fd-sidebar-folder-title,
+#nd-sidebar [role="group"] > p,
+.fd-sidebar-group-title {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  color: #71717A !important;
+  padding-left: 0.5rem !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+/* Nav Item Links */
+#nd-sidebar a,
+.fd-sidebar a {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  color: #A1A1AA !important;
+  border-radius: 6px !important;
+  padding: 0.35rem 0.65rem !important;
+  transition: all 0.15s ease !important;
+  margin: 1px 0 !important;
+}
+
+#nd-sidebar a:hover,
+.fd-sidebar a:hover {
+  color: #F4F4F5 !important;
+  background-color: #18181B !important;
+}
+
+/* Active Nav Item */
+#nd-sidebar a[data-active="true"],
+.fd-sidebar a[data-active="true"],
+#nd-sidebar a[aria-current="page"],
+.fd-sidebar a[aria-current="page"] {
+  color: #4DFFB4 !important;
+  background-color: rgba(77, 255, 180, 0.08) !important;
+  font-weight: 600 !important;
+  border-left: 2px solid #4DFFB4 !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+/* Expanded Accordion Group Container & Vertical Guide Line */
+.fd-sidebar-folder-content,
+#nd-sidebar [data-radix-collapsible-content],
+.fd-sidebar [data-radix-collapsible-content],
+#nd-sidebar [role="group"],
+.fd-sidebar [role="group"] {
+  border-left: 1px solid #27272A !important;
+  margin-left: 0.75rem !important;
+  padding-left: 0.25rem !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Nested Folder Links Hierarchy Indentation (Overriding Tailwind Logical Properties) */
+.fd-sidebar-folder-content a,
+[data-radix-collapsible-content] a,
+#nd-sidebar [role="group"] a,
+.fd-sidebar [role="group"] a,
+#nd-sidebar div[data-state="open"] a,
+.fd-sidebar div[data-state="open"] a {
+  padding-left: 1.5rem !important;
+  padding-inline-start: 1.5rem !important;
+  margin-left: 0.25rem !important;
+}
+
+/* Navbar */
+.fd-nav,
+header.sticky {
+  background-color: rgba(10, 10, 11, 0.8) !important;
+  backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid #1E1E22 !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Search input button */
+button[data-search-full],
+.fd-search-trigger {
+  background-color: #121214 !important;
+  border: 1px solid #27272A !important;
+  border-radius: 8px !important;
+  color: #A1A1AA !important;
+  font-family: var(--font-sans) !important;
+  transition: border-color 0.2s ease !important;
+}
+
+button[data-search-full]:hover,
+.fd-search-trigger:hover {
+  border-color: #3F3F46 !important;
+  color: #F4F4F5 !important;
+}
+
+/* Code block & pre styling */
+pre {
+  background-color: #0E0E10 !important;
+  border: 1px solid #222226 !important;
+  border-radius: 10px !important;
+}
+
+code {
+  font-family: var(--font-mono) !important;
+}
+
+/* Table of Contents */
+.fd-toc a {
+  font-family: var(--font-sans) !important;
+}
+
+.fd-toc a[data-active="true"] {
+  color: #4DFFB4 !important;
+  font-weight: 500 !important;
+}
+
+.fd-toc a:hover {
+  color: #F4F4F5 !important;
+}

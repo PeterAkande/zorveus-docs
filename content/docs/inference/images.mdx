@@ -1,0 +1,61 @@
+---
+title: Image Generation
+description: Generate images and visual assets through OpenAI DALL-E and compatible models.
+---
+
+# Image Generation
+
+<ApiEndpoint method="POST" path="/v1/images/generations" auth="inference_key" />
+
+Generate images using models like `openai/dall-e-3`.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.images.generate(
+    model="openai/dall-e-3",
+    prompt="A modern minimalist geometric workspace with emerald mint lighting",
+    size="1024x1024",
+    quality="standard",
+    n=1,
+)
+
+print(response.data[0].url)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const image = await client.images.generate({
+    model: "openai/dall-e-3",
+    prompt: "A modern minimalist geometric workspace with emerald mint lighting",
+    size: "1024x1024",
+    n: 1,
+  });
+
+  console.log(image.data[0].url);
+}
+
+main();
+```
+
+</CodeGroup>

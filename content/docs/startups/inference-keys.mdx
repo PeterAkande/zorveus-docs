@@ -1,0 +1,38 @@
+---
+title: Inference Keys
+description: Create, rotate, scope, and revoke gateway inference keys.
+---
+
+# Inference Keys
+
+Inference keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`).
+
+<KeyInserter type="inference" label="Inference Key Inserter" placeholder="zrv_your_inference_key" />
+
+---
+
+## One-Time Plaintext Display
+
+When you generate or rotate an inference key, the plaintext secret is displayed **only once**:
+
+```text
+zrv_live_9a8f7c2b4d1e6f0a5c3e7d9b2a4f6c8e
+```
+
+Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, you must rotate or generate a new key.
+
+---
+
+## Key Rotation Without Downtime
+
+<Steps>
+  <Step title="Create New Key">
+    Under your App Connection, click **Create Secondary Key**.
+  </Step>
+  <Step title="Deploy to Production">
+    Update your backend environment variables (`ZORVEUS_API_KEY`) with the new secret and deploy.
+  </Step>
+  <Step title="Revoke Old Key">
+    Once traffic shifts, click **Revoke** on the previous key. Revocation is instantaneous across all edge gateway instances.
+  </Step>
+</Steps>

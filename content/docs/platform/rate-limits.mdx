@@ -1,0 +1,36 @@
+---
+title: Rate Limits
+description: Understand request rate limits, retry policies, and exponential backoff strategies.
+---
+
+# Rate Limits
+
+Zorveus enforces per-minute and per-day rate limits to safeguard upstream provider stability.
+
+---
+
+## Standard Rate Limits
+
+- **Inference Gateway**: Dynamic based on your organization tier and upstream provider limits.
+- **Management API**: 300 requests per minute per Organization Service Key.
+
+---
+
+## Retry Strategy with Exponential Backoff
+
+When receiving `429 Too Many Requests`, clients should inspect the `Retry-After` response header and implement exponential backoff with jitter:
+
+```python
+import time
+import random
+
+def call_with_retry(fn, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return fn()
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise e
+            sleep_time = (2 ** attempt) + random.uniform(0, 1)
+            time.sleep(sleep_time)
+```

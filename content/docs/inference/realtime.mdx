@@ -1,0 +1,71 @@
+---
+title: Realtime WebSockets & Ephemeral Sessions
+description: Create short-lived ephemeral client secrets for low-latency Realtime WebSockets audio sessions.
+---
+
+# Realtime WebSockets & Ephemeral Sessions
+
+<ApiEndpoint method="POST" path="/v1/realtime/sessions" auth="inference_key" />
+
+The Realtime Sessions API mints short-lived, ephemeral client secrets (`ek_...`) allowing browser or mobile clients to establish direct WebSockets connections for real-time speech-to-speech audio interactions without exposing your master inference key.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Minting an Ephemeral Session Token
+
+Your backend requests an ephemeral session token, specifying the permitted model and voice parameters:
+
+<CodeGroup titles={["Python", "TypeScript", "cURL"]}>
+
+```python
+import requests
+
+response = requests.post(
+    "https://api.zorveus.com/v1/realtime/sessions",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": "Bearer zrv_your_inference_key",
+    },
+    json={
+        "model": "openai/gpt-4o-realtime-preview",
+        "voice": "verse",
+    },
+)
+
+session_data = response.json()
+# Ephemeral token safe to send to client browser: session_data['client_secret']['value']
+print("Ephemeral Client Secret:", session_data["client_secret"]["value"])
+```
+
+```typescript
+async function createRealtimeSession() {
+  const response = await fetch("https://api.zorveus.com/v1/realtime/sessions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer zrv_your_inference_key",
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-4o-realtime-preview",
+      voice: "verse",
+    }),
+  });
+
+  const data = await response.json();
+  return data.client_secret.value;
+}
+```
+
+```bash
+curl https://api.zorveus.com/v1/realtime/sessions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4o-realtime-preview",
+    "voice": "verse"
+  }'
+```
+
+</CodeGroup>

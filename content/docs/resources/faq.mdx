@@ -1,0 +1,15 @@
+---
+title: Frequently Asked Questions
+description: Answers to common questions regarding billing, latency, BYOK, and enterprise compliance.
+---
+
+# Frequently Asked Questions
+
+### Does Zorveus add latency to AI inference?
+No. The Zorveus Gateway is built on high-performance async streaming infrastructure that adds less than 5ms overhead. Token streams pass directly through Server-Sent Events (SSE) with zero response buffering.
+
+### Can I mix BYOK keys and wallet-funded routing?
+Yes. If you add an OpenAI BYOK credential with model policy `openai/*`, all OpenAI requests route through your direct key. If you then call `anthropic/claude-3-7-sonnet` without an Anthropic key, Zorveus automatically falls back to your funded organization wallet.
+
+### Are prompt inputs and completions stored?
+No. Zorveus operates a zero-data-retention policy for model inputs and completions by default. Only metadata (token counts, timestamps, user ID, cost) is stored in the ledger.

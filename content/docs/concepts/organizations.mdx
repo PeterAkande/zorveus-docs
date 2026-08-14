@@ -1,0 +1,43 @@
+---
+title: Organizations
+description: Understand organization types, ownership boundaries, member permissions, and funding contexts.
+---
+
+# Organizations
+
+In Zorveus, an **Organization** is the fundamental security, ownership, and funding boundary. All apps, wallets, provider credentials, product users, and members belong to an organization.
+
+---
+
+## Organization Types
+
+| Type | Intended Audience | Spendable Wallet? | Primary Capabilities |
+| :--- | :--- | :--- | :--- |
+| **`startup`** | AI Product Teams & Companies | Yes | Create internal apps, issue inference keys, manage product users, store BYOK credentials, grant credits. |
+| **`developer`** | Third-Party Tool Creators | No (aggregate only) | Register OAuth applications, configure redirect URIs, manage test users, review OAuth consent logs. |
+| **`personal`** | Individual AI Consumers | Yes | Fund personal wallet, manage connected OAuth applications, set personal spending caps. |
+
+<Callout type="note" title="Internal Organizations">
+  The `internal` organization type is reserved strictly for Zorveus platform infrastructure operations and is never available as a selectable customer workspace.
+</Callout>
+
+---
+
+## Ownership and Isolation
+
+- **Isolated Wallets**: Each `startup` and `personal` organization owns a distinct ledger wallet with independent balances and currency rules. Funds cannot automatically spill over between organizations.
+- **Member Access**: Users can belong to multiple organizations (e.g. your personal wallet and your company's startup workspace) with distinct role permissions in each.
+- **Provider Credentials**: BYOK credentials added to Organization A are completely invisible and unrouteable by Organization B, even if both organizations are managed by the same team members.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Apps, Connections, and Keys" icon="layers" href="/concepts/apps-connections-and-keys">
+    Understand how apps bind to organizations through programmatic or OAuth connections.
+  </Card>
+  <Card title="Members & Roles" icon="shield" href="/startups/members">
+    Configure team member access, role permissions, and spending delegations.
+  </Card>
+</CardGroup>

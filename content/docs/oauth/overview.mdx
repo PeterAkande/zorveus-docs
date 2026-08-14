@@ -1,0 +1,32 @@
+---
+title: OAuth 2.0 Overview
+description: Architecture, actors, privacy guarantees, and complete PKCE flow for connectable AI applications.
+---
+
+# OAuth 2.0 Overview
+
+Zorveus implements the **OAuth 2.0 Authorization Code Flow with PKCE (RFC 7636)** to enable applications to connect to user AI wallets securely.
+
+---
+
+## Interactive Flow Diagram
+
+<SequenceDiagram flow="oauth-pkce" />
+
+---
+
+## The Privacy Model
+
+When a user authorizes your app via OAuth:
+- **Payer Privacy**: You (the developer) receive a scoped inference token (`zrv_...`). You **never** see the user's personal identity, email, organization membership, total wallet balance, or stored provider API keys.
+- **Aggregate Analytics**: Developer dashboards show aggregated token volumes and active connections across your user base.
+- **Per-User Control**: The user retains full control to inspect usage logs, change spending caps, or revoke access at any time from their Zorveus dashboard.
+
+---
+
+## OAuth Actors
+
+1. **Client / App Developer**: The application initiating authorization and exchanging tokens.
+2. **Resource Owner / Payer**: The user granting access and choosing which personal or team wallet funds the inference.
+3. **Authorization Server**: Zorveus OAuth endpoints (`/oauth/authorize`, `/oauth/token`).
+4. **Resource Server**: The Zorveus Inference Gateway (`https://api.zorveus.com/v1`).

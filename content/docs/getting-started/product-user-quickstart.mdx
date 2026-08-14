@@ -1,0 +1,145 @@
+---
+title: Product-User Quickstart
+description: Attribute AI inference requests to your own customers using inline external user metadata.
+---
+
+# Product-User Quickstart
+
+In Zorveus, **Product Users** represent your application's end users. Instead of building complex usage-tracking databases, you pass your customer's ID directly in the inference request metadata.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Inline Product-User Creation
+
+When Zorveus processes an inference request containing an `external_user_id` it has not seen before, it **automatically creates the product user inline** in your startup workspace.
+
+Subsequent requests with the same `external_user_id` update the product user's metadata (e.g. name, email, plan) and aggregate usage seamlessly.
+
+---
+
+## Send Request with User Attribution
+
+Add the `user` parameter or `extra_body.metadata` to your standard OpenAI client call:
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Summarize the latest trends in renewable energy."}
+    ],
+    # Pass Zorveus product-user metadata
+    extra_body={
+        "metadata": {
+            "external_user_id": "usr_cust_94821",
+            "name": "Sarah Connor",
+            "email": "sarah.connor@example.com",
+            "plan": "pro_tier",
+            "team_id": "team_alpha",
+        }
+    },
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "user", content: "Summarize the latest trends in renewable energy." },
+    ],
+    // Zorveus metadata parameter for attribution
+    ...({
+      metadata: {
+        external_user_id: "usr_cust_94821",
+        name: "Sarah Connor",
+        email: "sarah.connor@example.com",
+        plan: "pro_tier",
+      },
+    } as any),
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [
+      {"role": "user", "content": "Summarize the latest trends in renewable energy."}
+    ],
+    "metadata": {
+      "external_user_id": "usr_cust_94821",
+      "name": "Sarah Connor",
+      "email": "sarah.connor@example.com",
+      "plan": "pro_tier"
+    }
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Identifier Resolution Precedence
+
+When attributing requests to product users, Zorveus applies the following hierarchy:
+
+1. **`external_user_id` (Recommended)**: Your own database primary key (e.g. `usr_98124`, `auth0|123456`). Zorveus indexes and resolves this immediately.
+2. **`product_user_id`**: An internal Zorveus UUID if you previously fetched or created the product user via the Management API.
+3. **OpenAI `user` field**: If `metadata.external_user_id` is omitted, Zorveus falls back to the standard OpenAI top-level `user` string as the `external_user_id`.
+
+<Callout type="note" title="Conflict Precedence">
+  If both `product_user_id` and `external_user_id` are provided in the same request, `product_user_id` takes precedence for resolution, and the corresponding external user mapping is verified.
+</Callout>
+
+---
+
+## Observing Product Users in Dashboard
+
+After making the request:
+1. Go to [app.zorveus.com](https://app.zorveus.com) -> **Product Users**.
+2. Search for `usr_cust_94821` or `Sarah Connor`.
+3. View the customer's:
+   - Lifetime token consumption and requests
+   - Remaining credit balance (if credit grants are applied)
+   - Spending caps and active rate limits
+   - Full timeline of AI requests
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Product Users Management" icon="layers" href="/startups/product-users">
+    Deep dive into programmatically managing, searching, and updating product users.
+  </Card>
+  <Card title="Credit Grants" icon="shield" href="/startups/credit-grants">
+    Issue expiring or rolling AI credits to trial and subscription users.
+  </Card>
+</CardGroup>

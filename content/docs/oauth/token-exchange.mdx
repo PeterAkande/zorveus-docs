@@ -1,0 +1,80 @@
+---
+title: Token Exchange
+description: Exchange short-lived authorization codes and PKCE verifiers for scoped inference tokens.
+---
+
+# Token Exchange
+
+<ApiEndpoint method="POST" path="/oauth/token" auth="oauth_bearer" />
+
+Once the user approves your app, Zorveus redirects to your `redirect_uri` with `?code=...&state=...`. Your backend makes a server-to-server POST request to exchange the code for an inference token.
+
+---
+
+## Token Request Parameters
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| **`grant_type`** | string | Yes | Must be `authorization_code`. |
+| **`client_id`** | string | Yes | Your application Client ID. |
+| **`client_secret`** | string | Yes | Your confidential Client Secret. |
+| **`code`** | string | Yes | Single-use authorization code from redirect callback. |
+| **`code_verifier`** | string | Yes | Plaintext string used to generate `code_challenge`. |
+| **`redirect_uri`** | string | Yes | Exact URI sent in initial authorization request. |
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Node.js (TypeScript)", "Python", "cURL"]}>
+
+```typescript
+const response = await fetch("https://api.zorveus.com/oauth/token", {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: "zrv_client_your_client_id",
+    client_secret: "zrv_client_secret_your_client_secret",
+    code: authCodeFromRedirect,
+    code_verifier: codeVerifier,
+    redirect_uri: "https://myapp.com/callback",
+  }),
+});
+
+const tokenData = await response.json();
+console.log("Scoped Inference Token:", tokenData.access_token);
+```
+
+```python
+import requests
+
+response = requests.post(
+    "https://api.zorveus.com/oauth/token",
+    headers={"Content-Type": "application/x-www-form-urlencoded"},
+    data={
+        "grant_type": "authorization_code",
+        "client_id": "zrv_client_your_client_id",
+        "client_secret": "zrv_client_secret_your_client_secret",
+        "code": auth_code_from_redirect,
+        "code_verifier": code_verifier,
+        "redirect_uri": "https://myapp.com/callback",
+    },
+)
+
+token_data = response.json()
+print("Scoped Inference Token:", token_data["access_token"])
+```
+
+```bash
+curl -X POST https://api.zorveus.com/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "client_id=zrv_client_your_client_id" \
+  -d "client_secret=zrv_client_secret_your_client_secret" \
+  -d "code=auth_code_from_redirect" \
+  -d "code_verifier=original_plain_code_verifier" \
+  -d "redirect_uri=https://myapp.com/callback"
+```
+
+</CodeGroup>

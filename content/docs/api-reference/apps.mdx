@@ -1,0 +1,357 @@
+---
+title: Apps & Connections API
+description: Reference and interactive runner for apps & connections operations.
+---
+
+# Apps & Connections
+
+<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
+
+## Create App
+
+<ApiEndpoint method="POST" path="/apps" auth="dashboard_session" />
+
+<ApiRunner method="POST" path="/apps" authType="dashboard_session" />
+
+---
+
+## List Apps
+
+<ApiEndpoint method="GET" path="/apps" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="owner_org_id" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="q" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="status" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="limit" type="integer">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/apps" authType="dashboard_session" />
+
+---
+
+## Get App
+
+<ApiEndpoint method="GET" path="/apps/{app_id}" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="GET" path="/apps/{app_id}" authType="dashboard_session" />
+
+---
+
+## Update App Profile
+
+<ApiEndpoint method="PATCH" path="/apps/{app_id}" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="PATCH" path="/apps/{app_id}" authType="dashboard_session" />
+
+---
+
+## Add App Redirect Uri
+
+<ApiEndpoint method="POST" path="/apps/{app_id}/redirect-uris" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="POST" path="/apps/{app_id}/redirect-uris" authType="dashboard_session" />
+
+---
+
+## Delete App Redirect Uri
+
+<ApiEndpoint method="DELETE" path="/apps/{app_id}/redirect-uris/{redirect_uri_id}" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="redirect_uri_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="DELETE" path="/apps/{app_id}/redirect-uris/{redirect_uri_id}" authType="dashboard_session" />
+
+---
+
+## Rotate App Client Secret
+
+<ApiEndpoint method="POST" path="/apps/{app_id}/client-secret/rotate" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="POST" path="/apps/{app_id}/client-secret/rotate" authType="dashboard_session" />
+
+---
+
+## Update App Allowed Models
+
+<ApiEndpoint method="PATCH" path="/apps/{app_id}/models" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="PATCH" path="/apps/{app_id}/models" authType="dashboard_session" />
+
+---
+
+## Update App Test User Emails
+
+<ApiEndpoint method="PATCH" path="/apps/{app_id}/test-users" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="PATCH" path="/apps/{app_id}/test-users" authType="dashboard_session" />
+
+---
+
+## Submit App Review
+
+<ApiEndpoint method="POST" path="/apps/{app_id}/submit-review" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="POST" path="/apps/{app_id}/submit-review" authType="dashboard_session" />
+
+---
+
+## Cancel App Review Submission
+
+<ApiEndpoint method="POST" path="/apps/{app_id}/cancel-review" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="POST" path="/apps/{app_id}/cancel-review" authType="dashboard_session" />
+
+---
+
+## Create Org Programmatic App Connection
+
+<ApiEndpoint method="POST" path="/app-connections/org-programmatic" auth="dashboard_session" />
+
+<ApiRunner method="POST" path="/app-connections/org-programmatic" authType="dashboard_session" />
+
+---
+
+## Create Dashboard Programmatic App Connection
+
+<ApiEndpoint method="POST" path="/app-connections/dashboard" auth="dashboard_session" />
+
+<ApiRunner method="POST" path="/app-connections/dashboard" authType="dashboard_session" />
+
+---
+
+## List App Connections
+
+<ApiEndpoint method="GET" path="/app-connections" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="app_id" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="q" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="status" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="connection_type" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="connection_types" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="limit" type="integer">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/app-connections" authType="dashboard_session" />
+
+---
+
+## Get App Connection
+
+<ApiEndpoint method="GET" path="/app-connections/{app_connection_id}" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_connection_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/app-connections/{app_connection_id}" authType="dashboard_session" />
+
+---
+
+## List App Connection Inference Keys
+
+<ApiEndpoint method="GET" path="/app-connections/{app_connection_id}/keys" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_connection_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/app-connections/{app_connection_id}/keys" authType="dashboard_session" />
+
+---
+
+## Update App Connection Inference Key
+
+<ApiEndpoint method="PATCH" path="/app-connections/{app_connection_id}/keys/{api_key_id}" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_connection_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="api_key_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="PATCH" path="/app-connections/{app_connection_id}/keys/{api_key_id}" authType="dashboard_session" />
+
+---
+
+## Update App Connection Cap
+
+<ApiEndpoint method="PATCH" path="/app-connections/{app_connection_id}/cap" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_connection_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="PATCH" path="/app-connections/{app_connection_id}/cap" authType="dashboard_session" />
+
+---
+
+## Update Connected App Credit Mode
+
+<ApiEndpoint method="PATCH" path="/app-connections/{app_connection_id}/credit-mode" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_connection_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="PATCH" path="/app-connections/{app_connection_id}/credit-mode" authType="dashboard_session" />
+
+---
+
+## Revoke Connected App
+
+<ApiEndpoint method="POST" path="/app-connections/{app_connection_id}/revoke" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_connection_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="POST" path="/app-connections/{app_connection_id}/revoke" authType="dashboard_session" />
+
+---
+
+## Rotate Connected App Key
+
+<ApiEndpoint method="POST" path="/app-connections/{app_connection_id}/keys/rotate" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="app_connection_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="POST" path="/app-connections/{app_connection_id}/keys/rotate" authType="dashboard_session" />
+
+---
+

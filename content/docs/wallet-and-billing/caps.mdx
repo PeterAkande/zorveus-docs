@@ -1,0 +1,18 @@
+---
+title: Spending Caps Management
+description: Configure rolling monthly spending limits across organizations, keys, and product users.
+---
+
+# Spending Caps Management
+
+<ApiEndpoint method="PUT" path="/caps" auth="dashboard_session" />
+
+Spending caps act as circuit breakers to prevent unforeseen bills.
+
+---
+
+## Configuring Caps
+
+- **Organization Cap**: Overall budget cap for the company.
+- **Connection Cap**: Spending limit per application or OAuth connection.
+- **Product-User Cap**: Max monthly spend allowed per end user.

@@ -1,0 +1,24 @@
+---
+title: Managing Apps
+description: Create and configure applications, model allowlists, and connection scopes.
+---
+
+# Managing Apps
+
+An **App** is the product identity in Zorveus that groups inference keys, allowed models, and usage data.
+
+---
+
+## App Lifecycle
+
+1. **Internal Startup App**: Used by your backend servers to make programmatic AI calls for your product.
+2. **Developer OAuth App**: Used by third-party developer integrations requiring user consent.
+
+---
+
+## Configuring Model Policies
+
+Each app specifies allowed model wildcards:
+- `*`: Allows all models in the Zorveus catalog.
+- `openai/*`: Allows all OpenAI models.
+- `anthropic/claude-3-7-sonnet`: Restricts strictly to a single model.

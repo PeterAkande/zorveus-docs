@@ -1,0 +1,32 @@
+---
+title: OAuth Error Handling
+description: Handle OAuth redirect errors, invalid redirect URIs, and token exchange failure codes.
+---
+
+# OAuth Error Handling
+
+OAuth errors fall into two distinct security categories:
+
+---
+
+## 1. Unsafe Client Errors (Displayed on Zorveus)
+
+If the `client_id` is invalid or the `redirect_uri` does not **exactly match** the registered list, Zorveus **will not redirect the user**.
+
+An error message is rendered directly on Zorveus to prevent open-redirect exploits.
+
+---
+
+## 2. Safe Redirect Errors (Sent to `redirect_uri`)
+
+When the client is validated but the authorization cannot proceed (e.g. user denied consent), Zorveus redirects to your `redirect_uri` with query parameters:
+
+```text
+https://myapp.com/callback?error=access_denied&error_description=User+declined+the+authorization+request&state=random_state_string
+```
+
+| Error Code | Meaning |
+| :--- | :--- |
+| `access_denied` | The user clicked Cancel or declined consent. |
+| `invalid_scope` | The requested scope is not permitted for this application. |
+| `server_error` | Internal authorization server error. |

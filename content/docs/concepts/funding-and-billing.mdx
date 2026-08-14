@@ -1,0 +1,50 @@
+---
+title: Funding and Billing Models
+description: Understand how Zorveus handles wallet reservations, BYOK zero-margin routing, and product credit settlement.
+---
+
+# Funding and Billing Models
+
+Zorveus provides three distinct billing modes to support diverse commercial architectures.
+
+---
+
+## 1. Zorveus-Funded Wallet Usage
+
+In the standard wallet-funded mode, Zorveus acts as the merchant of record for AI inference:
+- **Available vs Reserved Balance**: Before sending a request to the upstream provider, Zorveus computes a pre-flight reservation from your organization wallet.
+- **Settlement**: When the provider finishes streaming tokens, the actual token count and sell price are settled, and unused reserved funds are released immediately.
+- **Provider Cost vs Sell Cost**: Both metrics are recorded. The difference represents the Zorveus routing margin.
+
+```text
+[Pre-Flight Request]  ---> Reserve $0.0050 from Wallet
+[Streaming Tokens]    ---> Provider returns 450 tokens
+[Post-Flight Settle]  ---> Settle $0.0032 actual debit, release $0.0018 unspent
+```
+
+---
+
+## 2. Bring Your Own Key (BYOK)
+
+When your organization attaches its own provider credentials (e.g. your company's direct OpenAI or Anthropic account):
+- **Zorveus Sell Cost**: `$0.000000` (Zorveus does not debit your wallet for model tokens).
+- **Direct Upstream Invoice**: The model provider invoices your corporate credit card or enterprise contract directly.
+- **Token Accounting**: Zorveus continues to track exact prompt/completion tokens, provider cost estimates, and product-user attribution.
+
+---
+
+## 3. Product-User Credits
+
+When an app connection enforces product-user credits:
+- The inference request must include an identifiable product user (`external_user_id` or `product_user_id`).
+- The product user must hold an active, non-expired credit grant with sufficient remaining balance.
+- Consumed tokens debit the product user's credit balance first.
+- The startup funds the underlying organization wallet or BYOK credentials; credit grants represent internal allocation to customers.
+
+---
+
+## Money Representation
+
+<Callout type="note" title="Decimal Precision">
+  All monetary values in the Zorveus API and usage events are formatted as exact decimal strings (e.g. `"0.004210"`) to avoid IEEE floating-point rounding errors across client languages.
+</Callout>

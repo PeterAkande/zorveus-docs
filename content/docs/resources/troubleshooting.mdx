@@ -1,0 +1,40 @@
+---
+title: Troubleshooting Guide
+description: Diagnoses and resolutions for common inference errors, authentication failures, and billing issues.
+---
+
+# Troubleshooting Guide
+
+Find quick solutions to common integration and runtime errors.
+
+---
+
+## Inference Errors
+
+### 1. `401 Unauthorized` (`invalid_api_key`)
+- **Cause**: The inference key is missing, malformed, or revoked.
+- **Fix**: Verify your environment variable contains the full `zrv_...` string. Generate a new key under **Apps** -> **Inference Keys** if necessary.
+
+### 2. `403 Forbidden` (`model_not_allowed`)
+- **Cause**: The model specified (e.g. `anthropic/claude-3-7-sonnet`) is not covered by your App Connection's allowed model policy.
+- **Fix**: Update the allowed model wildcard in your dashboard to include `anthropic/*` or `*`.
+
+### 3. `402 Payment Required` (`insufficient_balance`)
+- **Cause**: Organization wallet balance is `$0.00` and no matching BYOK credential was found.
+- **Fix**: Top up your organization wallet or add a valid provider API key under **Provider Credentials**.
+
+### 4. `429 Too Many Requests` (`cap_exceeded`)
+- **Cause**: Spending limit on the organization, app connection, or product user has been reached.
+- **Fix**: Adjust or reset the spending cap in dashboard settings.
+
+---
+
+## OAuth Errors
+
+### 1. `redirect_uri_mismatch`
+- **Cause**: The `redirect_uri` sent during `/oauth/authorize` does not match the registered list character-for-character.
+- **Fix**: Check for trailing slashes, exact protocol (`https://`), and port numbers.
+
+### 2. `invalid_grant` / `code_verifier_mismatch`
+- **Cause**: The `code_verifier` sent to `/oauth/token` does not match the hashed `code_challenge` from the authorization request.
+- **Fix**: Verify your SHA-256 Base64URL transformation and ensure the code verifier is stored accurately in session state.

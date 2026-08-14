@@ -1,0 +1,18 @@
+---
+title: Security & Compliance
+description: Secret encryption, credential hygiene, least-privilege scoping, and audit controls.
+---
+
+# Security & Compliance
+
+Zorveus is architected with enterprise-grade security controls at every layer.
+
+---
+
+## Key Security Controls
+
+1. **Encryption at Rest**: Provider API credentials stored in BYOK vaults are encrypted with AES-256-GCM using isolated customer encryption keys.
+2. **One-Time Secret Display**: Inference keys and service keys are displayed in plaintext only upon creation. Only cryptographic hashes are stored.
+3. **PKCE & Exact Redirect URIs**: OAuth 2.0 strictly enforces RFC 7636 PKCE code challenge verification and exact URI string matching.
+4. **Least-Privilege Model Scoping**: Connection model policies enforce that keys can only query explicitly permitted model wildcards.
+5. **Zero Token Logging**: Zorveus does not persist prompt or completion text bodies unless explicitly configured for moderation auditing.

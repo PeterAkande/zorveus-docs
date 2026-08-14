@@ -1,0 +1,121 @@
+---
+title: Bring Your Own Key (BYOK) Quickstart
+description: Connect your existing OpenAI, Anthropic, Gemini, or OpenRouter keys to Zorveus for unified routing and zero markup.
+---
+
+# Bring Your Own Key (BYOK) Quickstart
+
+**Bring Your Own Key (BYOK)** allows your organization to store encrypted provider credentials in Zorveus. Requests matching your provider policy route directly through your upstream account.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+<Callout type="important" title="Billing Transparency">
+  BYOK is **not free AI**. When using BYOK credentials, Zorveus does not debit your Zorveus wallet for model usage ($0 Zorveus sell cost), but **the upstream model provider bills your credit card or billing account directly**. Zorveus continues to meter token volume and provider cost for visibility.
+</Callout>
+
+---
+
+## 1. Add a Provider Credential
+
+You can add provider credentials either through the dashboard or programmatically using an Organization Service Key.
+
+<Steps>
+  <Step title="Navigate to Provider Credentials">
+    In [app.zorveus.com](https://app.zorveus.com), go to **Settings** -> **Provider Credentials**.
+  </Step>
+  <Step title="Select Provider and Enter Key">
+    Choose your provider (e.g. `openai`, `anthropic`, `gemini`, `openrouter`) and paste your raw API secret (e.g. `sk-...`).
+  </Step>
+  <Step title="Configure Model Policy">
+    Set the model policy to determine which models resolve to this key:
+    - `*`: Resolves all models supported by this provider
+    - `openai/*`: Resolves all OpenAI models
+    - `openai/gpt-4.1-mini`: Resolves only this specific model
+  </Step>
+</Steps>
+
+---
+
+## 2. Automatic Routing in Action
+
+Once your provider credential is saved, make inference requests exactly as before. The Zorveus Gateway automatically inspects your organization's credentials, selects your matching key, decrypts it in memory, and dispatches the request to the upstream provider.
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+# zorveus automatically routes this to your saved OpenAI BYOK credential
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Explain the advantages of vector databases."}
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "user", content: "Explain the advantages of vector databases." },
+    ],
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [
+      {"role": "user", "content": "Explain the advantages of vector databases."}
+    ]
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## 3. Verify BYOK Usage Accounting
+
+In your Zorveus Dashboard under **Usage**:
+- **Billing Mode**: Tagged as `byok`
+- **Sell Cost**: `$0.000000` (no Zorveus wallet deduction)
+- **Provider Cost**: Shows estimated upstream cost (e.g. `$0.000150`) based on standard provider token rates
+- **Tokens**: Full prompt and completion token counts recorded for product-user attribution and spending caps
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Provider Credentials Deep Dive" icon="key" href="/startups/provider-credentials">
+    Learn about priority ordering, key rotation, and connection-specific overrides.
+  </Card>
+  <Card title="Supported Providers" icon="cpu" href="/providers/overview">
+    Explore provider-specific setups for Anthropic, Gemini, Azure OpenAI, and NVIDIA NIM.
+  </Card>
+</CardGroup>

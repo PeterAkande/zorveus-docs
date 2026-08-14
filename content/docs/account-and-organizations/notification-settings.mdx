@@ -1,0 +1,13 @@
+---
+title: Notification Settings
+description: Configure email alerts for spending cap thresholds, wallet low-balance warnings, and invites.
+---
+
+# Notification Settings
+
+<ApiEndpoint method="PUT" path="/notification-settings" auth="dashboard_session" />
+
+Configure email and webhook alerts when:
+- Wallet balance drops below configured threshold (e.g. `$10.00`).
+- Spending cap reaches 80% and 100% of limit.
+- New member invitations are accepted.

@@ -1,0 +1,42 @@
+---
+title: Caps and Credits
+description: Compare hard spending limits (caps) with consumable product-user credit grants.
+---
+
+# Caps and Credits
+
+Zorveus provides two distinct controls to govern AI expenditures: **Spending Caps** and **Credit Grants**.
+
+---
+
+## Caps vs. Credits at a Glance
+
+| Feature | Spending Cap | Credit Grant |
+| :--- | :--- | :--- |
+| **Purpose** | Hard ceiling on financial liability | Allocate consumable promotional or paid value |
+| **Reset Behavior** | Resets periodically (e.g. monthly) | Non-replenishing (consumes balance until 0) |
+| **Applied To** | Organization, App Connection, Product User | Product User |
+| **Enforcement** | Blocks requests once ceiling is reached | Blocks requests when credit balance is exhausted |
+| **Funding Source** | Organization Wallet or BYOK | Startup Organization budget |
+
+---
+
+## 1. Spending Caps
+
+A **Spending Cap** specifies a maximum allowable spend over a rolling window (e.g. `$25.00` per month):
+- Evaluated prior to pre-flight token reservation.
+- If the current period's spend plus the pending reservation exceeds the cap, the gateway rejects the request with `429 Too Many Requests` (`error.code: "cap_exceeded"`).
+- Caps can be configured at three distinct levels:
+  1. **Organization Cap**: Overall organization spend limit.
+  2. **Connection / Key Cap**: Specific limit for a single app connection or OAuth token.
+  3. **Product-User Cap**: Per-user limit enforcing fair use across your customer base.
+
+---
+
+## 2. Product-User Credit Grants
+
+A **Credit Grant** assigns a finite dollar value (e.g. `$5.00` trial credit) to a product user:
+- Multiple grants stack additively.
+- Grants with the earliest expiration date are debited first (FIFO).
+- You can revoke remaining balances at any time via the Management API.
+- Zorveus remains agnostic to your application tier names (Free, Pro, Enterprise); you translate your billing rules into grants.

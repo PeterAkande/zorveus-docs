@@ -1,0 +1,15 @@
+---
+title: Base URLs & Environments
+description: Production and local development endpoints for inference, management, and OAuth.
+---
+
+# Base URLs & Environments
+
+Zorveus routes traffic across dedicated domain surfaces:
+
+| Environment / Service | Host | Protocol | Primary Purpose |
+| :--- | :--- | :--- | :--- |
+| **Inference Gateway** | `https://api.zorveus.com/v1` | HTTPS | OpenAI-compatible SDK endpoint |
+| **Management API** | `https://api.zorveus.com` | HTTPS | Service Key management operations |
+| **Dashboard & OAuth** | `https://app.zorveus.com` | HTTPS | User browser UI & OAuth consent |
+| **Documentation** | `https://docs.zorveus.com` | HTTPS | Public developer documentation |

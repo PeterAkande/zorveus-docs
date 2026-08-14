@@ -1,0 +1,18 @@
+---
+title: Wallet Top-Ups
+description: Add funds to your organization wallet using supported payment gateways.
+---
+
+# Wallet Top-Ups
+
+<ApiEndpoint method="POST" path="/wallet/top-up" auth="dashboard_session" />
+
+Top up wallet balances directly from the Zorveus dashboard using card or bank transfers.
+
+---
+
+## Supported Payment Methods
+
+- Credit / Debit Cards (Visa, Mastercard, American Express)
+- Supported currencies are charged directly without automatic currency conversion.
+- Webhook confirmations update the wallet balance in real time upon bank settlement.

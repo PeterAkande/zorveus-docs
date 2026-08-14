@@ -1,0 +1,15 @@
+{
+  "title": "Billing & Wallets",
+  "root": true,
+  "pages": [
+    "wallets",
+    "top-ups",
+    "top-up-return-flow",
+    "promotions",
+    "caps",
+    "ledger",
+    "usage",
+    "usage-filters",
+    "byok-costs"
+  ]
+}

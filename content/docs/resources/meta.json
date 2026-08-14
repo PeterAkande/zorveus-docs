@@ -1,0 +1,11 @@
+{
+  "title": "Resources",
+  "root": true,
+  "pages": [
+    "examples",
+    "troubleshooting",
+    "faq",
+    "changelog",
+    "support"
+  ]
+}

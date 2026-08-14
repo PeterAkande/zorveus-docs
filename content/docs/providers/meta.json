@@ -1,0 +1,14 @@
+{
+  "title": "AI Providers",
+  "root": true,
+  "pages": [
+    "overview",
+    "openai",
+    "gemini",
+    "anthropic",
+    "nvidia-nim",
+    "openrouter",
+    "azure-openai",
+    "aws-bedrock"
+  ]
+}

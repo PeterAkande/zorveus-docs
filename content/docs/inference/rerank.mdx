@@ -1,0 +1,60 @@
+---
+title: Rerank
+description: Rerank document search results for optimized retrieval accuracy in RAG workflows.
+---
+
+# Rerank
+
+<ApiEndpoint method="POST" path="/v1/rerank" auth="inference_key" />
+
+Re-order document chunks by relevance to a query using reranking models (e.g. Cohere / Jina / BGE).
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Code Example
+
+<CodeGroup titles={["cURL", "Python"]}>
+
+```bash
+curl https://api.zorveus.com/v1/rerank \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "cohere/rerank-v3.5",
+    "query": "What is write-ahead logging?",
+    "documents": [
+      "Write-ahead logging records transactions sequentially before disk writes.",
+      "Redis is an in-memory key-value data store.",
+      "PostgreSQL uses MVCC for concurrency control."
+    ],
+    "top_n": 2
+  }'
+```
+
+```python
+import requests
+
+response = requests.post(
+    "https://api.zorveus.com/v1/rerank",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": "Bearer zrv_your_inference_key",
+    },
+    json={
+        "model": "cohere/rerank-v3.5",
+        "query": "What is write-ahead logging?",
+        "documents": [
+            "Write-ahead logging records transactions sequentially before disk writes.",
+            "Redis is an in-memory key-value data store.",
+            "PostgreSQL uses MVCC for concurrency control.",
+        ],
+        "top_n": 2,
+    },
+)
+
+print(response.json())
+```
+
+</CodeGroup>

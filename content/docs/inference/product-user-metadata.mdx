@@ -1,0 +1,84 @@
+---
+title: Product-User Metadata
+description: Pass custom customer identifiers, names, emails, and tracking tags inside inference requests.
+---
+
+# Product-User Metadata
+
+Zorveus allows product teams to embed end-user context directly inside OpenAI-compatible requests for real-time attribution, metering, and credit deduction.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Supported Metadata Fields
+
+Inside `metadata` (or `extra_body.metadata` in Python):
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| **`external_user_id`** | string | Primary external customer ID in your database (e.g. `usr_98124`). |
+| **`product_user_id`** | string | Optional Zorveus internal product user UUID. |
+| **`name`** | string | User's display name for dashboard identification. |
+| **`email`** | string | User's email address for audit and search. |
+| **`plan`** | string | Custom subscription or customer tier name (e.g. `enterprise_seat`). |
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Generate 3 taglines for an electric bicycle."}],
+    extra_body={
+        "metadata": {
+            "external_user_id": "cust_uuid_9921",
+            "name": "Alex Mercer",
+            "email": "alex.mercer@company.io",
+            "plan": "pro_tier",
+        }
+    },
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [{ role: "user", content: "Generate 3 taglines for an electric bicycle." }],
+    ...({
+      metadata: {
+        external_user_id: "cust_uuid_9921",
+        name: "Alex Mercer",
+        email: "alex.mercer@company.io",
+        plan: "pro_tier",
+      },
+    } as any),
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+</CodeGroup>

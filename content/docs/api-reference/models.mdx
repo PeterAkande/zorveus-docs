@@ -1,0 +1,37 @@
+---
+title: Model Catalog API
+description: Reference and interactive runner for model catalog operations.
+---
+
+# Model Catalog
+
+<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
+
+## List Models
+
+<ApiEndpoint method="GET" path="/models" auth="dashboard_session" />
+
+Get the catalog of routable and billable models.
+
+### Parameters
+
+<ParamField name="provider" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="route_status" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="q" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="limit" type="string">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/models" authType="dashboard_session" />
+
+---
+

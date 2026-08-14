@@ -1,0 +1,96 @@
+---
+title: Tool Calling
+description: Execute structured function calls and JSON schema tools across supported models.
+---
+
+# Tool Calling
+
+<ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
+
+Zorveus seamlessly passes tool schemas and function call arguments between your application and supported model providers.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```python
+import json
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_stock_price",
+            "description": "Fetch real-time stock ticker price",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {"type": "string", "description": "Ticker symbol, e.g. AAPL"},
+                },
+                "required": ["symbol"],
+            },
+        },
+    }
+]
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "What is the stock price of NVDA?"}],
+    tools=tools,
+    tool_choice="auto",
+)
+
+tool_calls = response.choices[0].message.tool_calls
+if tool_calls:
+    for tool_call in tool_calls:
+        print(f"Tool to invoke: {tool_call.function.name}")
+        print(f"Arguments: {tool_call.function.arguments}")
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const response = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [{ role: "user", content: "What is the stock price of NVDA?" }],
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "get_stock_price",
+          description: "Fetch real-time stock ticker price",
+          parameters: {
+            type: "object",
+            properties: {
+              symbol: { type: "string", description: "Ticker symbol, e.g. NVDA" },
+            },
+            required: ["symbol"],
+          },
+        },
+      },
+    ],
+  });
+
+  console.log(response.choices[0].message.tool_calls);
+}
+
+main();
+```
+
+</CodeGroup>

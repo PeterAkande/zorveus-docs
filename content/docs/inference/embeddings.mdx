@@ -1,0 +1,67 @@
+---
+title: Embeddings
+description: Generate dense vector embeddings for semantic retrieval, similarity search, and RAG pipelines.
+---
+
+# Embeddings
+
+<ApiEndpoint method="POST" path="/v1/embeddings" auth="inference_key" />
+
+The `/v1/embeddings` endpoint generates vector embeddings across supported embedding models (e.g. `openai/text-embedding-3-small`, `openai/text-embedding-3-large`).
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Code Example
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.embeddings.create(
+    model="openai/text-embedding-3-small",
+    input="Vector databases index embeddings for approximate nearest neighbor search.",
+)
+
+vector = response.data[0].embedding
+print(f"Generated embedding with {len(vector)} dimensions.")
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const response = await client.embeddings.create({
+    model: "openai/text-embedding-3-small",
+    input: "Vector databases index embeddings for approximate nearest neighbor search.",
+  });
+
+  console.log(`Generated embedding with ${response.data[0].embedding.length} dimensions.`);
+}
+
+main();
+```
+
+```bash
+curl https://api.zorveus.com/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/text-embedding-3-small",
+    "input": "Vector databases index embeddings for approximate nearest neighbor search."
+  }'
+```
+
+</CodeGroup>

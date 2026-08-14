@@ -1,0 +1,20 @@
+---
+title: Idempotency
+description: Safe retry semantics and duplicate prevention across credit grants and billing operations.
+---
+
+# Idempotency
+
+State-modifying operations (such as credit grants, top-ups, and key generation) support idempotent execution to ensure network retries do not result in duplicate transactions.
+
+---
+
+## Using Idempotency Keys
+
+Include the `Idempotency-Key` header with a unique UUID on write requests:
+
+```http
+Idempotency-Key: 94a1b08c-99e2-4f3b-8a7c-1234567890ab
+```
+
+Subsequent requests with the identical key within 24 hours return the cached response without re-executing ledger modifications.

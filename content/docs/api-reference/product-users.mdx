@@ -1,0 +1,187 @@
+---
+title: Product Users & Credits API
+description: Reference and interactive runner for product users & credits operations.
+---
+
+# Product Users & Credits
+
+<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
+
+## List Product Users
+
+<ApiEndpoint method="GET" path="/product-users" auth="service_key" />
+
+### Parameters
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="app_id" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="q" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="status" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="limit" type="integer">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/product-users" authType="service_key" />
+
+---
+
+## Upsert Product User
+
+<ApiEndpoint method="PUT" path="/product-users/by-external-id" auth="service_key" />
+
+<ApiRunner method="PUT" path="/product-users/by-external-id" authType="service_key" />
+
+---
+
+## Grant Product User Credits By External Id Route
+
+<ApiEndpoint method="POST" path="/product-users/by-external-id/credit-grants" auth="service_key" />
+
+<ApiRunner method="POST" path="/product-users/by-external-id/credit-grants" authType="service_key" />
+
+---
+
+## Get Product User
+
+<ApiEndpoint method="GET" path="/product-users/{product_end_user_id}" auth="service_key" />
+
+### Parameters
+
+<ParamField name="product_end_user_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/product-users/{product_end_user_id}" authType="service_key" />
+
+---
+
+## Grant Product User Credits Route
+
+<ApiEndpoint method="POST" path="/product-users/{product_end_user_id}/credit-grants" auth="service_key" />
+
+### Parameters
+
+<ParamField name="product_end_user_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="app_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="POST" path="/product-users/{product_end_user_id}/credit-grants" authType="service_key" />
+
+---
+
+## List Product User Credit Grants Route
+
+<ApiEndpoint method="GET" path="/product-users/{product_end_user_id}/credit-grants" auth="service_key" />
+
+### Parameters
+
+<ParamField name="product_end_user_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="status" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="source" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="limit" type="integer">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/product-users/{product_end_user_id}/credit-grants" authType="service_key" />
+
+---
+
+## Get Product User Credit Summary Route
+
+<ApiEndpoint method="GET" path="/product-users/{product_end_user_id}/credit-summary" auth="service_key" />
+
+### Parameters
+
+<ParamField name="product_end_user_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="currency" type="string">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/product-users/{product_end_user_id}/credit-summary" authType="service_key" />
+
+---
+
+## Revoke Product User Credit Grant Route
+
+<ApiEndpoint method="POST" path="/product-users/{product_end_user_id}/credit-grants/{credit_grant_id}/revoke" auth="service_key" />
+
+### Parameters
+
+<ParamField name="product_end_user_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="credit_grant_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="POST" path="/product-users/{product_end_user_id}/credit-grants/{credit_grant_id}/revoke" authType="service_key" />
+
+---
+
+## Update Product User Status Route
+
+<ApiEndpoint method="PATCH" path="/product-users/{product_end_user_id}/status" auth="service_key" />
+
+### Parameters
+
+<ParamField name="product_end_user_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="PATCH" path="/product-users/{product_end_user_id}/status" authType="service_key" />
+
+---
+

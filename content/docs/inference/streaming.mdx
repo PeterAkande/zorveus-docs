@@ -1,0 +1,89 @@
+---
+title: Streaming Completions
+description: Stream real-time tokens over Server-Sent Events (SSE) using Zorveus low-latency proxy.
+---
+
+# Streaming Completions
+
+<ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
+
+Setting `"stream": true` streams tokens incrementally as Server-Sent Events (SSE) chunks, allowing your UI to display characters as they are generated.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Code Examples
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+stream = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Write a haiku about distributed systems."}
+    ],
+    stream=True,
+)
+
+for chunk in stream:
+    content = chunk.choices[0].delta.content or ""
+    print(content, end="", flush=True)
+
+print()
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const stream = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "user", content: "Write a haiku about distributed systems." },
+    ],
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    process.stdout.write(chunk.choices[0]?.delta?.content || "");
+  }
+  process.stdout.write("\n");
+}
+
+main();
+```
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -N \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [
+      {"role": "user", "content": "Write a haiku about distributed systems."}
+    ],
+    "stream": true
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Usage Accounting for Streams
+
+When streaming, token usage is accumulated by the Zorveus Gateway on the fly. The final usage event is settled immediately upon stream termination (`[DONE]` event) or client disconnection.

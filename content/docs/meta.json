@@ -1,0 +1,17 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "concepts",
+    "inference",
+    "startups",
+    "oauth",
+    "wallet-and-billing",
+    "account-and-organizations",
+    "providers",
+    "platform",
+    "api-reference",
+    "resources"
+  ]
+}

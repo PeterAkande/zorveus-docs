@@ -1,0 +1,20 @@
+---
+title: Wallet Ledger
+description: Double-entry audit records for every credit, debit, top-up, and settlement.
+---
+
+# Wallet Ledger
+
+<ApiEndpoint method="GET" path="/wallet/ledger" auth="dashboard_session" />
+
+The Zorveus Ledger records every balance modification as an immutable transaction.
+
+---
+
+## Ledger Entry Types
+
+- `top_up`: Inbound payment funds credited.
+- `inference_reservation`: Temporary hold during streaming.
+- `inference_settlement`: Final settled token charge.
+- `promotion_credit`: Promotional grant applied.
+- `refund`: Balance adjustment or reversal.

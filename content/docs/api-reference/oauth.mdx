@@ -1,0 +1,101 @@
+---
+title: OAuth Operations API
+description: Reference and interactive runner for oauth operations operations.
+---
+
+# OAuth Operations
+
+<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
+
+## Authorize
+
+<ApiEndpoint method="GET" path="/oauth/authorize" auth="oauth_bearer" />
+
+Validate an OAuth request and send the browser to login or consent.
+
+### Parameters
+
+<ParamField name="response_type" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="client_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="redirect_uri" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="scope" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="code_challenge" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="code_challenge_method" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="state" type="string">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/oauth/authorize" authType="oauth_bearer" />
+
+---
+
+## Get Authorization Request
+
+<ApiEndpoint method="GET" path="/oauth/authorization-requests/{authorization_request_id}" auth="oauth_bearer" />
+
+Return the logged-in user's pending OAuth consent request.
+
+### Parameters
+
+<ParamField name="authorization_request_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="GET" path="/oauth/authorization-requests/{authorization_request_id}" authType="oauth_bearer" />
+
+---
+
+## Decide Authorization Request
+
+<ApiEndpoint method="POST" path="/oauth/authorization-requests/{authorization_request_id}/decision" auth="oauth_bearer" />
+
+Approve or deny a pending OAuth consent request.
+
+### Parameters
+
+<ParamField name="authorization_request_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="POST" path="/oauth/authorization-requests/{authorization_request_id}/decision" authType="oauth_bearer" />
+
+---
+
+## Token
+
+<ApiEndpoint method="POST" path="/oauth/token" auth="oauth_bearer" />
+
+Exchange an OAuth authorization code for a Zorveus inference key.
+
+<ApiRunner method="POST" path="/oauth/token" authType="oauth_bearer" />
+
+---
+
+## Revoke
+
+<ApiEndpoint method="POST" path="/oauth/revoke" auth="oauth_bearer" />
+
+Revoke an OAuth-issued Zorveus inference token.
+
+<ApiRunner method="POST" path="/oauth/revoke" authType="oauth_bearer" />
+
+---
+

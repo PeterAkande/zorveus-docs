@@ -1,0 +1,10 @@
+---
+title: Top-Up Return Flow
+description: Understand post-payment return flows, session polling, and webhook confirmations.
+---
+
+# Top-Up Return Flow
+
+After completing payment at the payment gateway checkout, the browser is redirected back to the Zorveus return URL (`https://app.zorveus.com/wallet/top-up/callback`).
+
+Zorveus polls the checkout session and validates the upstream payment provider signature before crediting the ledger wallet.

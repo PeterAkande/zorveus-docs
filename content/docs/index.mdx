@@ -1,0 +1,186 @@
+---
+title: Zorveus Documentation
+description: Zorveus lets startups add multi-provider AI, product-user metering, credits, and spending controls through one OpenAI-compatible API.
+---
+
+# Zorveus Documentation
+
+Zorveus is an AI wallet, billing layer, and multi-provider inference gateway that sits between your applications and model providers.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+## Select Your Integration Path
+
+<CardGroup cols={3}>
+  <Card title="Build an AI Product" icon="rocket" href="/getting-started/startup-quickstart">
+    Integrate multi-provider inference, product-user metering, and spending controls funded by your organization.
+  </Card>
+  <Card title="Connect an OAuth App" icon="key" href="/getting-started/oauth-app-quickstart">
+    Let users connect their personal or company Zorveus wallets to your app using Authorization Code with PKCE.
+  </Card>
+  <Card title="Manage Your Wallet" icon="shield" href="/wallet-and-billing/wallets">
+    Fund wallet balances, set per-app spending caps, inspect usage logs, and connect upstream AI providers.
+  </Card>
+</CardGroup>
+
+---
+
+## 30-Second Quickstart
+
+Zorveus is 100% compatible with the official OpenAI SDKs. Simply point the SDK base URL to `https://api.zorveus.com/v1` and use your Zorveus inference key (`zrv_...`).
+
+<CodeGroup titles={["cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "Go", "Rust"]}>
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [
+      {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ]
+  }'
+```
+
+```python
+from openai import OpenAI
+
+# Initialize client pointing to Zorveus gateway
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "user", content: "Explain quantum computing in one sentence." },
+    ],
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/sashabaranov/go-openai"
+)
+
+func main() {
+	config := openai.DefaultConfig("zrv_your_inference_key")
+	config.BaseURL = "https://api.zorveus.com/v1"
+
+	client := openai.NewClientWithConfig(config)
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: "openai/gpt-4.1-mini",
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: "Explain quantum computing in one sentence.",
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	fmt.Println(resp.Choices[0].Message.Content)
+}
+```
+
+```rust
+use async_openai::{
+    config::OpenAIConfig,
+    types::{CreateChatCompletionRequestArgs, ChatCompletionRequestUserMessageArgs},
+    Client,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = OpenAIConfig::new()
+        .with_api_base("https://api.zorveus.com/v1")
+        .with_api_key("zrv_your_inference_key");
+
+    let client = Client::with_config(config);
+
+    let request = CreateChatCompletionRequestArgs::default()
+        .model("openai/gpt-4.1-mini")
+        .messages([ChatCompletionRequestUserMessageArgs::default()
+            .content("Explain quantum computing in one sentence.")
+            .build()?
+            .into()])
+        .build()?;
+
+    let response = client.chat().create(request).await?;
+    println!("{}", response.choices[0].message.content.clone().unwrap_or_default());
+
+    Ok(())
+}
+```
+
+</CodeGroup>
+
+---
+
+## Production Base URLs
+
+| Surface | Production Endpoint | Usage |
+| :--- | :--- | :--- |
+| **Inference Gateway** | `https://api.zorveus.com/v1` | OpenAI-compatible inference (`/chat/completions`, `/models`, etc.) |
+| **Product & Management API** | `https://api.zorveus.com` | Programmatic management with Service Key (`zrv_service_...`) |
+| **Developer Dashboard** | `https://app.zorveus.com` | Web UI for workspace management, keys, wallets, and OAuth consent |
+
+---
+
+## Explore by Topic
+
+<CardGroup cols={2}>
+  <Card title="Inference Capabilities" icon="cpu" href="/inference/overview">
+    Chat completions, streaming, tool calling, responses API, embeddings, and model discovery.
+  </Card>
+  <Card title="Product Users & Attribution" icon="layers" href="/startups/product-users">
+    Track end-user AI usage with inline metadata and apply custom credit grants.
+  </Card>
+  <Card title="Bring Your Own Key (BYOK)" icon="key" href="/startups/provider-credentials">
+    Route requests through your own encrypted OpenAI, Anthropic, Gemini, or OpenRouter keys.
+  </Card>
+  <Card title="OAuth PKCE Integration" icon="shield" href="/oauth/overview">
+    Build connectable applications that charge user-selected funding organizations.
+  </Card>
+</CardGroup>
+
+<Callout type="tip" title="Need Help or Model Discovery?">
+  Check our [Model Discovery Guide](/inference/model-discovery) for live available model IDs, or visit our [Troubleshooting Guide](/resources/troubleshooting) if you experience connection errors.
+</Callout>

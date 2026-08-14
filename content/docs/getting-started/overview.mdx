@@ -1,0 +1,64 @@
+---
+title: Getting Started Overview
+description: Choose the right Zorveus integration path for your architecture and business model.
+---
+
+# Getting Started Overview
+
+Zorveus provides three core integration models depending on who funds the AI usage and how credentials are managed.
+
+---
+
+## Choose Your Integration Mode
+
+| Business Goal | Integration Mode | Funding Source | Key Credential |
+| :--- | :--- | :--- | :--- |
+| **Startup funds its own product** | [Startup Quickstart](/getting-started/startup-quickstart) | Startup Organization Wallet | Inference Key (`zrv_...`) |
+| **Startup uses existing provider keys** | [BYOK Quickstart](/getting-started/byok-quickstart) | Upstream Provider (Direct) | Inference Key + Stored Provider Secret |
+| **End-user funds third-party app** | [OAuth App Quickstart](/getting-started/oauth-app-quickstart) | User's Personal/Company Wallet | Scoped OAuth Token (`zrv_...`) |
+
+---
+
+## Core Credential Terminology
+
+Understanding credential types ensures you use the correct secret in each context:
+
+- **Inference Key (`zrv_...`)**: Secret token used in `Authorization: Bearer zrv_...` against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`). Shown only once upon creation.
+- **Service Key (`zrv_service_...`)**: High-privilege management credential used server-to-server against the Product Management API (`https://api.zorveus.com`). Never expose this key in browser code or client apps.
+- **Client ID & Client Secret (`zrv_client_...` / `zrv_client_secret_...`)**: Credentials for registered OAuth applications to authenticate during PKCE token exchanges.
+- **Provider Credential**: Encrypted upstream API keys (e.g. OpenAI, Anthropic, Gemini) stored in Zorveus for Bring Your Own Key (BYOK) routing.
+
+<Callout type="warning" title="Security Boundary">
+  Never use a **Service Key** for inference requests or inside frontend client bundles. Service keys have administrative access to manage product users, credit grants, and organization settings.
+</Callout>
+
+---
+
+## Production Endpoints
+
+Always use production endpoints in deployed applications:
+
+```text
+Inference Base URL:  https://api.zorveus.com/v1
+Management Base URL: https://api.zorveus.com
+OAuth Authorize URL: https://app.zorveus.com/oauth/authorize
+```
+
+---
+
+## Quickstart Paths
+
+<CardGroup cols={2}>
+  <Card title="Startup Quickstart" icon="rocket" href="/getting-started/startup-quickstart">
+    Send your first AI request in under 2 minutes using standard OpenAI SDKs and a Zorveus inference key.
+  </Card>
+  <Card title="Product-User Metering" icon="layers" href="/getting-started/product-user-quickstart">
+    Attribute requests to specific end users and apply credit grants without extra database setup.
+  </Card>
+  <Card title="Bring Your Own Key (BYOK)" icon="key" href="/getting-started/byok-quickstart">
+    Attach your existing provider accounts to Zorveus for cost tracking and unified routing.
+  </Card>
+  <Card title="OAuth PKCE Flow" icon="shield" href="/getting-started/oauth-app-quickstart">
+    Implement secure OAuth 2.0 PKCE login so users pay for their own inference in your app.
+  </Card>
+</CardGroup>

@@ -1,0 +1,20 @@
+---
+title: Wallets & Balances
+description: How available balances, pre-flight fund reservations, and ledger settlements operate.
+---
+
+# Wallets & Balances
+
+Each spendable organization (`startup` and `personal`) contains an immutable double-entry ledger wallet.
+
+---
+
+## Balance Types
+
+- **Available Balance**: Uncommitted funds ready for new inference requests.
+- **Reserved Balance**: Funds locked for in-flight streaming requests.
+- **Total Balance**: Sum of available and reserved balances.
+
+```text
+Total Balance ($50.00) = Available ($48.20) + Reserved ($1.80)
+```

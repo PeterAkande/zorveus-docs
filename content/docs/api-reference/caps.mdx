@@ -1,0 +1,53 @@
+---
+title: Spending Caps API
+description: Reference and interactive runner for spending caps operations.
+---
+
+# Spending Caps
+
+<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
+
+## List Caps
+
+<ApiEndpoint method="GET" path="/caps" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="org_id" type="string" required>
+  Parameter in query
+</ParamField>
+
+<ParamField name="target_type" type="string">
+  Parameter in query
+</ParamField>
+
+<ParamField name="target_id" type="string">
+  Parameter in query
+</ParamField>
+
+<ApiRunner method="GET" path="/caps" authType="dashboard_session" />
+
+---
+
+## Put Cap
+
+<ApiEndpoint method="PUT" path="/caps" auth="dashboard_session" />
+
+<ApiRunner method="PUT" path="/caps" authType="dashboard_session" />
+
+---
+
+## Delete Cap
+
+<ApiEndpoint method="DELETE" path="/caps/{cap_rule_id}" auth="dashboard_session" />
+
+### Parameters
+
+<ParamField name="cap_rule_id" type="string" required>
+  Parameter in path
+</ParamField>
+
+<ApiRunner method="DELETE" path="/caps/{cap_rule_id}" authType="dashboard_session" />
+
+---
+

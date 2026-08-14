@@ -1,0 +1,174 @@
+---
+title: Chat Completions
+description: Generate text and reasoning completions across OpenAI, Anthropic, Gemini, and open models.
+---
+
+# Chat Completions
+
+<ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
+
+The `/v1/chat/completions` endpoint generates text, code, or structured reasoning responses from AI models.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Authentication
+
+Requests authenticate using an Inference Key in the `Authorization` header:
+
+```http
+Authorization: Bearer zrv_your_inference_key
+```
+
+---
+
+## Request Parameters
+
+<ParamField name="model" type="string" required>
+  The model identifier to route the request to (e.g. `openai/gpt-4.1-mini`, `anthropic/claude-3-7-sonnet`, `gemini/gemini-2.5-flash`).
+</ParamField>
+
+<ParamField name="messages" type="array" required>
+  An array of message objects representing the conversation history. Each object contains `role` (`system`, `user`, `assistant`, `tool`) and `content`.
+</ParamField>
+
+<ParamField name="temperature" type="number" default="1.0">
+  Sampling temperature between `0.0` and `2.0`. Lower values yield more deterministic answers.
+</ParamField>
+
+<ParamField name="max_tokens" type="integer">
+  Maximum number of tokens to generate in the completion.
+</ParamField>
+
+<ParamField name="stream" type="boolean" default="false">
+  If `true`, tokens are returned via Server-Sent Events (SSE).
+</ParamField>
+
+<ParamField name="metadata" type="object">
+  Zorveus-specific attribution metadata containing `external_user_id`, `name`, `email`, or custom tracking tags.
+</ParamField>
+
+---
+
+## Code Examples
+
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "system", "content": "You are a senior systems engineer."},
+        {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."},
+    ],
+    temperature=0.3,
+    extra_body={
+        "metadata": {
+            "external_user_id": "usr_dev_4812",
+        }
+    },
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "system", content: "You are a senior systems engineer." },
+      { role: "user", content: "Explain write-ahead logging (WAL) concisely." },
+    ],
+    temperature: 0.3,
+    ...({
+      metadata: {
+        external_user_id: "usr_dev_4812",
+      },
+    } as any),
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [
+      {"role": "system", "content": "You are a senior systems engineer."},
+      {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."}
+    ],
+    "temperature": 0.3,
+    "metadata": {
+      "external_user_id": "usr_dev_4812"
+    }
+  }'
+```
+
+</CodeGroup>
+
+<ApiRunner
+  method="POST"
+  path="/v1/chat/completions"
+  defaultBody='{\n  "model": "openai/gpt-4.1-mini",\n  "messages": [\n    {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."}\n  ]\n}'
+/>
+
+---
+
+## Expected Response
+
+```json
+{
+  "id": "chatcmpl-9K8xZ1048",
+  "object": "chat.completion",
+  "created": 1723580000,
+  "model": "openai/gpt-4.1-mini",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Write-Ahead Logging (WAL) is a technique used in database systems where changes are first recorded in a persistent append-only log file before they are applied to the main database storage. This ensures durability and atomicity (ACID compliance), allowing the system to recover consistent state after a crash."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 28,
+    "completion_tokens": 58,
+    "total_tokens": 86
+  }
+}
+```
+
+---
+
+## Common Errors
+
+| Error Code | HTTP Status | Root Cause & Resolution |
+| :--- | :--- | :--- |
+| `invalid_api_key` | 401 | The `zrv_...` key is missing, invalid, or revoked. Generate a new key in the dashboard. |
+| `model_not_allowed` | 403 | The requested model is outside your App Connection's allowed model policy. Update allowed model wildcards. |
+| `insufficient_balance` | 402 | Organization wallet balance is exhausted and no active BYOK credential matches. Top up balance or add BYOK key. |
+| `cap_exceeded` | 429 | The organization, connection, or product-user periodic spending cap has been reached. |

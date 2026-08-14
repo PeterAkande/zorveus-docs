@@ -1,0 +1,14 @@
+{
+  "title": "Platform & Security",
+  "root": true,
+  "pages": [
+    "base-urls",
+    "authentication",
+    "errors",
+    "rate-limits",
+    "idempotency",
+    "pagination",
+    "money-and-dates",
+    "security"
+  ]
+}

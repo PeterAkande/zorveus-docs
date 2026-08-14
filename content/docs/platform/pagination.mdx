@@ -1,0 +1,28 @@
+---
+title: Pagination
+description: Cursor and limit-based pagination across list endpoints in Zorveus.
+---
+
+# Pagination
+
+List endpoints (such as `/product-users`, `/apps`, and `/dashboard-api/usage/events`) support structured pagination.
+
+---
+
+## Query Parameters
+
+- **`limit`**: Maximum records to return (default: `50`, max: `100`).
+- **`cursor`** or **`offset`**: Pointer to retrieve the next page of results.
+
+---
+
+## Response Structure
+
+```json
+{
+  "object": "list",
+  "data": [...],
+  "has_more": true,
+  "next_cursor": "cur_98a71b2c"
+}
+```

@@ -1,0 +1,11 @@
+{
+  "title": "Getting Started",
+  "root": true,
+  "pages": [
+    "overview",
+    "startup-quickstart",
+    "product-user-quickstart",
+    "byok-quickstart",
+    "oauth-app-quickstart"
+  ]
+}
