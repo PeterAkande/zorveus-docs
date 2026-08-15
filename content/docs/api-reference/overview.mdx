@@ -3,35 +3,58 @@ title: API Reference Overview
 description: Complete REST API Reference for the Zorveus Management and Product API on api.zorveus.com.
 ---
 
-# API Reference Overview
-
 The Zorveus Product and Management API provides programmatic access to manage organizations, apps, inference keys, product users, and provider credentials.
 
-## Production Server
+---
+
+## OpenAPI Specification
+
+The complete, machine-readable OpenAPI 3.1 schema for all public endpoints is hosted at:
 
 ```text
-https://api.zorveus.com
+https://api.zorveus.com/openapi.json
 ```
 
-## Authentication Types
+You can import this URL directly into **Postman**, **Insomnia**, **Swagger UI**, or code generation tools (e.g. `openapi-typescript`, `datamodel-code-generator`).
 
-- **Service Key**: Use `Authorization: Bearer zrv_service_...` for server-to-server operations.
-- **Dashboard Session**: Use browser session cookie and `X-CSRF-Token` for dashboard operations.
-- **Inference Key**: Use `Authorization: Bearer zrv_...` for inference endpoints on `https://api.zorveus.com/v1`.
+```bash
+# Download the public OpenAPI spec
+curl -O https://api.zorveus.com/openapi.json
+```
+
+---
+
+## Production Servers
+
+| Base URL | Purpose | Authentication |
+| :--- | :--- | :--- |
+| `https://api.zorveus.com` | Product Management & Admin API | `Authorization: Bearer zrv_service_...` |
+| `https://api.zorveus.com/v1` | OpenAI-compatible Inference Gateway | `Authorization: Bearer zrv_...` |
+
+---
+
+## Authentication Credentials
+
+- **Service Key (`zrv_service_...`)**: High-privilege secret for server-to-server management on `https://api.zorveus.com`.
+- **Inference Key (`zrv_...`)**: Fast edge token used in `Authorization: Bearer zrv_...` for AI completions on `https://api.zorveus.com/v1` or checking key usage on `/inference-keys/usage`.
+- **Dashboard Session**: Browser session cookie with CSRF protection for web dashboard operations.
+
+---
 
 ## API Groups
 
 <CardGroup cols={2}>
   <Card title="Product Users & Credits" icon="layers" href="/api-reference/product-users">
-    Manage customer identities and issue credit grants.
+    Manage customer identities, spending caps, and issue credit grants.
   </Card>
   <Card title="Provider Credentials" icon="key" href="/api-reference/provider-credentials">
-    Store and configure BYOK provider keys.
+    Store and configure encrypted BYOK provider keys.
   </Card>
   <Card title="Apps & Connections" icon="terminal" href="/api-reference/apps">
     Manage applications and programmatic inference connections.
   </Card>
-  <Card title="Wallets & Top-Ups" icon="shield" href="/api-reference/wallet">
-    Inspect ledger transactions, wallet balances, and top-up checkouts.
+  <Card title="Usage & Analytics" icon="activity" href="/api-reference/usage">
+    Inspect key usage summaries, raw ledger events, and spending analytics.
   </Card>
 </CardGroup>
+
