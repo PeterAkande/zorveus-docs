@@ -243,15 +243,49 @@ button[data-search-full]:hover,
 }
 
 /* Code block & pre styling */
-pre {
+figure.nd-codeblock,
+figure[data-rehype-pretty-code-figure],
+.fd-codeblock,
+div[data-rehype-pretty-code-fragment],
+figure:has(pre) {
   background-color: #0E0E10 !important;
   border: 1px solid #222226 !important;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+pre {
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 1.15rem 1.25rem !important;
+  margin: 0 !important;
+  font-size: 13.5px !important;
+  line-height: 1.65 !important;
+  overflow-x: auto !important;
 }
 
 code {
   font-family: var(--font-mono) !important;
 }
+
+/* Eliminate nested inner borders and backgrounds inside CodeGroup and Tabs */
+.overflow-hidden figure.nd-codeblock,
+.overflow-hidden figure[data-rehype-pretty-code-figure],
+.overflow-hidden .fd-codeblock,
+.overflow-hidden div[data-rehype-pretty-code-fragment],
+[class*="border-zorveus-border"] figure,
+[class*="border-zorveus-border"] .fd-codeblock {
+  border: none !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+[class*="border-zorveus-border"] pre {
+  padding: 0.25rem !important;
+}
+
 
 /* Table of Contents */
 .fd-toc a {
