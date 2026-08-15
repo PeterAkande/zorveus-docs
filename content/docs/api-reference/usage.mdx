@@ -3,13 +3,64 @@ title: Usage & Analytics API
 description: Reference and interactive runner for usage & analytics operations.
 ---
 
-# Usage & Analytics
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
-<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
+## Get Inference Key Usage Summary
 
-## Get Usage Events
+Inspect live period spend, spending caps, and remaining balance using an inference key directly.
+
+<Callout type="tip" title="Public CORS Support">
+  This endpoint has public CORS enabled and can be queried directly by browser clients and frontend extensions.
+</Callout>
+
+<ApiEndpoint method="GET" path="/inference-keys/usage" auth="inference_key" />
+
+### Headers
+
+| Header | Value | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `Authorization` | `Bearer <zrv_inference_key>` | **Yes** | Your active Zorveus inference key. |
+
+<ApiRunner method="GET" path="/inference-keys/usage" authType="inference_key" />
+
+#### Response (`200 OK`) — Capped Connection
+
+```json
+{
+  "status": "active",
+  "app_id": "app_mindspire_123",
+  "app_connection_id": "appcon_01j...",
+  "currency": "USD",
+  "period": "monthly",
+  "spend_cap": "50.000000000000",
+  "spent_this_period": "12.500000000000",
+  "remaining_balance": "37.500000000000",
+  "reset_at": "2026-09-01T00:00:00Z"
+}
+```
+
+#### Response (`200 OK`) — Uncapped Connection
+
+```json
+{
+  "status": "active",
+  "app_id": "app_mindspire_123",
+  "app_connection_id": "appcon_01j...",
+  "currency": "USD",
+  "period": "monthly",
+  "spend_cap": null,
+  "spent_this_period": "12.500000000000",
+  "remaining_balance": null,
+  "reset_at": null
+}
+```
+
+---
+
+## Get Usage Events (Dashboard API)
 
 <ApiEndpoint method="GET" path="/dashboard-api/usage/events" auth="dashboard_session" />
+
 
 List raw usage events for an organization.
 

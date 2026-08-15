@@ -3,15 +3,105 @@ title: Inference Keys
 description: Create, rotate, scope, and revoke gateway inference keys.
 ---
 
-# Inference Keys
-
 Inference keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`).
 
 <KeyInserter type="inference" label="Inference Key Inserter" placeholder="zrv_your_inference_key" />
 
 ---
 
-## One-Time Plaintext Display
+## 1. Check Live Usage & Spend Cap
+
+You can query the current spending cap, spent amount this period, remaining balance, and reset date directly using the inference key itself. 
+
+<Callout type="tip" title="Public CORS Enabled">
+  `GET /inference-keys/usage` allows public CORS requests, making it safe and easy to call directly from browser applications, IDE extensions, and client-side frontends.
+</Callout>
+
+<CodeGroup titles={["cURL", "Browser / Frontend", "TypeScript SDK", "Python SDK"]}>
+
+```bash
+curl -X GET "https://api.zorveus.com/inference-keys/usage" \
+  -H "Authorization: Bearer zrv_your_inference_key"
+```
+
+```javascript
+// Safe to execute directly in browser applications
+async function checkUsage() {
+  const res = await fetch("https://api.zorveus.com/inference-keys/usage", {
+    headers: {
+      Authorization: "Bearer zrv_your_inference_key",
+    },
+  });
+
+  const data = await res.json();
+  console.log("Remaining Balance ($):", data.remaining_balance);
+  console.log("Spent this Month ($):", data.spent_this_period);
+  console.log("Monthly Spend Cap ($):", data.spend_cap);
+}
+```
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_inference_key",
+});
+
+const usage = await client.inferenceKeys.getUsage();
+console.log("Remaining Balance:", usage.remaining_balance);
+console.log("Reset Date:", usage.reset_at);
+```
+
+```python
+import requests
+
+response = requests.get(
+    "https://api.zorveus.com/inference-keys/usage",
+    headers={"Authorization": "Bearer zrv_your_inference_key"},
+)
+
+usage = response.json()
+print(f"Spent This Period: ${usage['spent_this_period']}")
+print(f"Remaining Balance: {f'${usage[\"remaining_balance\"]}' if usage['remaining_balance'] else 'Uncapped'}")
+```
+
+</CodeGroup>
+
+### Response Shape
+
+#### Capped Connection
+```json
+{
+  "status": "active",
+  "app_id": "app_mindspire_123",
+  "app_connection_id": "appcon_01j...",
+  "currency": "USD",
+  "period": "monthly",
+  "spend_cap": "50.000000000000",
+  "spent_this_period": "12.500000000000",
+  "remaining_balance": "37.500000000000",
+  "reset_at": "2026-09-01T00:00:00Z"
+}
+```
+
+#### Uncapped Connection
+```json
+{
+  "status": "active",
+  "app_id": "app_mindspire_123",
+  "app_connection_id": "appcon_01j...",
+  "currency": "USD",
+  "period": "monthly",
+  "spend_cap": null,
+  "spent_this_period": "12.500000000000",
+  "remaining_balance": null,
+  "reset_at": null
+}
+```
+
+---
+
+## 2. One-Time Plaintext Display
 
 When you generate or rotate an inference key, the plaintext secret is displayed **only once**:
 
@@ -23,7 +113,7 @@ Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, you m
 
 ---
 
-## Key Rotation Without Downtime
+## 3. Key Rotation Without Downtime
 
 <Steps>
   <Step title="Create New Key">
@@ -36,3 +126,4 @@ Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, you m
     Once traffic shifts, click **Revoke** on the previous key. Revocation is instantaneous across all edge gateway instances.
   </Step>
 </Steps>
+

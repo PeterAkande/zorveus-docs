@@ -3,17 +3,98 @@ title: Product Users
 description: Programmatically manage, search, and track customer identities and usage limits.
 ---
 
-# Product Users
-
-<ApiEndpoint method="PUT" path="/product-users/by-external-id" auth="service_key" />
-
-Product Users are your customers. You can create or update them inline during inference or manage them explicitly using your Organization Service Key.
+Product Users are your customers. You can create or update them inline during inference or manage them explicitly using your Organization Service Key (`zrv_service_...`).
 
 <KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_service_your_service_key" />
 
 ---
 
-## Upsert Product User by External ID
+## 1. Look Up Product User Profile by External ID
+
+Read a product user's live profile, configured spending cap, available credits, and monthly token usage without accidental creations or mutations.
+
+<CodeGroup titles={["cURL", "TypeScript SDK", "Python SDK"]}>
+
+```bash
+curl -X GET "https://api.zorveus.com/product-users/by-external-id?app_id=app_support_123&external_user_id=usr_alex_8842" \
+  -H "Authorization: Bearer zrv_service_your_service_key"
+```
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const zorveus = new Zorveus({
+  serviceKey: "zrv_service_your_service_key",
+});
+
+// Fetch full user profile, active cap, credits, and monthly usage
+const user = await zorveus.productUsers.getByExternalId({
+  appId: "app_support_123",
+  externalUserId: "usr_alex_8842",
+});
+
+console.log("Available Credits:", user.credits?.available_credits);
+console.log("Monthly Cap:", user.cap?.amount);
+console.log("Tokens used this month:", user.usage.this_month.total_tokens);
+```
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(service_key="zrv_service_your_service_key")
+
+# Fetch full user profile, active cap, credits, and monthly usage
+user = client.product_users.get_by_external_id(
+    app_id="app_support_123",
+    external_user_id="usr_alex_8842",
+)
+
+print(f"Available Credits: {user.credits.available_credits}")
+print(f"Monthly Cap: {user.cap.amount if user.cap else 'No Cap'}")
+print(f"Tokens this month: {user.usage.this_month.total_tokens}")
+```
+
+</CodeGroup>
+
+---
+
+## 2. Check Live Credit Balance Only
+
+For lightweight balance checks before initiating expensive operations, use the credit summary lookup:
+
+<CodeGroup titles={["cURL", "TypeScript SDK", "Python SDK"]}>
+
+```bash
+curl -X GET "https://api.zorveus.com/product-users/by-external-id/credit-summary?app_id=app_support_123&external_user_id=usr_alex_8842&currency=USD" \
+  -H "Authorization: Bearer zrv_service_your_service_key"
+```
+
+```typescript
+const creditSummary = await zorveus.productUsers.getCreditSummaryByExternalId({
+  appId: "app_support_123",
+  externalUserId: "usr_alex_8842",
+  currency: "USD",
+});
+
+console.log("Available Credits:", creditSummary.available_credits);
+console.log("Expiring Soon:", creditSummary.expiring_soon_amount);
+```
+
+```python
+credits = client.product_users.get_credit_summary_by_external_id(
+    app_id="app_support_123",
+    external_user_id="usr_alex_8842",
+    currency="USD",
+)
+
+print(f"Available Balance: {credits.available_credits}")
+```
+
+</CodeGroup>
+
+---
+
+## 3. Upsert Product User by External ID
 
 <CodeGroup titles={["cURL", "Python", "TypeScript"]}>
 
@@ -78,3 +159,4 @@ async function upsertProductUser() {
 ```
 
 </CodeGroup>
+

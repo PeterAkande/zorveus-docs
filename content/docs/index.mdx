@@ -1,29 +1,27 @@
 ---
 title: Zorveus Documentation
-description: Zorveus lets startups add multi-provider AI, product-user metering, credits, and spending controls through one OpenAI-compatible API.
+description: Zorveus is an AI wallet, billing layer, and multi-provider gateway designed for two main developer workflows.
 ---
 
-# Zorveus Documentation
-
-Zorveus is an AI wallet, billing layer, and multi-provider inference gateway that sits between your applications and model providers.
+Zorveus sits between your application and model providers (OpenAI, Anthropic, Gemini, OpenRouter), giving you unified AI inference, spending controls, and flexible wallet billing.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
-## Select Your Integration Path
+## Select Your Developer Path
 
-<CardGroup cols={3}>
-  <Card title="Build an AI Product" icon="rocket" href="/getting-started/startup-quickstart">
-    Integrate multi-provider inference, product-user metering, and spending controls funded by your organization.
+<CardGroup cols={2}>
+  <Card title="Startups & AI Product Builders" icon="rocket" href="/getting-started/startup-quickstart">
+    **Build AI products funded by your organization.**
+    Add multi-provider inference, meter end-user consumption, set per-user credit limits, and control AI spend through one API.
   </Card>
-  <Card title="Connect an OAuth App" icon="key" href="/getting-started/oauth-app-quickstart">
-    Let users connect their personal or company Zorveus wallets to your app using Authorization Code with PKCE.
-  </Card>
-  <Card title="Manage Your Wallet" icon="shield" href="/wallet-and-billing/wallets">
-    Fund wallet balances, set per-app spending caps, inspect usage logs, and connect upstream AI providers.
+  <Card title="Third-Party App Developers" icon="key" href="/getting-started/oauth-app-quickstart">
+    **Let users pay for AI with their own Zorveus wallets.**
+    Integrate OAuth 2.0 with PKCE so users authorize your app to charge their personal or company AI wallets directly.
   </Card>
 </CardGroup>
 
 ---
+
 
 ## 30-Second Quickstart
 
@@ -151,6 +149,55 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 </CodeGroup>
+
+---
+
+## Two-Minute Core Recipes
+
+<Tabs items={["Multi-Provider Switching", "Meter Customer Usage", "OAuth User-Funded Wallet"]}>
+  <Tab title="Multi-Provider Switching">
+    Route between OpenAI, Anthropic, Google Gemini, and open weights without changing your SDK setup:
+
+    ```python
+    # Switch models dynamically using your single Zorveus Inference Key
+    response = client.chat.completions.create(
+        model="anthropic/claude-3-5-sonnet-20241022", # Or "google/gemini-1.5-pro", "openai/gpt-4.1-mini"
+        messages=[
+            {"role": "user", "content": "Summarize this document."}
+        ],
+    )
+    ```
+  </Tab>
+
+  <Tab title="Meter Customer Usage">
+    Tag requests with your customer's user ID to track unit economics and enforce individual credit grants:
+
+    ```python
+    # Pass product_user_id in extra_body or as an X-Zorveus-User-Id header
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", "content": "Generate a report."}],
+        extra_body={
+            "product_user_id": "usr_customer_8492"
+        }
+    )
+    ```
+  </Tab>
+
+  <Tab title="OAuth User-Funded Wallet">
+    Let users connect their personal or organization wallet via PKCE, and execute requests on their behalf:
+
+    ```typescript
+    import OpenAI from "openai";
+
+    // Initialize using the scoped OAuth token obtained from user authorization
+    const userClient = new OpenAI({
+      baseURL: "https://api.zorveus.com/v1",
+      apiKey: userOAuthToken, // zrv_... scoped to user's wallet
+    });
+    ```
+  </Tab>
+</Tabs>
 
 ---
 

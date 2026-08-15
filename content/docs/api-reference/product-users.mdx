@@ -3,41 +3,122 @@ title: Product Users & Credits API
 description: Reference and interactive runner for product users & credits operations.
 ---
 
-# Product Users & Credits
-
 <KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
 
-## List Product Users
+## Get Product User by External ID
 
-<ApiEndpoint method="GET" path="/product-users" auth="service_key" />
+Retrieve complete product user profile, spend cap, live credit balances, and token usage by your own system identifier (`external_user_id`).
 
-### Parameters
+<ApiEndpoint method="GET" path="/product-users/by-external-id" auth="service_key" />
 
-<ParamField name="org_id" type="string" required>
-  Parameter in query
+### Query Parameters
+
+<ParamField name="app_id" type="string" required>
+  The Zorveus App ID (e.g. `app_support_123`).
 </ParamField>
 
-<ParamField name="app_id" type="string">
-  Parameter in query
+<ParamField name="external_user_id" type="string" required>
+  Your platform's unique user identifier (e.g. `usr_alex_8842`).
 </ParamField>
 
-<ParamField name="q" type="string">
-  Parameter in query
-</ParamField>
+<ApiRunner method="GET" path="/product-users/by-external-id" authType="service_key" />
 
-<ParamField name="status" type="string">
-  Parameter in query
-</ParamField>
+#### Response (`200 OK`)
 
-<ParamField name="limit" type="integer">
-  Parameter in query
-</ParamField>
-
-<ApiRunner method="GET" path="/product-users" authType="service_key" />
+```json
+{
+  "product_end_user_id": "peu_01j6abc1234567890def",
+  "org_id": "org_startup_123",
+  "app_id": "app_support_123",
+  "external_user_id": "usr_alex_8842",
+  "display_name": "Alex Smith",
+  "email_hash": "sha256:5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+  "status": "active",
+  "metadata": {
+    "plan": "pro"
+  },
+  "cap": {
+    "source": "product_end_user",
+    "cap_rule_id": "cap_01j6def456",
+    "amount": "50.000000000000",
+    "currency": "USD",
+    "period": "monthly",
+    "spent_this_period": "12.450000000000",
+    "reset_at": "2026-09-01T00:00:00Z",
+    "status": "active",
+    "updated_at": "2026-08-01T10:00:00Z"
+  },
+  "credits": {
+    "currency": "USD",
+    "available_credits": "25.000000000000",
+    "active_grant_count": 2,
+    "expiring_soon_amount": "5.000000000000",
+    "spent_this_month": "10.000000000000",
+    "spent_total": "35.000000000000",
+    "last_grant_at": "2026-08-10T14:30:00Z",
+    "last_used_at": "2026-08-14T22:15:00Z"
+  },
+  "usage": {
+    "this_month": {
+      "sell_cost": "12.450000000000",
+      "input_tokens": 154000,
+      "output_tokens": 32000,
+      "total_tokens": 186000,
+      "request_count": 48
+    },
+    "total": {
+      "sell_cost": "45.800000000000",
+      "input_tokens": 620000,
+      "output_tokens": 115000,
+      "total_tokens": 735000,
+      "request_count": 192
+    }
+  }
+}
+```
 
 ---
 
-## Upsert Product User
+## Get Product User Credit Summary by External ID
+
+A fast, lightweight endpoint for querying a product user's live credit balance without token usage breakdowns.
+
+<ApiEndpoint method="GET" path="/product-users/by-external-id/credit-summary" auth="service_key" />
+
+### Query Parameters
+
+<ParamField name="app_id" type="string" required>
+  The Zorveus App ID (e.g. `app_support_123`).
+</ParamField>
+
+<ParamField name="external_user_id" type="string" required>
+  Your platform's unique user identifier (e.g. `usr_alex_8842`).
+</ParamField>
+
+<ParamField name="currency" type="string">
+  3-letter ISO currency code. Defaults to `USD`.
+</ParamField>
+
+<ApiRunner method="GET" path="/product-users/by-external-id/credit-summary" authType="service_key" />
+
+#### Response (`200 OK`)
+
+```json
+{
+  "currency": "USD",
+  "available_credits": "25.000000000000",
+  "active_grant_count": 2,
+  "expiring_soon_amount": "5.000000000000",
+  "spent_this_month": "10.000000000000",
+  "spent_total": "35.000000000000",
+  "last_grant_at": "2026-08-10T14:30:00Z",
+  "last_used_at": "2026-08-14T22:15:00Z"
+}
+```
+
+---
+
+## Upsert Product User by External ID
 
 <ApiEndpoint method="PUT" path="/product-users/by-external-id" auth="service_key" />
 
@@ -185,3 +266,24 @@ description: Reference and interactive runner for product users & credits operat
 
 ---
 
+## Error Codes & Statuses
+
+| HTTP Status | Error Code (`error.code`) | Description | Resolution |
+| :--- | :--- | :--- | :--- |
+| `400 Bad Request` | `zorveus_invalid_app_id` | `app_id` query parameter is empty or missing. | Supply a valid Zorveus `app_id`. |
+| `400 Bad Request` | `zorveus_invalid_external_user_id` | `external_user_id` query parameter is empty. | Supply a non-empty `external_user_id`. |
+| `401 Unauthorized` | `zorveus_malformed_or_missing_service_key` | Missing or invalid `Authorization` header. | Provide a valid Bearer token (`zrv_service_...`). |
+| `403 Forbidden` | `zorveus_service_key_scope_required` | Service key lacks `product_users:read` or `product_users:write`. | Add the required scope in the Zorveus Dashboard. |
+| `403 Forbidden` | `zorveus_service_key_inactive` | Service key has expired or been revoked. | Rotate or create a new active Service Key. |
+| `404 Not Found` | `zorveus_product_user_not_found` | No user exists for that `(app_id, external_user_id)` tuple. | Call `PUT /product-users/by-external-id` to create/upsert. |
+
+### Error Response Format
+
+```json
+{
+  "error": {
+    "code": "zorveus_product_user_not_found",
+    "message": "Product user not found."
+  }
+}
+```
