@@ -36,3 +36,10 @@ dev.pid
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# internal documentation & specifications
+public_documentation/
+openapi.json
+*.openapi.json
+scripts/
+
