@@ -1,12 +1,13 @@
 <p align="left">
   <a href="https://zorveus.com" target="_blank" rel="noopener noreferrer">
-    <img src="./public/zorveus-mark.svg" alt="Zorveus Logo" width="36" height="36" />
+    <img src="./public/zorveus-logo.svg" alt="Zorveus Logo" height="40" />
   </a>
 </p>
 
-# [Zorveus](https://zorveus.com) Documentation
+# Zorveus Documentation
 
 Official developer documentation for [**Zorveus**](https://zorveus.com) — the AI wallet, billing layer, and multi-provider inference gateway for startups and application developers.
+
 
 ---
 
