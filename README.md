@@ -1,8 +1,15 @@
-# Zorveus Documentation
+<p align="left">
+  <a href="https://zorveus.com" target="_blank" rel="noopener noreferrer">
+    <img src="./public/zorveus-mark.svg" alt="Zorveus Logo" width="36" height="36" />
+  </a>
+</p>
 
-Official developer documentation for **Zorveus** — the AI wallet, billing layer, and multi-provider inference gateway for startups and application developers.
+# [Zorveus](https://zorveus.com) Documentation
+
+Official developer documentation for [**Zorveus**](https://zorveus.com) — the AI wallet, billing layer, and multi-provider inference gateway for startups and application developers.
 
 ---
+
 
 ## 🌟 Tech Stack
 
