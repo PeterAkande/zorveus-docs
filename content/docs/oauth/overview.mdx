@@ -7,9 +7,13 @@ Zorveus implements the **OAuth 2.0 Authorization Code Flow with PKCE (RFC 7636)*
 
 ---
 
-## Interactive Flow Diagram
+## The 3-Step Lifecycle
 
-<SequenceDiagram flow="oauth-pkce" />
+| Step | Action | Description |
+| :--- | :--- | :--- |
+| **1. Authorize** | User Consent | User is redirected to Zorveus to choose their funding organization and approve your requested scopes. |
+| **2. Exchange** | PKCE Token Swap | Your backend exchanges the authorization code + cryptographic `code_verifier` for a scoped inference token. |
+| **3. Inference** | AI Completions | Your application sends standard inference calls to `https://api.zorveus.com/v1` using that token. |
 
 ---
 

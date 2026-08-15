@@ -7,9 +7,11 @@ If you build developer tools, IDE extensions, or SaaS platforms where users brin
 
 ---
 
-## Interactive Flow Visualizer
+## How it Works
 
-<SequenceDiagram flow="oauth-pkce" />
+1. **Authorize**: Your app redirects the user to the Zorveus Consent screen to approve wallet access and optional spend caps.
+2. **Exchange**: Your backend exchanges the returned authorization code + PKCE verifier for a scoped inference token.
+3. **Inference**: Your app makes standard OpenAI-compatible API calls using that token—debited directly to the user's wallet.
 
 ---
 

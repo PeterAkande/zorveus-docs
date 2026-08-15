@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, ReactNode, Children, isValidElement } from 'react';
 import { useKeyContext } from '../context/KeyContext';
-import { Check, Copy, Terminal } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 
 interface CodeGroupProps {
   children: ReactNode;
@@ -95,13 +95,12 @@ export function CodeGroup({ children, titles }: CodeGroupProps) {
               <button
                 key={idx}
                 onClick={() => handleTabClick(idx, tab)}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
                   isSelected
-                    ? 'bg-zinc-800/90 text-mint font-semibold shadow-sm border border-mint/20'
+                    ? 'bg-zinc-800/90 text-mint font-semibold shadow-xs border border-mint/20'
                     : 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200'
                 }`}
               >
-                <Terminal className={`h-3 w-3 ${isSelected ? 'text-mint' : 'text-zinc-500'}`} />
                 <span>{tab}</span>
               </button>
             );

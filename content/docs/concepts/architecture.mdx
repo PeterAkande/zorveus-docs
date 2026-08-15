@@ -3,8 +3,6 @@ title: System Architecture
 description: Understand the Zorveus control plane, inference data plane, routing engine, and ledger subsystems.
 ---
 
-# System Architecture
-
 Zorveus separates the **Control Plane** (workspace management, credential encryption, OAuth server, and policy definition) from the **Inference Data Plane** (high-throughput OpenAI-compatible proxy, pre-flight reservation, streaming, and settlement).
 
 ---
@@ -57,7 +55,10 @@ graph TD
 
 ## Request Lifecycle
 
-<SequenceDiagram flow="inference-lifecycle" />
+1. **Authentication & Policy Check**: The gateway checks the Bearer key, resolves spending caps, active credit grants, and rate limits.
+2. **Pre-flight Fund Reservation**: A provisional hold is placed on the payer's wallet to ensure sufficient balance before upstream calls.
+3. **Upstream Model Dispatch**: Zorveus decrypts provider credentials (or applies Zorveus-managed credits) and proxies the request to the upstream provider (OpenAI, Anthropic, Gemini, OpenRouter).
+4. **Streaming & Token Settlement**: Tokens stream with zero buffering back to the client. Upon stream completion, exact usage is settled and debited in the ledger.
 
 ---
 

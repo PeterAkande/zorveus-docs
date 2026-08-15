@@ -84,13 +84,16 @@ export function Card({ title, icon, href, children }: CardProps) {
           {/* Top row: Icon + ArrowUpRight */}
           <div className="flex items-center justify-between w-full mb-1">
             {IconComponent ? (
-              <div className="zorveus-card-icon-box flex size-9 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-800/30 text-zinc-300 transition-colors group-hover:border-emerald-500/40 group-hover:text-emerald-400">
-                <IconComponent className="h-4 w-4" />
+              <div
+                style={{ width: '28px', height: '28px', minWidth: '28px' }}
+                className="zorveus-card-icon-box flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-800/40 text-zinc-300 transition-colors group-hover:border-emerald-500/40 group-hover:text-emerald-400"
+              >
+                <IconComponent className="h-3.5 w-3.5" />
               </div>
             ) : (
-              <div className="size-9" />
+              <div style={{ width: '28px', height: '28px' }} />
             )}
-            <ArrowUpRight className="h-4 w-4 text-zinc-500 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-zinc-200" />
+            <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-zinc-200" />
           </div>
 
           {/* Title & Description */}
@@ -115,7 +118,7 @@ export function Card({ title, icon, href, children }: CardProps) {
     >
       <div className="flex flex-col gap-2 pb-1">
         <h3 className="text-base font-semibold text-zinc-100 flex items-center gap-2 m-0">
-          {IconComponent && <IconComponent className="h-4 w-4 text-zinc-400" />}
+          {IconComponent && <IconComponent className="h-3.5 w-3.5 text-zinc-400" />}
           <span>{title}</span>
         </h3>
         <div className="text-xs text-zinc-400 leading-relaxed m-0">{children}</div>
