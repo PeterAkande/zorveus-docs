@@ -3,13 +3,65 @@ title: Consent & Spending Caps
 description: How users choose funding organizations and configure monthly spending caps during OAuth consent.
 ---
 
-# Consent & Spending Caps
+During the OAuth 2.0 PKCE consent flow, users explicitly authorize third-party applications to charge AI inference requests to their Zorveus wallet.
 
-During the OAuth consent screen, the user:
-1. **Selects Funding Organization**: Chooses between their personal wallet or any startup organization they own.
-2. **Reviews Requested Scopes**: Inspects models and permissions requested by the application.
-3. **Sets a Spending Cap**: Configures a hard monthly ceiling (e.g. `$10.00 / month`) or selects Unlimited.
+Zorveus protects users by putting them in full control of which wallet pays for inference and enforcing hard monthly spending caps on a per-app basis.
 
-<Callout type="note" title="Developer Cap Boundaries">
-  If you configure `min_cap`, `default_cap`, or `max_cap` in your app settings, the consent screen pre-populates these recommendations for the user.
-</Callout>
+---
+
+## User Consent Screen Sequence
+
+When your app redirects a user to `https://app.zorveus.com/oauth/authorize`, Zorveus presents a consent interface where the user completes 3 key choices:
+
+<Steps>
+  <Step title="1. Select Funding Wallet">
+    The user chooses whether to fund inference from their Personal Wallet or a Startup Organization workspace where they hold billing permissions.
+  </Step>
+  <Step title="2. Review Model Permissions & Scopes">
+    The user inspects the model allowlist requested by your app (e.g. `openai/*`, `anthropic/*`) and authorized actions (`inference:write`).
+  </Step>
+  <Step title="3. Configure Monthly Spending Cap">
+    The user selects a hard monthly ceiling (e.g. `$10.00 / month`) or selects Unlimited. Requests exceeding this cap are blocked automatically.
+  </Step>
+</Steps>
+
+---
+
+## Developer Spending Cap Recommendations
+
+App developers can suggest spending cap boundaries by passing query parameters or setting default app limits in the Zorveus Dashboard:
+
+```text
+https://app.zorveus.com/oauth/authorize?
+  client_id=zrv_client_your_client_id&
+  redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&
+  scope=inference%3Awrite&
+  default_cap=15.00&
+  min_cap=5.00&
+  max_cap=100.00
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `default_cap` | Decimal string | Pre-selected monthly spending limit in USD shown on the consent screen. |
+| `min_cap` | Decimal string | Minimum monthly cap required for the app to function properly. |
+| `max_cap` | Decimal string | Upper cap recommendation suggested to prevent accidental over-spending. |
+
+---
+
+## What Happens When a Spending Cap is Hit
+
+Once an authorized application's total monthly inference usage reaches the user-defined spending cap:
+
+1. **Immediate API Block.** Subsequent inference calls using that token return an HTTP `429 Limit Exceeded` error.
+2. **Outbound Webhook Trigger.** Zorveus emits an `app_connection.cap_reached` webhook payload to your registered organization webhook URL.
+3. **User Dashboard Notification.** The user receives an in-app alert allowing them to adjust their spending cap or inspect usage logs.
+
+---
+
+## User-Initiated Cap Modifications & Revocation
+
+Users can modify spending caps or revoke app permissions at any time from their Zorveus account dashboard:
+
+* **Cap Adjustments.** Increasing or decreasing a monthly cap takes effect immediately without requiring a new OAuth consent flow.
+* **Instant Revocation.** When a user revokes app access, the `access_token` (`zrv_...`) is invalidated instantly, returning `401 Unauthorized` on subsequent requests.

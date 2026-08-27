@@ -27,7 +27,56 @@ If you build developer tools, IDE extensions, or SaaS platforms where users brin
 
 <Steps>
   <Step title="Generate Code Verifier and Code Challenge">
-    Create a high-entropy cryptographic random string (`code_verifier`) between 43 and 128 characters, then hash it with SHA-256 and Base64URL-encode the output (`code_challenge`).
+    Create a high-entropy cryptographic random string (`code_verifier`) between 43 and 128 characters, then hash it with SHA-256 and Base64URL-encode the result (`code_challenge`):
+
+    <CodeGroup titles={["Browser / Node.js (Web Crypto)", "Python (hashlib)"]}>
+
+    ```typescript
+    // Generate PKCE code verifier and S256 code challenge
+    function base64UrlEncode(buffer: ArrayBuffer): string {
+      const bytes = new Uint8Array(buffer);
+      let string = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        string += String.fromCharCode(bytes[i]);
+      }
+      return btoa(string)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    }
+
+    async function generatePKCE() {
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      const codeVerifier = base64UrlEncode(array.buffer);
+
+      const encoder = new TextEncoder();
+      const data = encoder.encode(codeVerifier);
+      const hash = await crypto.subtle.digest("SHA-256", data);
+      const codeChallenge = base64UrlEncode(hash);
+
+      return { codeVerifier, codeChallenge };
+    }
+    ```
+
+    ```python
+    import os
+    import base64
+    import hashlib
+
+    def generate_pkce():
+        # Generate 32 random bytes for code_verifier
+        raw_bytes = os.urandom(32)
+        code_verifier = base64.urlsafe_b64encode(raw_bytes).decode('utf-8').replace('=', '')
+        
+        # SHA-256 hash the verifier for code_challenge
+        digest = hashlib.sha256(code_verifier.encode('utf-8')).digest()
+        code_challenge = base64.urlsafe_b64encode(digest).decode('utf-8').replace('=', '')
+        
+        return code_verifier, code_challenge
+    ```
+
+    </CodeGroup>
   </Step>
   <Step title="Redirect User to Authorization Screen">
     Navigate the user's browser to the Zorveus consent endpoint:

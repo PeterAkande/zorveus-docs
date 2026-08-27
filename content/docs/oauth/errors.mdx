@@ -3,30 +3,68 @@ title: OAuth Error Handling
 description: Handle OAuth redirect errors, invalid redirect URIs, and token exchange failure codes.
 ---
 
-# OAuth Error Handling
+OAuth 2.0 PKCE errors fall into three main categories: authorization redirect errors, token exchange errors, and inference-time token errors.
 
-OAuth errors fall into two distinct security categories:
+Understanding these error categories ensures your application handles authentication failures cleanly and guides users through re-authorization when needed.
 
 ---
 
 ## 1. Unsafe Client Errors (Displayed on Zorveus)
 
-If the `client_id` is invalid or the `redirect_uri` does not **exactly match** the registered list, Zorveus **will not redirect the user**.
+If the `client_id` is unrecognized or the `redirect_uri` does not match your registered URIs byte-for-byte, Zorveus **will not redirect the user's browser back to your app**.
 
-An error message is rendered directly on Zorveus to prevent open-redirect exploits.
+Instead, Zorveus renders a security warning page directly to prevent open-redirect vulnerabilities.
 
 ---
 
 ## 2. Safe Redirect Errors (Sent to `redirect_uri`)
 
-When the client is validated but the authorization cannot proceed (e.g. user denied consent), Zorveus redirects to your `redirect_uri` with query parameters:
+When client parameters are valid but authorization cannot proceed (such as when a user declines consent), Zorveus redirects to your `redirect_uri` with standard OAuth error parameters:
 
 ```text
 https://myapp.com/callback?error=access_denied&error_description=User+declined+the+authorization+request&state=random_state_string
 ```
 
-| Error Code | Meaning |
-| :--- | :--- |
-| `access_denied` | The user clicked Cancel or declined consent. |
-| `invalid_scope` | The requested scope is not permitted for this application. |
-| `server_error` | Internal authorization server error. |
+| Error Code | Cause | Recommended Action |
+| :--- | :--- | :--- |
+| `access_denied` | The user clicked Cancel or declined consent. | Display a friendly message explaining that wallet authorization is required to proceed. |
+| `invalid_scope` | Requested scopes are unsupported or prohibited for your app. | Verify scope strings in your authorization request (`inference:write`). |
+| `server_error` | Temporary authorization server error. | Prompt the user to retry authorization. |
+
+---
+
+## 3. Token Exchange Errors (POST `/oauth/token`)
+
+During server-to-server token exchange, Zorveus returns standard JSON error responses with an HTTP `400 Bad Request` status code:
+
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "Invalid or expired code_verifier."
+}
+```
+
+| Error Code | Cause | Recommended Action |
+| :--- | :--- | :--- |
+| `invalid_grant` | The authorization code or `code_verifier` is invalid, expired, or previously used. | Prompt the user to restart the OAuth authorization flow from the beginning. |
+| `invalid_client` | The `client_id` or `client_secret` parameter is invalid. | Verify your app credentials in environment configuration. |
+| `invalid_request` | Missing mandatory parameter (such as `code`, `grant_type`, or `redirect_uri`). | Verify request body encoding (`application/x-www-form-urlencoded`). |
+
+---
+
+## 4. Inference-Time Token Errors
+
+When executing model requests using a user's OAuth access token (`zrv_...`), the gateway may return authentication or limit errors:
+
+```json
+{
+  "error": {
+    "message": "Monthly spending cap reached for this application.",
+    "type": "insufficient_quota",
+    "code": "cap_exceeded"
+  }
+}
+```
+
+* **HTTP `401 Unauthorized`**: Returned if the user revoked app access or the token was invalidated. Prompt the user to reconnect their Zorveus wallet.
+* **HTTP `429 Too Many Requests / Limit Exceeded`**: Returned if the user's monthly spending cap for your app has been reached. Direct the user to their Zorveus dashboard to increase their cap.

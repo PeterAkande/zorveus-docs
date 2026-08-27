@@ -9,6 +9,7 @@
     "idempotency",
     "pagination",
     "money-and-dates",
-    "security"
+    "security",
+    "webhooks"
   ]
 }
