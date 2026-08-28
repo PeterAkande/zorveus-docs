@@ -3,52 +3,29 @@ title: Service Keys
 description: Secure server-to-server management credentials for automating organization resources.
 ---
 
-Service Keys (`zrv_service_...`) provide high-privilege programmatic access to the Zorveus Management API (`https://api.zorveus.com`).
+Service Keys (`zrv_sk_...`) provide high-privilege programmatic access for backend-to-backend authentication against the Zorveus Management API (`https://api.zorveus.com`).
 
-<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_service_your_service_key" />
+<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_sk_your_service_key" />
 
 <Callout type="danger" title="Strict Backend-Only Credential">
-  Service keys must **NEVER** be included in frontend client bundles, mobile binaries, or browser-rendered code. They possess administrative authority to manage users, grant credits, and configure billing settings.
+  Service keys must NEVER be included in frontend client bundles, mobile binaries, or browser-rendered code. They possess administrative authority to manage product users, grant credits, and configure billing settings.
 </Callout>
-
----
-
-## Service Key Scopes & Role Presets
-
-When generating a Service Key in the Zorveus Dashboard, you can select convenient **Role Presets** or configure **Granular Scopes**:
-
-### 1. Role Presets
-
-| Role Preset | Scope Identifiers | Permissions & Capabilities |
-| :--- | :--- | :--- |
-| **Admin (Full Access)** | `admin`, `admin:full`, `admin:write`, `*` | Complete read & write access to all organization resources, product users, credit grants, app connections, and BYOK credentials. |
-| **Read-Only** | `read_only`, `read`, `admin:read` | Read-only access across all management APIs (e.g. querying users, reading usage logs, auditing credits). Mutation endpoints will return `403 Forbidden`. |
-
----
-
-### 2. Granular Scopes
-
-For least-privilege automation, you can restrict service keys to specific resource actions:
-
-| Granular Scope | Description |
-| :--- | :--- |
-| `product_users:read` | Query product user profiles, credit summaries, and metadata. |
-| `product_users:write` | Create, upsert, modify status, and delete product users. |
-| `credits:write` | Issue credit grants, adjust balances, and revoke active grants. |
-| `app_connections:write` | Create, rotate, and manage secondary inference keys and app connections. |
-| `provider_credentials:write` | Store and manage encrypted BYOK credentials (OpenAI, Anthropic, Gemini, etc.). |
 
 ---
 
 ## Authenticating API Requests
 
-Pass the Service Key in the `Authorization` HTTP header for all requests to `https://api.zorveus.com`:
+Pass your Service Key in the HTTP `Authorization` header for all requests to `https://api.zorveus.com`:
 
-<CodeGroup titles={["cURL", "TypeScript SDK", "Python SDK"]}>
+```http
+Authorization: Bearer zrv_sk_your_service_key
+```
+
+<CodeGroup titles={["cURL", "TypeScript SDK", "Python"]}>
 
 ```bash
-curl -X GET "https://api.zorveus.com/product-users/by-external-id?app_id=app_123&external_user_id=usr_456" \
-  -H "Authorization: Bearer zrv_service_your_service_key"
+curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id?app_id=app_123&external_user_id=usr_456" \
+  -H "Authorization: Bearer zrv_sk_your_service_key"
 ```
 
 ```typescript
@@ -56,7 +33,7 @@ import { Zorveus } from "@zorveus/sdk";
 
 // Initialize Zorveus client with your Organization Service Key
 const zorveus = new Zorveus({
-  serviceKey: "zrv_service_your_service_key",
+  serviceKey: "zrv_sk_your_service_key",
 });
 
 const user = await zorveus.productUsers.getByExternalId({
@@ -66,16 +43,55 @@ const user = await zorveus.productUsers.getByExternalId({
 ```
 
 ```python
-from zorveus import Zorveus
+import requests
 
-# Initialize Zorveus client with your Organization Service Key
-client = Zorveus(service_key="zrv_service_your_service_key")
-
-user = client.product_users.get_by_external_id(
-    app_id="app_123",
-    external_user_id="usr_456",
+response = requests.get(
+    "https://api.zorveus.com/api/v1/product-users/by-external-id",
+    headers={"Authorization": "Bearer zrv_sk_your_service_key"},
+    params={"app_id": "app_123", "external_user_id": "usr_456"},
 )
+
+user = response.json()
 ```
 
 </CodeGroup>
 
+---
+
+## Complete Service Key Endpoint Catalog
+
+### 1. Product Users and End-User Credit Management
+
+| HTTP Method | Route Endpoint | Required Scope | Description |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/api/v1/product-users/by-external-id` | `product_users:read` | Look up a product user by your app's `external_user_id`. |
+| **GET** | `/api/v1/product-users/by-external-id/credit-summary` | `product_users:read` | Fetch credit balance summary for an external user. |
+| **PUT** | `/api/v1/product-users/by-external-id` | `product_users:write` | Upsert (create or update) a product user by `external_user_id`. |
+| **POST** | `/api/v1/product-users/by-external-id/credit-grants` | `product_users:write` | Grant free or promotional credits to a product user. |
+| **GET** | `/api/v1/product-users/by-external-id/credit-grants` | `product_users:read` | List credit grant history for a product user. |
+
+### 2. Provider Credentials Management
+
+| HTTP Method | Route Endpoint | Required Scope | Description |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/api/v1/provider-credentials` | `provider_credentials:write` / `admin` | List all configured provider credentials for the organization. |
+| **POST** | `/api/v1/provider-credentials` | `provider_credentials:write` / `admin` | Add a new provider credential (e.g. OpenAI or Anthropic key). |
+| **POST** | `/api/v1/provider-credentials/{id}/rotate` | `provider_credentials:write` / `admin` | Rotate the secret key for a provider credential. |
+| **DELETE** | `/api/v1/provider-credentials/{id}` | `provider_credentials:write` / `admin` | Soft-delete a provider credential. |
+| **POST** | `/api/v1/provider-credentials/{id}/grants` | `provider_credentials:write` / `admin` | Link or grant a provider credential to an App Connection. |
+
+### 3. App Connections
+
+| HTTP Method | Route Endpoint | Required Scope | Description |
+| :--- | :--- | :--- | :--- |
+| **POST** | `/api/v1/app-connections` | `app_connections:write` / `admin` | Register or create a new App Connection under your organization. |
+
+---
+
+## Scope Hierarchies
+
+* **Master Scopes (`all` / `admin` / `admin:full` / `admin:write`):** Master scopes that grant permission across all Service Key endpoints.
+* **`product_users:write`:** Grants permission to create product users and issue credit grants.
+* **`product_users:read`:** Grants read-only access to product user profiles, credit summaries, and grant history.
+* **`provider_credentials:write`:** Grants permission to create, rotate, delete, and link AI provider credentials.
+* **`app_connections:write`:** Grants permission to register and manage app connections.
