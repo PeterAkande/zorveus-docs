@@ -3,8 +3,6 @@ title: Authentication & Credentials
 description: Complete matrix of credentials, headers, and security levels across Zorveus.
 ---
 
-# Authentication & Credentials
-
 Zorveus uses distinct authentication schemes depending on the caller and security context.
 
 ---
@@ -14,6 +12,23 @@ Zorveus uses distinct authentication schemes depending on the caller and securit
 | Credential Type | Header / Location | Target Surface | Permitted Caller |
 | :--- | :--- | :--- | :--- |
 | **Inference Key** (`zrv_...`) | `Authorization: Bearer zrv_...` | `api.zorveus.com/v1` | Server backends & authorized clients |
-| **Service Key** (`zrv_service_...`) | `Authorization: Bearer zrv_service_...` | `api.zorveus.com` | Backend server automation ONLY |
+| **Service Key** (`zrv_sk_...`) | `Authorization: Bearer zrv_sk_...` | `api.zorveus.com` | Backend server automation ONLY |
 | **OAuth Client Secret** | Form-encoded POST body | `/oauth/token` | Confidential OAuth backends ONLY |
 | **Dashboard Session** | Cookie (`session=...`) + `X-CSRF-Token` | `app.zorveus.com` | Authenticated browser sessions |
+
+---
+
+## Supported HTTP Headers
+
+Zorveus uses explicit headers for authentication, tracking, and outbound webhook signatures:
+
+| Header Name | Context | Type | Description |
+| :--- | :--- | :--- | :--- |
+| **`Authorization`** | Request | `Bearer zrv_...` or `Bearer zrv_sk_...` | Authenticates AI Gateway or Management API requests. |
+| **`X-Zorveus-Signature`** | Outbound Webhook | String (`t=...,v1=...`) | HMAC SHA-256 signature for verifying outbound webhook payloads. |
+| **`x-zorveus-request-id`** | Response | String (`zreq_...`) | Unique gateway request tracking identifier. |
+| **`x-zorveus-reservation-id`** | Response | String (`resv_...`) | Spend reservation tracking identifier. |
+
+<Callout type="note" title="Request Parameters vs Headers">
+  User identifiers (`external_user_id`) and application IDs (`app_id`) are passed in request metadata objects (`extra_body={"metadata": {"external_user_id": "..."}}`) or bound to API keys, **not** as custom `X-Zorveus-*` HTTP headers.
+</Callout>

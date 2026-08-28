@@ -173,12 +173,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Tag requests with your customer's user ID to track unit economics and enforce individual credit grants:
 
     ```python
-    # Pass product_user_id in extra_body or as an X-Zorveus-User-Id header
+    # Tag request with external_user_id for customer attribution
     response = client.chat.completions.create(
         model="openai/gpt-4.1-mini",
         messages=[{"role": "user", "content": "Generate a report."}],
         extra_body={
-            "product_user_id": "usr_customer_8492"
+            "metadata": {
+                "external_user_id": "usr_customer_8492"
+            }
         }
     )
     ```
