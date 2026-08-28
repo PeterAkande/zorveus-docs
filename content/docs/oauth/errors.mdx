@@ -29,6 +29,7 @@ https://myapp.com/callback?error=access_denied&error_description=User+declined+t
 | :--- | :--- | :--- |
 | `access_denied` | The user clicked Cancel or declined consent. | Display a friendly message explaining that wallet authorization is required to proceed. |
 | `invalid_scope` | Requested scopes are unsupported or prohibited for your app. | Verify scope strings in your authorization request (`inference:write`). |
+| `zorveus_model_scope_required` | No model scope was provided in the authorization request. | Include at least one model scope (such as `models:*` or `openai/*`) alongside `inference:write`. |
 | `server_error` | Temporary authorization server error. | Prompt the user to retry authorization. |
 
 ---

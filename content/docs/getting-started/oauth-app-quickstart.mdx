@@ -81,8 +81,12 @@ If you build developer tools, IDE extensions, or SaaS platforms where users brin
   <Step title="Redirect User to Authorization Screen">
     Navigate the user's browser to the Zorveus consent endpoint:
     ```text
-    https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&scope=inference%3Awrite&code_challenge=E9Melhoa2OwvFrGMTJguCH5ZiXV6lURbI7...&code_challenge_method=S256&state=random_state_string
+    https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&scope=inference%3Awrite%20models%3A*&code_challenge=E9Melhoa2OwvFrGMTJguCH5ZiXV6lURbI7...&code_challenge_method=S256&state=random_state_string
     ```
+
+    <Callout type="warning" title="Model Scope Required">
+      OAuth authorization requests require at least one model scope such as `models:*` alongside `inference:write`. Omitting model scopes triggers a `zorveus_model_scope_required` authorization error.
+    </Callout>
   </Step>
   <Step title="User Grants Consent">
     The user signs in to Zorveus, selects their funding organization (personal or team), and sets an optional spending cap.
