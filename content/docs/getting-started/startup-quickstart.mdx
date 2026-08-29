@@ -33,9 +33,70 @@ Before writing code, complete these 3 steps in the [Zorveus Dashboard](https://a
 
 ## 2. Send Your First Request
 
-Zorveus is 100% compatible with the official OpenAI SDKs across all major languages. You only need to set `baseURL` to `https://api.zorveus.com/v1` and use your `zrv_...` key.
+You can use the official `@zorveus/sdk` TypeScript client, the `zorveus` Python library, or any standard OpenAI SDK pointing to `https://api.zorveus.com/v1`.
 
-<CodeGroup titles={["cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "JavaScript (Node.js)", "Go"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "JavaScript (Node.js)", "Go"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "system", content: "You are a helpful coding assistant." },
+      { role: "user", content: "Write a Python function to check for prime numbers." },
+    ],
+    temperature: 0.7,
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(api_key="zrv_your_inference_key")
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "system", "content": "You are a helpful coding assistant."},
+        {"role": "user", "content": "Write a Python function to check for prime numbers."}
+    ],
+    temperature=0.7
+)
+
+print(response.choices[0].message.content)
+```
+
+```python
+# pip install zorveus[openai]
+from zorveus.openai import ZorveusOpenAI
+
+client = ZorveusOpenAI(
+    api_key="zrv_your_inference_key",
+    external_user_id="usr_dev_101"
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "system", "content": "You are a helpful coding assistant."},
+        {"role": "user", "content": "Write a Python function to check for prime numbers."}
+    ],
+    temperature=0.7
+)
+
+print(response.choices[0].message.content)
+```
 
 ```bash
 curl https://api.zorveus.com/v1/chat/completions \

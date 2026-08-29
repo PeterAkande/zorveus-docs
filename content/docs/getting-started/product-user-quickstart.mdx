@@ -21,7 +21,123 @@ Subsequent requests with the same `external_user_id` update the product user's m
 
 Add the `user` parameter or `extra_body.metadata` to your standard OpenAI client call:
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "TypeScript (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "user", content: "Summarize the latest trends in renewable energy." },
+    ],
+    // Pass typed Zorveus product-user metadata
+    zorveusMetadata: {
+      externalUserId: "usr_cust_94821",
+      displayName: "Sarah Connor",
+      userEmail: "sarah.connor@example.com",
+      metadata: {
+        plan: "pro_tier",
+        teamId: "team_alpha",
+      },
+    },
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(api_key="zrv_your_inference_key")
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Summarize the latest trends in renewable energy."}
+    ],
+    zorveus_metadata={
+        "external_user_id": "usr_cust_94821",
+        "display_name": "Sarah Connor",
+        "user_email": "sarah.connor@example.com",
+        "metadata": {
+            "plan": "pro_tier",
+            "team_id": "team_alpha",
+        },
+    },
+)
+
+print(response.choices[0].message.content)
+```
+
+```python
+# pip install zorveus[openai]
+from zorveus.openai import ZorveusOpenAI
+
+client = ZorveusOpenAI(
+    api_key="zrv_your_inference_key",
+    external_user_id="usr_cust_94821",
+    display_name="Sarah Connor",
+    email="sarah.connor@example.com",
+    user_metadata={"plan": "pro_tier", "team_id": "team_alpha"}
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Summarize the latest trends in renewable energy."}
+    ]
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+// npm install @zorveus/sdk openai
+import { ZorveusOpenAI } from "@zorveus/sdk/openai";
+
+const openai = new ZorveusOpenAI({
+  apiKey: "zrv_your_inference_key",
+  externalUserId: "usr_cust_94821",
+  displayName: "Sarah Connor",
+  userEmail: "sarah.connor@example.com",
+});
+
+const completion = await openai.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [
+    { role: "user", content: "Summarize the latest trends in renewable energy." }
+  ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```typescript
+// npm install @zorveus/sdk ai @ai-sdk/openai
+import { createZorveus } from "@zorveus/sdk/vercel";
+import { generateText } from "ai";
+
+const zorveus = createZorveus({
+  apiKey: "zrv_your_inference_key",
+  externalUserId: "usr_cust_94821",
+});
+
+const { text } = await generateText({
+  model: zorveus("openai/gpt-4.1-mini"),
+  prompt: "Summarize the latest trends in renewable energy.",
+});
+
+console.log(text);
+```
 
 ```python
 from openai import OpenAI

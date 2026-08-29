@@ -25,9 +25,84 @@ Zorveus sits between your application and model providers (OpenAI, Anthropic, Ge
 
 ## 30-Second Quickstart
 
-Zorveus is 100% compatible with the official OpenAI SDKs. Simply point the SDK base URL to `https://api.zorveus.com/v1` and use your Zorveus inference key (`zrv_...`).
+You can use the official **Zorveus SDKs** (`@zorveus/sdk` for TypeScript, `zorveus` for Python), framework adapters (`@zorveus/sdk/openai`, `@zorveus/sdk/vercel`, `zorveus[openai]`), or point any OpenAI-compatible client to `https://api.zorveus.com/v1`.
 
-<CodeGroup titles={["cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "Go", "Rust"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "cURL", "TypeScript (OpenAI SDK)", "Go"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [
+      { role: "user", content: "Explain quantum computing in one sentence." },
+    ],
+  });
+
+  console.log(completion.choices[0].message.content);
+}
+
+main();
+```
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(api_key="zrv_your_inference_key")
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+
+```python
+from zorveus.openai import ZorveusOpenAI
+
+# Official OpenAI Python SDK wrapper with native user attribution
+client = ZorveusOpenAI(
+    api_key="zrv_your_inference_key",
+    external_user_id="usr_sara_101",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ],
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import { createZorveus } from "@zorveus/sdk/vercel";
+import { generateText } from "ai";
+
+const zorveus = createZorveus({
+  apiKey: "zrv_your_inference_key",
+});
+
+async function main() {
+  const { text } = await generateText({
+    model: zorveus("openai/gpt-4.1-mini"),
+    prompt: "Explain quantum computing in one sentence.",
+  });
+
+  console.log(text);
+}
+
+main();
+```
 
 ```bash
 curl https://api.zorveus.com/v1/chat/completions \
@@ -39,25 +114,6 @@ curl https://api.zorveus.com/v1/chat/completions \
       {"role": "user", "content": "Explain quantum computing in one sentence."}
     ]
   }'
-```
-
-```python
-from openai import OpenAI
-
-# Initialize client pointing to Zorveus gateway
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
-)
-
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "user", "content": "Explain quantum computing in one sentence."}
-    ],
-)
-
-print(response.choices[0].message.content)
 ```
 
 ```typescript
@@ -146,6 +202,86 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+```
+
+</CodeGroup>
+
+---
+
+## Official SDKs and Framework Adapters
+
+Zorveus provides official SDK packages for TypeScript and Python, along with drop-in adapters for standard frameworks like OpenAI and Vercel AI SDK:
+
+<CardGroup cols={3}>
+  <Card title="@zorveus/sdk" icon="code">
+    **Core TypeScript SDK**  
+    `npm install @zorveus/sdk`  
+    Native TypeScript/JavaScript client for inference, management, and PKCE.
+  </Card>
+  <Card title="zorveus" icon="terminal">
+    **Core Python SDK**  
+    `pip install zorveus`  
+    Typed Python 3.9+ client with sync and async `httpx` transports.
+  </Card>
+  <Card title="@zorveus/react" icon="layout">
+    **React Hooks & UI**  
+    `npm install @zorveus/react`  
+    Providers, `useZorveusInference`, `useZorveusSpend`, and pre-built UI components.
+  </Card>
+</CardGroup>
+
+### Framework Adapters
+
+<CodeGroup titles={["Python OpenAI Adapter (zorveus[openai])", "TypeScript OpenAI Adapter (@zorveus/sdk/openai)", "TypeScript Vercel AI SDK (@zorveus/sdk/vercel)"]}>
+
+```python
+# pip install zorveus[openai]
+from zorveus.openai import ZorveusOpenAI
+
+# Drop-in wrapper for official OpenAI Python SDK
+client = ZorveusOpenAI(
+    api_key="zrv_your_inference_key",
+    external_user_id="usr_sara_101",
+    display_name="Sara Connor"
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+```typescript
+// npm install @zorveus/sdk openai
+import { ZorveusOpenAI } from "@zorveus/sdk/openai";
+
+// Drop-in wrapper for official OpenAI TypeScript SDK
+const openai = new ZorveusOpenAI({
+  apiKey: "zrv_your_inference_key",
+  externalUserId: "usr_sara_101",
+  displayName: "Sara Connor"
+});
+
+const completion = await openai.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Hello!" }]
+});
+```
+
+```typescript
+// npm install @zorveus/sdk ai @ai-sdk/openai
+import { createZorveus } from "@zorveus/sdk/vercel";
+import { streamText } from "ai";
+
+const zorveus = createZorveus({
+  apiKey: "zrv_your_inference_key",
+  externalUserId: "usr_sara_101"
+});
+
+const { textStream } = streamText({
+  model: zorveus("openai/gpt-4.1-mini"),
+  prompt: "Generate 3 startup ideas."
+});
 ```
 
 </CodeGroup>

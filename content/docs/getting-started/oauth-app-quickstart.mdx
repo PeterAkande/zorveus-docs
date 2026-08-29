@@ -29,10 +29,42 @@ If you build developer tools, IDE extensions, or SaaS platforms where users brin
   <Step title="Generate Code Verifier and Code Challenge">
     Create a high-entropy cryptographic random string (`code_verifier`) between 43 and 128 characters, then hash it with SHA-256 and Base64URL-encode the result (`code_challenge`):
 
-    <CodeGroup titles={["Browser / Node.js (Web Crypto)", "Python (hashlib)"]}>
+    <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Browser / Node.js (Web Crypto)", "Python (hashlib)"]}>
 
     ```typescript
-    // Generate PKCE code verifier and S256 code challenge
+    import { ZorveusOAuth } from "@zorveus/sdk";
+
+    // Generate PKCE code verifier, S256 challenge, and CSRF state token
+    const pkce = ZorveusOAuth.generatePKCE();
+
+    // Construct authorization URL
+    const authUrl = ZorveusOAuth.getAuthorizationUrl({
+      clientId: "zrv_client_your_client_id",
+      redirectUri: "https://myapp.com/callback",
+      state: pkce.state,
+      codeChallenge: pkce.codeChallenge,
+      scopes: ["inference:write", "models:*"],
+    });
+    ```
+
+    ```python
+    from zorveus import ZorveusOAuth
+
+    # Generate PKCE code verifier, S256 challenge, and state token
+    pkce = ZorveusOAuth.generate_pkce()
+
+    # Construct authorization URL
+    auth_url = ZorveusOAuth.get_authorization_url(
+        client_id="zrv_client_your_client_id",
+        redirect_uri="https://myapp.com/callback",
+        state=pkce.state,
+        code_challenge=pkce.code_challenge,
+        scopes=["inference:write", "models:*"],
+    )
+    ```
+
+    ```typescript
+    // Generate PKCE code verifier and S256 code challenge manually
     function base64UrlEncode(buffer: ArrayBuffer): string {
       const bytes = new Uint8Array(buffer);
       let string = "";
@@ -102,7 +134,37 @@ If you build developer tools, IDE extensions, or SaaS platforms where users brin
 
 Your backend exchanges the short-lived authorization code using the plaintext `code_verifier`:
 
-<CodeGroup titles={["Node.js (TypeScript)", "Python", "cURL"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Node.js (TypeScript)", "Python (Requests)", "cURL"]}>
+
+```typescript
+import { ZorveusOAuth } from "@zorveus/sdk";
+
+// Exchange authorization code for token
+const tokenResponse = await ZorveusOAuth.exchangeToken({
+  clientId: "zrv_client_your_client_id",
+  clientSecret: "zrv_client_secret_your_client_secret",
+  code: code,
+  codeVerifier: codeVerifier,
+  redirectUri: "https://myapp.com/callback",
+});
+
+console.log("Access Token:", tokenResponse.access_token);
+```
+
+```python
+from zorveus import ZorveusOAuth
+
+# Exchange authorization code for token
+token = ZorveusOAuth.exchange_token(
+    client_id="zrv_client_your_client_id",
+    client_secret="zrv_client_secret_your_client_secret",
+    code=code,
+    code_verifier=code_verifier,
+    redirect_uri="https://myapp.com/callback",
+)
+
+print("Access Token:", token.access_token)
+```
 
 ```typescript
 async function exchangeCodeForToken(code: string, codeVerifier: string) {

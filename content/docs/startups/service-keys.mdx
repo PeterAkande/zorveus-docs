@@ -21,25 +21,37 @@ Pass your Service Key in the HTTP `Authorization` header for all requests to `ht
 Authorization: Bearer zrv_sk_your_service_key
 ```
 
-<CodeGroup titles={["cURL", "TypeScript SDK", "Python"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL", "Python (Requests)"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+// Initialize Zorveus management client with your Organization Service Key
+const service = new ZorveusServiceClient({
+  apiKey: "zrv_sk_your_service_key",
+});
+
+const user = await service.productUsers.getByExternalId({
+  appId: "app_123",
+  externalUserId: "usr_456",
+});
+```
+
+```python
+from zorveus import ZorveusServiceClient
+
+// Initialize Zorveus management client with your Organization Service Key
+service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
+
+user = service.product_users.get_by_external_id(
+    app_id="app_123",
+    external_user_id="usr_456",
+)
+```
 
 ```bash
 curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id?app_id=app_123&external_user_id=usr_456" \
   -H "Authorization: Bearer zrv_sk_your_service_key"
-```
-
-```typescript
-import { Zorveus } from "@zorveus/sdk";
-
-// Initialize Zorveus client with your Organization Service Key
-const zorveus = new Zorveus({
-  serviceKey: "zrv_sk_your_service_key",
-});
-
-const user = await zorveus.productUsers.getByExternalId({
-  appId: "app_123",
-  externalUserId: "usr_456",
-});
 ```
 
 ```python

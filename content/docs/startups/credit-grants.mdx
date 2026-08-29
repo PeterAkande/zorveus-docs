@@ -25,7 +25,41 @@ When a product user sends an inference request, Zorveus deducts usage costs usin
 
 <ApiEndpoint method="POST" path="/product-users/{product_user_id}/credit-grants" auth="service_key" />
 
-<CodeGroup titles={["cURL", "Python (Requests)", "Node.js (Fetch)"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL", "Python (Requests)", "Node.js (Fetch)"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+  apiKey: "zrv_sk_your_service_key",
+});
+
+const grant = await service.productUsers.grantCreditByExternalId({
+  appId: "app_startup_123",
+  externalUserId: "usr_cust_94821",
+  amount: "10.000000000000",
+  source: "promotion",
+  reason: "Welcome promotion credit grant",
+});
+
+console.log("New Balance:", grant.credit_summary.available_credits);
+```
+
+```python
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
+
+grant = service.product_users.grant_credit_by_external_id(
+    app_id="app_startup_123",
+    external_user_id="usr_cust_94821",
+    amount="10.000000000000",
+    source="promotion",
+    reason="Welcome promotion credit grant",
+)
+
+print("New Balance:", grant.credit_summary.available_credits)
+```
 
 ```bash
 curl -X POST https://api.zorveus.com/product-users/usr_cust_94821/credit-grants \
