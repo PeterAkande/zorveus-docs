@@ -3,11 +3,74 @@ title: Using the Scoped OAuth Token
 description: Execute inference calls using the user-provided OAuth access token.
 ---
 
-# Using the Scoped OAuth Token
+The `access_token` returned by `/oauth/token` is a standard Zorveus inference key (`zrv_...`). Pass it directly in the `Authorization: Bearer zrv_...` header, the official Zorveus SDK constructors, or OpenAI SDK `apiKey` parameters.
 
-The `access_token` returned by `/oauth/token` is a standard Zorveus inference key (`zrv_...`). Pass it directly in the `Authorization: Bearer zrv_...` header or OpenAI SDK `apiKey` parameter.
+---
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+## Executing Wallet-Funded Inference
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "TypeScript (ZorveusOpenAI)", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+// Initialize Zorveus client using the user's wallet access token
+const client = new Zorveus({
+  apiKey: userOAuthAccessToken,
+});
+
+const completion = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Hello Zorveus!" }],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python
+from zorveus import Zorveus
+
+# Instantiate client with user's access token
+client = Zorveus(api_key=user_access_token)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Hello Zorveus!"}]
+)
+
+print(response.choices[0].message.content)
+```
+
+```python
+# pip install zorveus[openai]
+from zorveus.openai import ZorveusOpenAI
+
+# Instantiate OpenAI adapter with user's access token
+client = ZorveusOpenAI(api_key=user_access_token)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Hello Zorveus!"}]
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+// npm install @zorveus/sdk openai
+import { ZorveusOpenAI } from "@zorveus/sdk/openai";
+
+const openai = new ZorveusOpenAI({
+  apiKey: userOAuthAccessToken,
+});
+
+const completion = await openai.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Hello Zorveus!" }],
+});
+
+console.log(completion.choices[0].message.content);
+```
 
 ```python
 from openai import OpenAI
@@ -15,7 +78,7 @@ from openai import OpenAI
 # Initialize client using the OAuth access token
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_oauth_token_from_exchange",
+    api_key=user_access_token,
 )
 
 response = client.chat.completions.create(
@@ -31,7 +94,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_oauth_token_from_exchange",
+  apiKey: userOAuthAccessToken,
 });
 
 async function main() {
