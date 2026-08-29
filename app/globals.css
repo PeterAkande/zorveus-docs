@@ -300,3 +300,70 @@ code {
 .fd-toc a:hover {
   color: #F4F4F5 !important;
 }
+
+/* High-Visibility Mint Green Tab Switcher Theme (Overrides Fumadocs & Radix) */
+.fd-tabs,
+[role="tablist"],
+div.fd-tabs-list {
+  display: flex !important;
+  gap: 0.5rem !important;
+  border-bottom: 1px solid #27272A !important;
+  padding-bottom: 0.75rem !important;
+  margin-bottom: 1.5rem !important;
+  background-color: transparent !important;
+}
+
+.fd-tabs button,
+[role="tab"],
+button[role="tab"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.5rem !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+  /* Inactive styling: Dark pill with clear gray border and bright text */
+  color: #D4D4D8 !important;
+  background-color: #18181B !important;
+  border: 1px solid #27272A !important;
+}
+
+.fd-tabs button:hover,
+[role="tab"]:hover,
+button[role="tab"]:hover {
+  color: #4DFFB4 !important;
+  background-color: #27272A !important;
+  border-color: rgba(77, 255, 180, 0.4) !important;
+}
+
+/* ACTIVE STATE - High-visibility Mint Green Badge */
+.fd-tabs button[data-state="active"],
+.fd-tabs button[aria-selected="true"],
+[role="tab"][data-state="active"],
+[role="tab"][aria-selected="true"],
+button[role="tab"][data-state="active"],
+button[role="tab"][aria-selected="true"] {
+  color: #4DFFB4 !important;
+  background-color: rgba(77, 255, 180, 0.15) !important;
+  border: 2px solid #4DFFB4 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 6px rgba(77, 255, 180, 0.12) !important;
+}
+
+/* Compact Codeblock Copy Button Icon Sizing */
+button[aria-label*="Copy"] svg,
+button[title*="Copy"] svg,
+.fd-codeblock button svg,
+figure.nd-codeblock button svg,
+figure button svg {
+  width: 12px !important;
+  height: 12px !important;
+  max-width: 12px !important;
+  max-height: 12px !important;
+}

@@ -95,11 +95,30 @@ export function CodeGroup({ children, titles }: CodeGroupProps) {
               <button
                 key={idx}
                 onClick={() => handleTabClick(idx, tab)}
-                className={`rounded-md px-3 py-1 text-xs font-medium transition-all ${
-                  isSelected
-                    ? 'bg-zinc-800/90 text-mint font-semibold shadow-xs border border-mint/20'
-                    : 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200'
-                }`}
+                style={{
+                  padding: '0.375rem 0.875rem',
+                  fontSize: '0.8rem',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.15s ease-in-out',
+                  whiteSpace: 'nowrap',
+                  ...(isSelected
+                    ? {
+                        color: '#4DFFB4',
+                        backgroundColor: 'rgba(77, 255, 180, 0.15)',
+                        border: '2px solid rgba(77, 255, 180, 0.5)',
+                        fontWeight: 700,
+                        boxShadow: '0 0 6px rgba(77, 255, 180, 0.12)',
+                      }
+                    : {
+                        color: '#D4D4D8',
+                        backgroundColor: '#18181B',
+                        border: '1px solid #3F3F46',
+                        fontWeight: 600,
+                        boxShadow: 'none',
+                      }),
+                }}
               >
                 <span>{tab}</span>
               </button>
@@ -114,12 +133,12 @@ export function CodeGroup({ children, titles }: CodeGroupProps) {
         >
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-mint" />
+              <Check className="h-3 w-3 text-mint" />
               <span className="text-mint text-[11px]">Copied</span>
             </>
           ) : (
             <>
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-3 w-3" />
               <span className="text-[11px]">Copy</span>
             </>
           )}
