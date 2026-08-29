@@ -3,9 +3,13 @@ title: Product Users
 description: Programmatically manage, search, and track customer identities and usage limits.
 ---
 
-Product Users are your customers. You can create or update them inline during inference or manage them explicitly using your Organization Service Key (`zrv_service_...`).
+Product Users are your customers. You can create or update them automatically inline during inference or manage them explicitly using your Organization Service Key (`zrv_sk_...`).
 
-<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_service_your_service_key" />
+<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_sk_your_service_key" />
+
+<Callout type="tip" title="Automatic Inline User Provisioning">
+  You do not need to call the Management API to create users before making inference calls! Passing `external_user_id` inside inference request metadata automatically provisions the user in Zorveus on their first request.
+</Callout>
 
 ---
 
@@ -13,45 +17,43 @@ Product Users are your customers. You can create or update them inline during in
 
 Read a product user's live profile, configured spending cap, available credits, and monthly token usage without accidental creations or mutations.
 
-<CodeGroup titles={["cURL", "TypeScript SDK", "Python SDK"]}>
-
-```bash
-curl -X GET "https://api.zorveus.com/product-users/by-external-id?app_id=app_support_123&external_user_id=usr_alex_8842" \
-  -H "Authorization: Bearer zrv_service_your_service_key"
-```
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
 ```typescript
-import { Zorveus } from "@zorveus/sdk";
+import { ZorveusServiceClient } from "@zorveus/sdk";
 
-const zorveus = new Zorveus({
-  serviceKey: "zrv_service_your_service_key",
+const service = new ZorveusServiceClient({
+  apiKey: "zrv_sk_your_service_key",
 });
 
 // Fetch full user profile, active cap, credits, and monthly usage
-const user = await zorveus.productUsers.getByExternalId({
+const user = await service.productUsers.getByExternalId({
   appId: "app_support_123",
-  externalUserId: "usr_alex_8842",
+  externalUserId: "usr_sara_101",
 });
 
-console.log("Available Credits:", user.credits?.available_credits);
-console.log("Monthly Cap:", user.cap?.amount);
-console.log("Tokens used this month:", user.usage.this_month.total_tokens);
+console.log("Display Name:", user.product_user.display_name);
+console.log("Available Credits:", user.credit_summary.available_credits);
 ```
 
 ```python
-from zorveus import Zorveus
+from zorveus import ZorveusServiceClient
 
-client = Zorveus(service_key="zrv_service_your_service_key")
+service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
 
 # Fetch full user profile, active cap, credits, and monthly usage
-user = client.product_users.get_by_external_id(
+user = service.product_users.get_by_external_id(
     app_id="app_support_123",
-    external_user_id="usr_alex_8842",
+    external_user_id="usr_sara_101",
 )
 
-print(f"Available Credits: {user.credits.available_credits}")
-print(f"Monthly Cap: {user.cap.amount if user.cap else 'No Cap'}")
-print(f"Tokens this month: {user.usage.this_month.total_tokens}")
+print(f"Display Name: {user.product_user.display_name}")
+print(f"Available Credits: {user.credit_summary.available_credits}")
+```
+
+```bash
+curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id?app_id=app_support_123&external_user_id=usr_sara_101" \
+  -H "Authorization: Bearer zrv_sk_your_service_key"
 ```
 
 </CodeGroup>
@@ -62,101 +64,89 @@ print(f"Tokens this month: {user.usage.this_month.total_tokens}")
 
 For lightweight balance checks before initiating expensive operations, use the credit summary lookup:
 
-<CodeGroup titles={["cURL", "TypeScript SDK", "Python SDK"]}>
-
-```bash
-curl -X GET "https://api.zorveus.com/product-users/by-external-id/credit-summary?app_id=app_support_123&external_user_id=usr_alex_8842&currency=USD" \
-  -H "Authorization: Bearer zrv_service_your_service_key"
-```
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
 ```typescript
-const creditSummary = await zorveus.productUsers.getCreditSummaryByExternalId({
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+  apiKey: "zrv_sk_your_service_key",
+});
+
+const creditSummary = await service.productUsers.getCreditSummaryByExternalId({
   appId: "app_support_123",
-  externalUserId: "usr_alex_8842",
-  currency: "USD",
+  externalUserId: "usr_sara_101",
 });
 
 console.log("Available Credits:", creditSummary.available_credits);
-console.log("Expiring Soon:", creditSummary.expiring_soon_amount);
 ```
 
 ```python
-credits = client.product_users.get_credit_summary_by_external_id(
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
+
+credits = service.product_users.get_by_external_id(
     app_id="app_support_123",
-    external_user_id="usr_alex_8842",
-    currency="USD",
+    external_user_id="usr_sara_101",
 )
 
-print(f"Available Balance: {credits.available_credits}")
+print(f"Available Balance: {credits.credit_summary.available_credits}")
+```
+
+```bash
+curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id/credit-summary?app_id=app_support_123&external_user_id=usr_sara_101" \
+  -H "Authorization: Bearer zrv_sk_your_service_key"
 ```
 
 </CodeGroup>
 
 ---
 
-## 3. Upsert Product User by External ID
+## 3. Upsert Product User Profile Explicitly
 
-<CodeGroup titles={["cURL", "Python", "TypeScript"]}>
+To update user profile details outside of inference requests:
 
-```bash
-curl -X PUT https://api.zorveus.com/product-users/by-external-id \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_service_your_service_key" \
-  -d '{
-    "org_id": "org_startup_1048",
-    "external_user_id": "usr_cust_94821",
-    "name": "Sarah Connor",
-    "email": "sarah.connor@example.com",
-    "metadata": {
-      "plan": "enterprise_seat",
-      "company": "Cyberdyne Systems"
-    }
-  }'
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+  apiKey: "zrv_sk_your_service_key",
+});
+
+const user = await service.productUsers.createOrUpdate({
+  appId: "app_support_123",
+  externalUserId: "usr_sara_101",
+  displayName: "Sara Connor",
+  email: "sara@example.com",
+});
 ```
 
 ```python
-import requests
+from zorveus import ZorveusServiceClient
 
-response = requests.put(
-    "https://api.zorveus.com/product-users/by-external-id",
-    headers={
-        "Content-Type": "application/json",
-        "Authorization": "Bearer zrv_service_your_service_key",
-    },
-    json={
-        "org_id": "org_startup_1048",
-        "external_user_id": "usr_cust_94821",
-        "name": "Sarah Connor",
-        "email": "sarah.connor@example.com",
-        "metadata": {
-            "plan": "enterprise_seat",
-            "company": "Cyberdyne Systems",
-        },
-    },
+service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
+
+user = service.product_users.create_or_update(
+    app_id="app_support_123",
+    external_user_id="usr_sara_101",
+    display_name="Sara Connor",
+    email="sara@example.com",
 )
-
-print(response.json())
 ```
 
-```typescript
-async function upsertProductUser() {
-  const response = await fetch("https://api.zorveus.com/product-users/by-external-id", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer zrv_service_your_service_key",
-    },
-    body: JSON.stringify({
-      org_id: "org_startup_1048",
-      external_user_id: "usr_cust_94821",
-      name: "Sarah Connor",
-      email: "sarah.connor@example.com",
-    }),
-  });
-
-  return await response.json();
-}
+```bash
+curl -X PUT https://api.zorveus.com/api/v1/product-users/by-external-id \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_sk_your_service_key" \
+  -d '{
+    "app_id": "app_support_123",
+    "external_user_id": "usr_sara_101",
+    "display_name": "Sara Connor",
+    "email": "sara@example.com"
+  }'
 ```
 
 </CodeGroup>
-

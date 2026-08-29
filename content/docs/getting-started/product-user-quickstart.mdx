@@ -9,25 +9,49 @@ In Zorveus, **Product Users** represent your application's end users. Instead of
 
 ---
 
-## Inline Product-User Creation
+## Streamlined 2-Step Workflow
 
-When Zorveus processes an inference request containing an `external_user_id` it has not seen before, it **automatically creates the product user inline** in your startup workspace.
+Connecting and tracking end-user consumption requires only two steps:
 
-Subsequent requests with the same `external_user_id` update the product user's metadata (e.g. name, email, plan) and aggregate usage seamlessly.
+1. **Automatic Inline Provisioning During Inference**: Pass `external_user_id` inside your inference calls. Zorveus creates or updates the user profile automatically on their first request.
+2. **Querying User Details and Credit Balance**: Use `ZorveusServiceClient` with an Organization Service Key (`zrv_sk_...`) to inspect profile details, credit balances, or issue promotional top-ups.
 
 ---
 
-## Send Request with User Attribution
+## Step 1: Automatic Inline Provisioning During Inference
 
-Add the `user` parameter or `extra_body.metadata` to your standard OpenAI client call:
+When Zorveus processes an inference request containing an `external_user_id` it has not seen before, it **automatically creates the product user inline** in your startup workspace.
 
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "TypeScript (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+Subsequent requests with the same `external_user_id` update the product user's profile metadata (e.g. name, email, plan) and aggregate usage seamlessly.
+
+<CodeGroup titles={["Python (ZorveusOpenAI)", "TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+
+```python
+# pip install zorveus[openai]
+from zorveus.openai import ZorveusOpenAI
+
+# User is created automatically on their first inference call
+client = ZorveusOpenAI(
+    api_key="zrv_live_123...",
+    external_user_id="usr_sara_101",
+    display_name="Sara Connor",
+    email="sara@example.com",
+    user_metadata={"plan": "pro"}
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+print(response.choices[0].message.content)
+```
 
 ```typescript
 import { Zorveus } from "@zorveus/sdk";
 
 const client = new Zorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_live_123...",
 });
 
 async function main() {
@@ -38,12 +62,11 @@ async function main() {
     ],
     // Pass typed Zorveus product-user metadata
     zorveusMetadata: {
-      externalUserId: "usr_cust_94821",
-      displayName: "Sarah Connor",
-      userEmail: "sarah.connor@example.com",
+      externalUserId: "usr_sara_101",
+      displayName: "Sara Connor",
+      userEmail: "sara@example.com",
       metadata: {
-        plan: "pro_tier",
-        teamId: "team_alpha",
+        plan: "pro",
       },
     },
   });
@@ -57,7 +80,7 @@ main();
 ```python
 from zorveus import Zorveus
 
-client = Zorveus(api_key="zrv_your_inference_key")
+client = Zorveus(api_key="zrv_live_123...")
 
 response = client.chat.completions.create(
     model="openai/gpt-4.1-mini",
@@ -65,36 +88,13 @@ response = client.chat.completions.create(
         {"role": "user", "content": "Summarize the latest trends in renewable energy."}
     ],
     zorveus_metadata={
-        "external_user_id": "usr_cust_94821",
-        "display_name": "Sarah Connor",
-        "user_email": "sarah.connor@example.com",
+        "external_user_id": "usr_sara_101",
+        "display_name": "Sara Connor",
+        "user_email": "sara@example.com",
         "metadata": {
-            "plan": "pro_tier",
-            "team_id": "team_alpha",
+            "plan": "pro",
         },
     },
-)
-
-print(response.choices[0].message.content)
-```
-
-```python
-# pip install zorveus[openai]
-from zorveus.openai import ZorveusOpenAI
-
-client = ZorveusOpenAI(
-    api_key="zrv_your_inference_key",
-    external_user_id="usr_cust_94821",
-    display_name="Sarah Connor",
-    email="sarah.connor@example.com",
-    user_metadata={"plan": "pro_tier", "team_id": "team_alpha"}
-)
-
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "user", "content": "Summarize the latest trends in renewable energy."}
-    ]
 )
 
 print(response.choices[0].message.content)
@@ -105,10 +105,10 @@ print(response.choices[0].message.content)
 import { ZorveusOpenAI } from "@zorveus/sdk/openai";
 
 const openai = new ZorveusOpenAI({
-  apiKey: "zrv_your_inference_key",
-  externalUserId: "usr_cust_94821",
-  displayName: "Sarah Connor",
-  userEmail: "sarah.connor@example.com",
+  apiKey: "zrv_live_123...",
+  externalUserId: "usr_sara_101",
+  displayName: "Sara Connor",
+  userEmail: "sara@example.com",
 });
 
 const completion = await openai.chat.completions.create({
@@ -127,8 +127,8 @@ import { createZorveus } from "@zorveus/sdk/vercel";
 import { generateText } from "ai";
 
 const zorveus = createZorveus({
-  apiKey: "zrv_your_inference_key",
-  externalUserId: "usr_cust_94821",
+  apiKey: "zrv_live_123...",
+  externalUserId: "usr_sara_101",
 });
 
 const { text } = await generateText({
@@ -144,7 +144,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_live_123...",
 )
 
 response = client.chat.completions.create(
@@ -155,11 +155,10 @@ response = client.chat.completions.create(
     # Pass Zorveus product-user metadata
     extra_body={
         "metadata": {
-            "external_user_id": "usr_cust_94821",
-            "name": "Sarah Connor",
-            "email": "sarah.connor@example.com",
-            "plan": "pro_tier",
-            "team_id": "team_alpha",
+            "external_user_id": "usr_sara_101",
+            "name": "Sara Connor",
+            "email": "sara@example.com",
+            "plan": "pro",
         }
     },
 )
@@ -167,56 +166,74 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
-});
-
-async function main() {
-  const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
-    messages: [
-      { role: "user", content: "Summarize the latest trends in renewable energy." },
-    ],
-    // Zorveus metadata parameter for attribution
-    ...({
-      metadata: {
-        external_user_id: "usr_cust_94821",
-        name: "Sarah Connor",
-        email: "sarah.connor@example.com",
-        plan: "pro_tier",
-      },
-    } as any),
-  });
-
-  console.log(completion.choices[0].message.content);
-}
-
-main();
-```
-
 ```bash
 curl https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_live_123..." \
   -d '{
     "model": "openai/gpt-4.1-mini",
     "messages": [
       {"role": "user", "content": "Summarize the latest trends in renewable energy."}
     ],
     "metadata": {
-      "external_user_id": "usr_cust_94821",
-      "name": "Sarah Connor",
-      "email": "sarah.connor@example.com",
-      "plan": "pro_tier"
+      "external_user_id": "usr_sara_101",
+      "name": "Sara Connor",
+      "email": "sara@example.com",
+      "plan": "pro"
     }
   }'
 ```
 
 </CodeGroup>
+
+---
+
+## Step 2: Query User Details and Credit Balance
+
+When you need to view user profile details, active credit grants, or remaining balance, use `ZorveusServiceClient` with an Organization Service Key (`zrv_sk_...`):
+
+<CodeGroup titles={["Python (zorveus)", "TypeScript (@zorveus/sdk)", "cURL"]}>
+
+```python
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key="zrv_sk_live_123...")
+
+user_info = service.product_users.get_by_external_id(
+    app_id="app_123",
+    external_user_id="usr_sara_101"
+)
+
+print("Display Name:", user_info.product_user.display_name)
+print("Available Credits:", user_info.credit_summary.available_credits)
+```
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+  apiKey: "zrv_sk_live_123...",
+});
+
+const userInfo = await service.productUsers.getByExternalId({
+  appId: "app_123",
+  externalUserId: "usr_sara_101",
+});
+
+console.log("Display Name:", userInfo.product_user.display_name);
+console.log("Available Credits:", userInfo.credit_summary.available_credits);
+```
+
+```bash
+curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id?app_id=app_123&external_user_id=usr_sara_101" \
+  -H "Authorization: Bearer zrv_sk_live_123..."
+```
+
+</CodeGroup>
+
+<Callout type="tip" title="Issuing Top-Up Credits">
+  User creation is automatic! You only need to call `grant_credit_by_external_id` (or `grantCreditByExternalId` in TS) when explicitly adding top-up credits or promotional allowances to a user's balance.
+</Callout>
 
 ---
 
@@ -228,17 +245,13 @@ When attributing requests to product users, Zorveus applies the following hierar
 2. **`product_user_id`**: An internal Zorveus UUID if you previously fetched or created the product user via the Management API.
 3. **OpenAI `user` field**: If `metadata.external_user_id` is omitted, Zorveus falls back to the standard OpenAI top-level `user` string as the `external_user_id`.
 
-<Callout type="note" title="Conflict Precedence">
-  If both `product_user_id` and `external_user_id` are provided in the same request, `product_user_id` takes precedence for resolution, and the corresponding external user mapping is verified.
-</Callout>
-
 ---
 
 ## Observing Product Users in Dashboard
 
 After making the request:
 1. Go to [app.zorveus.com](https://app.zorveus.com) -> **Product Users**.
-2. Search for `usr_cust_94821` or `Sarah Connor`.
+2. Search for `usr_sara_101` or `Sara Connor`.
 3. View the customer's:
    - Lifetime token consumption and requests
    - Remaining credit balance (if credit grants are applied)
