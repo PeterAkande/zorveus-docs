@@ -77,7 +77,7 @@ export function CodeGroup({ children, titles, label = "Client SDK / Framework:" 
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zorveus-border bg-zorveus-dark shadow-md">
+      <div className="zorveus-codegroup-content overflow-hidden rounded-xl border border-zorveus-border bg-zorveus-dark shadow-md">
         <div className="p-4 overflow-x-auto text-sm font-mono text-zinc-100">
           {currentChild}
         </div>
