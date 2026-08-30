@@ -27,7 +27,7 @@ export default async function Page(props: {
         single: false,
       }}
     >
-      <DocsTitle className="text-2xl font-bold tracking-tight text-zinc-100 sm:text-3xl">
+      <DocsTitle className="zorveus-page-title">
         {page.data.title}
       </DocsTitle>
       {page.data.description && (

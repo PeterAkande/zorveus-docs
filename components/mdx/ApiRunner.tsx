@@ -97,8 +97,11 @@ export function ApiRunner({
         className="flex w-full items-center justify-between border-b border-zorveus-border bg-zorveus-card/80 px-4 py-3 text-left transition-colors hover:bg-zinc-900/60"
       >
         <div className="flex items-center gap-2.5">
-          <div className="flex h-6 w-6 items-center justify-center rounded bg-mint/10 text-mint border border-mint/20">
-            <Play className="h-3 w-3" />
+          <div
+            className="flex items-center justify-center rounded bg-mint/10 text-mint border border-mint/20"
+            style={{ width: '24px', height: '24px', minWidth: '24px' }}
+          >
+            <Play style={{ width: '12px', height: '12px' }} />
           </div>
           <span className="text-xs font-semibold text-zinc-100">Try It Out Live</span>
           <span className="font-mono text-xs text-zinc-400">
