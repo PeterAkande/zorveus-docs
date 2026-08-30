@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { useMDXComponents } from '@/mdx-components';
 import { PageFeedback } from '@/components/mdx/PageFeedback';
-import { CopyPageButton } from '@/components/mdx/CopyPageButton';
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -28,12 +27,9 @@ export default async function Page(props: {
         single: false,
       }}
     >
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <DocsTitle className="text-2xl font-bold tracking-tight text-zinc-100 sm:text-3xl">
-          {page.data.title}
-        </DocsTitle>
-        <CopyPageButton slug={params.slug} />
-      </div>
+      <DocsTitle className="text-2xl font-bold tracking-tight text-zinc-100 sm:text-3xl">
+        {page.data.title}
+      </DocsTitle>
       {page.data.description && (
         <DocsDescription className="text-zinc-400 text-sm sm:text-base leading-relaxed mt-2">
           {page.data.description}

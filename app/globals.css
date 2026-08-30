@@ -367,3 +367,113 @@ figure button svg {
   max-width: 12px !important;
   max-height: 12px !important;
 }
+
+/* Remove default browser & Fumadocs background arrows on custom selects */
+select,
+div select,
+.fd-tabs select {
+  background-image: none !important;
+  background: #18181B !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Shared docs dropdowns. These use explicit CSS because the docs stylesheet can
+   override utility positioning inherited from Fumadocs. */
+.zorveus-selector-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  padding: 0.75rem 1.25rem !important;
+  border: 1px solid rgba(39, 39, 42, 0.9) !important;
+  border-radius: 0.75rem !important;
+  background: #121214 !important;
+}
+
+.zorveus-selector-label {
+  min-width: 0 !important;
+  color: #A1A1AA !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+.zorveus-select-control {
+  position: relative !important;
+  display: block !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  margin-left: auto !important;
+}
+
+.zorveus-select-control::after {
+  content: "";
+  position: absolute !important;
+  top: 50% !important;
+  right: 1rem !important;
+  width: 0.45rem !important;
+  height: 0.45rem !important;
+  border-right: 2px solid #A1A1AA !important;
+  border-bottom: 2px solid #A1A1AA !important;
+  transform: translateY(-70%) rotate(45deg) !important;
+  pointer-events: none !important;
+}
+
+.zorveus-select {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  max-width: min(18rem, 55vw) !important;
+  height: 2.5rem !important;
+  margin: 0 !important;
+  padding: 0.5rem 2.75rem 0.5rem 0.875rem !important;
+  overflow: hidden !important;
+  border: 1px solid #3F3F46 !important;
+  border-radius: 0.5rem !important;
+  background: #18181B !important;
+  color: #F4F4F5 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  line-height: 1.25rem !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  outline: none !important;
+}
+
+.zorveus-select:hover {
+  border-color: #52525B !important;
+}
+
+.zorveus-select:focus-visible {
+  border-color: rgba(77, 255, 180, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(77, 255, 180, 0.12) !important;
+}
+
+@media (max-width: 640px) {
+  .zorveus-selector-bar {
+    padding: 0.75rem 1rem !important;
+  }
+
+  .zorveus-selector-label {
+    font-size: 0.75rem !important;
+  }
+
+  .zorveus-select {
+    max-width: 55vw !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* Hide Fumadocs built-in codeblock copy buttons */
+figure.fd-codeblock > button,
+figure > button,
+.fd-codeblock > button,
+button[aria-label*="Copy code"],
+button[aria-label="Copy Code"] {
+  display: none !important;
+}

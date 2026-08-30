@@ -2,17 +2,16 @@
 
 import React, { useState, useEffect, ReactNode, Children, isValidElement } from 'react';
 import { useKeyContext } from '../context/KeyContext';
-import { Check, Copy } from 'lucide-react';
 
 interface CodeGroupProps {
   children: ReactNode;
   titles?: string[];
+  label?: string;
 }
 
-export function CodeGroup({ children, titles }: CodeGroupProps) {
-  const { apiKey, serviceKey, clientId, activeLanguage, setActiveLanguage } = useKeyContext();
+export function CodeGroup({ children, titles, label = "Client SDK / Framework:" }: CodeGroupProps) {
+  const { activeLanguage, setActiveLanguage } = useKeyContext();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [copied, setCopied] = useState(false);
 
   const rawChildren = Children.toArray(children).filter(Boolean);
 
@@ -47,107 +46,41 @@ export function CodeGroup({ children, titles }: CodeGroupProps) {
     }
   }, [activeLanguage, tabs]);
 
-  const handleTabClick = (idx: number, title: string) => {
+  const handleSelectOption = (idx: number) => {
     setSelectedIndex(idx);
-    setActiveLanguage(title);
-  };
-
-  // Helper to extract text from React element tree and replace placeholder keys
-  const extractText = (node: unknown): string => {
-    if (typeof node === 'string') return node;
-    if (typeof node === 'number') return String(node);
-    if (!node) return '';
-    if (Array.isArray(node)) return node.map(extractText).join('');
-    if (isValidElement(node)) {
-      const props = node.props as { children?: unknown };
-      return extractText(props.children);
+    if (tabs[idx]) {
+      setActiveLanguage(tabs[idx]);
     }
-    return '';
   };
 
   const currentChild = rawChildren[selectedIndex] || rawChildren[0];
 
-  const handleCopy = () => {
-    let rawText = extractText(currentChild);
-    if (apiKey !== 'zrv_your_inference_key') {
-      rawText = rawText.replace(/zrv_your_inference_key/g, apiKey);
-    }
-    if (serviceKey !== 'zrv_service_your_service_key') {
-      rawText = rawText.replace(/zrv_service_your_service_key/g, serviceKey);
-    }
-    if (clientId !== 'zrv_client_your_client_id') {
-      rawText = rawText.replace(/zrv_client_your_client_id/g, clientId);
-    }
-
-    navigator.clipboard.writeText(rawText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <div className="my-6 overflow-hidden rounded-xl border border-zorveus-border bg-zorveus-dark shadow-md">
-      {/* Header bar with tabs & actions */}
-      <div className="flex items-center justify-between border-b border-zorveus-border bg-zorveus-card/80 px-3 py-2">
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {tabs.map((tab, idx) => {
-            const isSelected = idx === selectedIndex;
-            return (
-              <button
-                key={idx}
-                onClick={() => handleTabClick(idx, tab)}
-                style={{
-                  padding: '0.375rem 0.875rem',
-                  fontSize: '0.8rem',
-                  borderRadius: '0.375rem',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'all 0.15s ease-in-out',
-                  whiteSpace: 'nowrap',
-                  ...(isSelected
-                    ? {
-                        color: '#4DFFB4',
-                        backgroundColor: 'rgba(77, 255, 180, 0.15)',
-                        border: '2px solid rgba(77, 255, 180, 0.5)',
-                        fontWeight: 700,
-                        boxShadow: '0 0 6px rgba(77, 255, 180, 0.12)',
-                      }
-                    : {
-                        color: '#D4D4D8',
-                        backgroundColor: '#18181B',
-                        border: '1px solid #3F3F46',
-                        fontWeight: 600,
-                        boxShadow: 'none',
-                      }),
-                }}
-              >
-                <span>{tab}</span>
-              </button>
-            );
-          })}
-        </div>
+    <div className="my-6 space-y-2">
+      {/* Selector Bar */}
+      <div className="zorveus-selector-bar">
+        <span className="zorveus-selector-label">
+          {label}
+        </span>
 
-        <button
-          onClick={handleCopy}
-          title="Copy code"
-          className="flex items-center gap-1.5 rounded-md border border-zorveus-border bg-zorveus-dark/60 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3 w-3 text-mint" />
-              <span className="text-mint text-[11px]">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3 w-3" />
-              <span className="text-[11px]">Copy</span>
-            </>
-          )}
-        </button>
+        <div className="zorveus-select-control">
+          <select
+            aria-label={label}
+            value={selectedIndex}
+            onChange={(e) => handleSelectOption(Number(e.target.value))}
+            className="zorveus-select"
+          >
+            {tabs.map((tab, idx) => (
+              <option key={idx} value={idx}>{tab}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Code content */}
-      <div className="p-4 overflow-x-auto text-sm font-mono text-zinc-100">
-        {currentChild}
+      <div className="overflow-hidden rounded-xl border border-zorveus-border bg-zorveus-dark shadow-md">
+        <div className="p-4 overflow-x-auto text-sm font-mono text-zinc-100">
+          {currentChild}
+        </div>
       </div>
     </div>
   );
