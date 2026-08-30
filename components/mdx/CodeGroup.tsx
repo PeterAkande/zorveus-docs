@@ -31,17 +31,17 @@ export function CodeGroup({ children, titles }: CodeGroupProps) {
 
   // Sync selected index with active persistent language if title matches
   useEffect(() => {
+    if (!activeLanguage) return;
     const langLower = activeLanguage.toLowerCase();
-    const matchingIdx = tabs.findIndex((t) => {
-      const tLower = t.toLowerCase();
-      if (langLower.includes('python') && tLower.includes('python')) return true;
-      if (langLower.includes('curl') && (tLower.includes('curl') || tLower.includes('bash') || tLower.includes('sh'))) return true;
-      if (langLower.includes('typescript') && (tLower.includes('typescript') || tLower.includes('ts'))) return true;
-      if (langLower.includes('javascript') && (tLower.includes('javascript') || tLower.includes('js') || tLower.includes('node'))) return true;
-      if (langLower.includes('go') && tLower.includes('go')) return true;
-      if (langLower.includes('rust') && tLower.includes('rust')) return true;
-      return false;
-    });
+
+    // 1. Try exact title match
+    let matchingIdx = tabs.findIndex((t) => t.toLowerCase() === langLower);
+
+    // 2. Try substring match if exact match not found
+    if (matchingIdx === -1) {
+      matchingIdx = tabs.findIndex((t) => t.toLowerCase().includes(langLower) || langLower.includes(t.toLowerCase()));
+    }
+
     if (matchingIdx !== -1) {
       setSelectedIndex(matchingIdx);
     }
