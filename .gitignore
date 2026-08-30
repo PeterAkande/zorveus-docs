@@ -43,3 +43,4 @@ openapi.json
 *.openapi.json
 scripts/
 
+scratch_guides/
