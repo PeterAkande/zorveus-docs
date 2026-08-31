@@ -93,7 +93,7 @@ export function Card({ title, icon, href, children }: CardProps) {
             ) : (
               <div style={{ width: '32px', height: '32px' }} />
             )}
-            <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-zinc-200" />
+            <ArrowUpRight className="h-3 w-3 text-zinc-500 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-zinc-200" />
           </div>
 
           {/* Title & Description */}
