@@ -3,19 +3,23 @@ title: OAuth App Quickstart
 description: Allow users to connect their Zorveus AI wallet to your application using Authorization Code with PKCE.
 ---
 
-Connecting a user's Zorveus wallet enables end-users to authenticate via OAuth 2.0 PKCE and fund AI inference with their own credits.
+Connect a user's Zorveus wallet to your application, complete the OAuth authorization flow with PKCE, and send an inference request funded by that wallet.
 
 ---
 
-## 1. App Registration
+## 1. Register your app
 
 1. In [app.zorveus.com](https://app.zorveus.com), create or select a **Developer Organization**.
 2. Create an application and specify your registered **Redirect URIs** (e.g. `https://myapp.com/oauth/callback`).
 3. Note your **Client ID** (`zrv_client_...`) and initial **Client Secret** (`zrv_client_secret_...`).
 
+<Callout type="danger" title="Keep the Client Secret on your server">
+  Never place the Client Secret in a React bundle, a `NEXT_PUBLIC_` environment variable, or browser storage. Browser clients use the Client ID and PKCE. Only a server-side token exchange sends the Client Secret.
+</Callout>
+
 ---
 
-## 2. Select Your Platform
+## 2. Select your platform
 
 Choose your development platform or framework to view the step-by-step wallet connection guide:
 
@@ -111,6 +115,10 @@ Choose your development platform or framework to view the step-by-step wallet co
       );
     }
     ```
+
+    <Callout type="success" title="Expected result">
+      Clicking **Connect Zorveus Wallet** opens the consent screen. After approval, the user returns to your callback URL, the button displays **Wallet Connected**, and clicking **Generate** streams a response funded by the connected wallet.
+    </Callout>
   </Tab>
 
   <Tab title="Python (zorveus)">
@@ -133,6 +141,10 @@ Choose your development platform or framework to view the step-by-step wallet co
     ### Step 2: Generate PKCE parameters and redirect user
 
     When the user clicks **"Connect Zorveus Wallet"**, generate PKCE values in your backend, store `code_verifier` and `state` in the user's session, and redirect to the authorization URL:
+
+    <Callout type="note" title="Web framework placeholders">
+      The Python examples use `session` and `request` as placeholders for your web framework's session and request objects. Use your framework's redirect response to send the user to `auth_url`.
+    </Callout>
 
     ```python
     from zorveus import ZorveusOAuth
@@ -196,7 +208,7 @@ Choose your development platform or framework to view the step-by-step wallet co
         redirect_uri="https://myapp.com/oauth/callback"
     )
 
-    # Save user_access_token in database associated with this user
+    # Encrypt the token before storing it with the user's server-side session
     user_access_token = token_data.access_token
     ```
 
@@ -236,6 +248,10 @@ Choose your development platform or framework to view the step-by-step wallet co
     ```
 
     </CodeGroup>
+
+    <Callout type="success" title="Expected result">
+      The token exchange returns an access token. The inference request returns `200 OK` and a completion funded by the connected wallet.
+    </Callout>
   </Tab>
 
   <Tab title="TypeScript (@zorveus/sdk)">
@@ -270,7 +286,7 @@ Choose your development platform or framework to view the step-by-step wallet co
       // 1. Generate PKCE verifier, S256 challenge, and CSRF state token
       const pkce = ZorveusOAuth.generatePKCE();
 
-      // 2. Save verifier and state in session or localStorage
+      // 2. Keep verifier and state in sessionStorage until the callback
       sessionStorage.setItem("zorveus_code_verifier", pkce.codeVerifier);
       sessionStorage.setItem("zorveus_auth_state", pkce.state);
 
@@ -315,9 +331,10 @@ Choose your development platform or framework to view the step-by-step wallet co
       });
 
       const accessToken = tokenResponse.access_token;
-      sessionStorage.setItem("zorveus_access_token", accessToken);
+      sessionStorage.removeItem("zorveus_code_verifier");
+      sessionStorage.removeItem("zorveus_auth_state");
 
-      // 3. Initialize Zorveus client using the wallet access token
+      // 3. Keep the access token in memory for this browser session
       const client = new Zorveus({ apiKey: accessToken });
 
       // 4. Execute inference call
@@ -329,6 +346,14 @@ Choose your development platform or framework to view the step-by-step wallet co
       console.log(response.choices[0].message.content);
     }
     ```
+
+    <Callout type="warning" title="Do not persist browser access tokens">
+      Do not save the access token in `localStorage` or `sessionStorage`. Keep it in memory for a browser-only session. For persistent sessions, exchange and store the token on your backend, then expose the session through an `HttpOnly`, `Secure`, and `SameSite` cookie.
+    </Callout>
+
+    <Callout type="success" title="Expected result">
+      Zorveus redirects the user to your callback URL. The token exchange returns an access token, and the inference request returns `200 OK` with a completion funded by the connected wallet.
+    </Callout>
   </Tab>
 
   <Tab title="HTTP / Direct API">
@@ -389,13 +414,27 @@ Choose your development platform or framework to view the step-by-step wallet co
         ]
       }'
     ```
+
+    <Callout type="success" title="Expected result">
+      The token endpoint returns an `access_token` and `expires_in`. The inference endpoint then returns `200 OK` with a completion funded by the connected wallet.
+    </Callout>
   </Tab>
 
 </Tabs>
 
 ---
 
-## Next Steps
+## 3. Handle expiration, errors, and revocation
+
+Use the token response's `expires_in` value to track expiration. If the token expires or the user revokes access, stop sending inference requests with that token and start the authorization flow again.
+
+- Follow [Reauthorization](/oauth/reauthorization) when your app needs new scopes or a replacement token.
+- Follow [Revocation](/oauth/revocation) when the user disconnects their wallet.
+- Use [OAuth Errors](/oauth/errors) to handle denied consent, invalid state, expired codes, and token exchange failures.
+
+---
+
+## Next steps
 
 <CardGroup cols={2}>
   <Card title="OAuth Architecture Deep Dive" icon="shield" href="/oauth/overview">
