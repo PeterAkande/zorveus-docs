@@ -77,31 +77,31 @@ export function Card({ title, icon, href, children }: CardProps) {
     return (
       <Link
         href={href}
-        style={{ padding: '20px' }}
-        className="zorveus-card-container group relative flex flex-col justify-between rounded-xl border border-[#222226] bg-[#121214] p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500/40 hover:bg-[#161619] hover:shadow-md cursor-pointer !no-underline select-none"
+        style={{ padding: '14px 16px' }}
+        className="zorveus-card-container group relative flex flex-col justify-between rounded-xl border border-[#222226] bg-[#121214] p-3.5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500/40 hover:bg-[#161619] hover:shadow-md cursor-pointer !no-underline select-none"
       >
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {/* Top row: Icon + ArrowUpRight */}
-          <div className="flex items-center justify-between w-full mb-1">
+          <div className="flex items-center justify-between w-full">
             {IconComponent ? (
               <div
-                style={{ width: '28px', height: '28px', minWidth: '28px' }}
-                className="zorveus-card-icon-box flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-800/40 text-zinc-300 transition-colors group-hover:border-emerald-500/40 group-hover:text-emerald-400"
+                style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
+                className="zorveus-card-icon-box flex items-center justify-center p-1.5 rounded-lg border border-zinc-800 bg-zinc-800/40 text-zinc-300 transition-colors group-hover:border-emerald-500/40 group-hover:text-emerald-400"
               >
-                <IconComponent className="h-3.5 w-3.5" />
+                <IconComponent className="h-4 w-4" />
               </div>
             ) : (
-              <div style={{ width: '28px', height: '28px' }} />
+              <div style={{ width: '32px', height: '32px' }} />
             )}
             <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-zinc-200" />
           </div>
 
           {/* Title & Description */}
           <div className="flex flex-col gap-1">
-            <h4 className="text-sm font-semibold text-zinc-100 !no-underline group-hover:text-emerald-400 transition-colors m-0">
+            <h4 className="text-[15px] sm:text-base font-semibold text-zinc-100 !no-underline group-hover:text-emerald-400 transition-colors m-0 leading-snug">
               {title}
             </h4>
-            <div className="text-xs text-zinc-400 leading-relaxed font-normal !no-underline m-0">
+            <div className="text-sm text-zinc-300 leading-relaxed font-normal !no-underline m-0">
               {children}
             </div>
           </div>
@@ -113,15 +113,15 @@ export function Card({ title, icon, href, children }: CardProps) {
   // Non-interactive container card
   return (
     <div
-      style={{ padding: '20px' }}
-      className="zorveus-card-container rounded-xl border border-[#222226] bg-[#121214] p-5 shadow-xs transition-colors"
+      style={{ padding: '14px 16px' }}
+      className="zorveus-card-container rounded-xl border border-[#222226] bg-[#121214] p-3.5 shadow-xs transition-colors"
     >
-      <div className="flex flex-col gap-2 pb-1">
+      <div className="flex flex-col gap-2">
         <h3 className="text-base font-semibold text-zinc-100 flex items-center gap-2 m-0">
-          {IconComponent && <IconComponent className="h-3.5 w-3.5 text-zinc-400" />}
+          {IconComponent && <IconComponent className="h-4 w-4 text-zinc-400" />}
           <span>{title}</span>
         </h3>
-        <div className="text-xs text-zinc-400 leading-relaxed m-0">{children}</div>
+        <div className="text-sm text-zinc-300 leading-relaxed m-0">{children}</div>
       </div>
     </div>
   );
