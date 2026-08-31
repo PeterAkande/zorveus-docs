@@ -290,57 +290,6 @@ const { textStream } = streamText({
 
 ---
 
-## Two-Minute Core Recipes
-
-<Tabs items={["Multi-Provider Switching", "Meter Customer Usage", "OAuth User-Funded Wallet"]}>
-  <Tab title="Multi-Provider Switching">
-    Route between OpenAI, Anthropic, Google Gemini, and open weights without changing your SDK setup:
-
-    ```python
-    # Switch models dynamically using your single Zorveus Inference Key
-    response = client.chat.completions.create(
-        model="anthropic/claude-3-5-sonnet-20241022", # Or "google/gemini-1.5-pro", "openai/gpt-4.1-mini"
-        messages=[
-            {"role": "user", "content": "Summarize this document."}
-        ],
-    )
-    ```
-  </Tab>
-
-  <Tab title="Meter Customer Usage">
-    Tag requests with your customer's user ID to track unit economics and enforce individual credit grants:
-
-    ```python
-    # Tag request with external_user_id for customer attribution
-    response = client.chat.completions.create(
-        model="openai/gpt-4.1-mini",
-        messages=[{"role": "user", "content": "Generate a report."}],
-        extra_body={
-            "metadata": {
-                "external_user_id": "usr_customer_8492"
-            }
-        }
-    )
-    ```
-  </Tab>
-
-  <Tab title="OAuth User-Funded Wallet">
-    Let users connect their personal or organization wallet via PKCE, and execute requests on their behalf:
-
-    ```typescript
-    import OpenAI from "openai";
-
-    // Initialize using the scoped OAuth token obtained from user authorization
-    const userClient = new OpenAI({
-      baseURL: "https://api.zorveus.com/v1",
-      apiKey: userOAuthToken, // zrv_... scoped to user's wallet
-    });
-    ```
-  </Tab>
-</Tabs>
-
----
-
 ## Production Base URLs
 
 | Surface | Production Endpoint | Usage |
