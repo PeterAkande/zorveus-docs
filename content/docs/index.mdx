@@ -232,6 +232,8 @@ Zorveus provides official SDK packages for TypeScript and Python, along with dro
 
 ### Framework Adapters
 
+Framework adapters let you keep your existing OpenAI or Vercel AI SDK code while routing inference through Zorveus. They automatically attach user attribution (`external_user_id`), enforce budget caps, and handle wallet billing without requiring you to rewrite your existing API calls.
+
 <CodeGroup titles={["Python OpenAI Adapter (zorveus[openai])", "TypeScript OpenAI Adapter (@zorveus/sdk/openai)", "TypeScript Vercel AI SDK (@zorveus/sdk/vercel)"]}>
 
 ```python
