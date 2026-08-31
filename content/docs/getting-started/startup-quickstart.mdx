@@ -3,9 +3,9 @@ title: Startup Quickstart
 description: Control AI inference spending, attach plan-based spend caps, and send your first request through Zorveus.
 ---
 
-If you pay for your users' AI inference, Zorveus gives you complete control over your costs.
+If your organization pays for users' AI inference, Zorveus lets you set and enforce a spending limit for each product user.
 
-No user can ever spend more than their allocated limit. Set spending caps by plan tier, issue promotional credits, track usage, and make your AI expenses 100% predictable—without building custom billing or gateway systems.
+Map your subscription plans to per-user spending caps, issue promotional credits, and track usage through one gateway. When a user reaches an enforced cap, Zorveus rejects further inference requests until the cap resets or you update it.
 
 ---
 
@@ -33,13 +33,14 @@ Before making inference requests in code, set up your organization and configure
 
 ## 2. Make an Inference Request in Code
 
-Send requests through Zorveus passing product user details (`external_user_id`, `display_name`, `email`, `user_metadata`) using the official `@zorveus/sdk` TypeScript client, the `zorveus` Python library, the Vercel AI SDK provider, or any standard OpenAI SDK pointing to `https://api.zorveus.com/v1`:
+Pass product-user details (`external_user_id`, `display_name`, `email`, and `user_metadata`) through Zorveus. Choose your client below, install its package, and run the matching example.
 
 <KeyInserter type="inference" label="Test Key Inserter" placeholder="zrv_your_inference_key" />
 
 <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "Vercel AI SDK (@zorveus/sdk/vercel)", "cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
 ```typescript
+// npm install @zorveus/sdk
 import { Zorveus } from "@zorveus/sdk";
 
 // Initialize Zorveus client with API key and product user attribution
@@ -69,6 +70,7 @@ main();
 ```
 
 ```python
+# pip install zorveus
 from zorveus import Zorveus
 
 # Initialize Zorveus client with API key and product user attribution
@@ -120,6 +122,7 @@ print(response.choices[0].message.content)
 ```
 
 ```typescript
+// npm install @zorveus/sdk ai
 import { createZorveus } from "@zorveus/sdk/vercel";
 import { generateText } from "ai";
 
@@ -163,6 +166,7 @@ curl https://api.zorveus.com/v1/chat/completions \
 ```
 
 ```python
+# pip install openai
 from openai import OpenAI
 
 # Initialize standard OpenAI client pointing to Zorveus gateway
@@ -192,6 +196,7 @@ print(response.choices[0].message.content)
 ```
 
 ```typescript
+// npm install openai
 import OpenAI from "openai";
 
 // Initialize standard OpenAI client pointing to Zorveus gateway
@@ -232,9 +237,13 @@ main();
   defaultBody='{\n  "model": "openai/gpt-4.1-mini",\n  "messages": [\n    {"role": "user", "content": "Write a Python function to check for prime numbers."}\n  ],\n  "metadata": {\n    "external_user_id": "usr_sara_101",\n    "display_name": "Sara Connor",\n    "email": "sara@example.com"\n  }\n}'
 />
 
+<Callout type="success" title="Expected result">
+  A successful request returns `200 OK` and a completion. In the dashboard, Zorveus creates or updates the product user `usr_sara_101` and records the request's usage against that user.
+</Callout>
+
 ---
 
-## 3. Tiered Plan Control (Different API Keys per Plan)
+## 3. Map subscription plans to spending limits
 
 Startups structure pricing around tiered subscription plans (such as Free, Starter, Pro, and Enterprise).
 
@@ -244,9 +253,9 @@ Because every Zorveus API key carries its own spending limits and model access r
 2. **Pro Tier Key**: Attach a higher monthly allowance (e.g. `$20.00/month`) with access to flagship models like `openai/gpt-4o` and `anthropic/claude-3.5-sonnet`.
 3. **Enterprise Tier Key**: Attach custom high-volume caps or unlimited spending with dedicated provider routing.
 
-When a customer upgrades or downgrades their plan in your application, assign them the corresponding tier's API key or update the key's bound spending limit in the dashboard or via the [Zorveus Service API](/startups/service-keys).
+When a customer changes plans, have your backend select the inference key for the new tier. Never expose an inference key to the customer. You can also update the key's spending limit through the dashboard or the [Zorveus Service API](/startups/service-keys).
 
-### Example: Tiered Plan Selection in Backend Code
+### Select a plan tier in backend code
 
 <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
 
