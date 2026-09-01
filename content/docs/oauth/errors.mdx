@@ -1,5 +1,5 @@
 ---
-title: OAuth Error Handling
+title: OAuth error handling
 description: Handle OAuth redirect errors, invalid redirect URIs, and token exchange failure codes.
 ---
 
@@ -9,7 +9,7 @@ Understanding these error categories ensures your application handles authentica
 
 ---
 
-## 1. Unsafe Client Errors (Displayed on Zorveus)
+## Unsafe client errors
 
 If the `client_id` is unrecognized or the `redirect_uri` does not match your registered URIs byte-for-byte, Zorveus **will not redirect the user's browser back to your app**.
 
@@ -17,7 +17,7 @@ Instead, Zorveus renders a security warning page directly to prevent open-redire
 
 ---
 
-## 2. Safe Redirect Errors (Sent to `redirect_uri`)
+## Redirect errors
 
 When client parameters are valid but authorization cannot proceed (such as when a user declines consent), Zorveus redirects to your `redirect_uri` with standard OAuth error parameters:
 
@@ -34,7 +34,7 @@ https://myapp.com/callback?error=access_denied&error_description=User+declined+t
 
 ---
 
-## 3. Token Exchange Errors (POST `/oauth/token`)
+## Token exchange errors
 
 During server-to-server token exchange, Zorveus returns standard JSON error responses with an HTTP `400 Bad Request` status code:
 
@@ -47,13 +47,15 @@ During server-to-server token exchange, Zorveus returns standard JSON error resp
 
 | Error Code | Cause | Recommended Action |
 | :--- | :--- | :--- |
-| `invalid_grant` | The authorization code or `code_verifier` is invalid, expired, or previously used. | Prompt the user to restart the OAuth authorization flow from the beginning. |
-| `invalid_client` | The `client_id` or `client_secret` parameter is invalid. | Verify your app credentials in environment configuration. |
-| `invalid_request` | Missing mandatory parameter (such as `code`, `grant_type`, or `redirect_uri`). | Verify request body encoding (`application/x-www-form-urlencoded`). |
+| `zorveus_invalid_code_verifier` | The verifier does not match the authorization code. | Restart authorization with the original verifier paired to the challenge. |
+| `zorveus_oauth_code_expired` | The code expired before exchange. | Restart authorization. |
+| `zorveus_oauth_code_consumed` | The single-use code was already exchanged. | Use the token from the first exchange or restart authorization. |
+| `zorveus_invalid_client_secret` | A confidential client sent the wrong secret. | Verify the server-side secret or rotate it. |
+| `zorveus_client_secret_required` | A confidential client omitted its secret. | Send the secret from the trusted backend. |
 
 ---
 
-## 4. Inference-Time Token Errors
+## Inference-time token errors
 
 When executing model requests using a user's OAuth access token (`zrv_...`), the gateway may return authentication or limit errors:
 
@@ -62,7 +64,7 @@ When executing model requests using a user's OAuth access token (`zrv_...`), the
   "error": {
     "message": "Monthly spending cap reached for this application.",
     "type": "insufficient_quota",
-    "code": "cap_exceeded"
+    "code": "zorveus_cap_exceeded"
   }
 }
 ```

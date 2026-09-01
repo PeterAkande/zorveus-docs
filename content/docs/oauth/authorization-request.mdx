@@ -1,54 +1,22 @@
 ---
-title: The Authorization Request
-description: Construct PKCE authorization URLs, code challenges, and state parameters.
+title: Authorization request
+description: Build an OAuth authorization URL with PKCE, scopes, and state.
 ---
 
-# The Authorization Request
+<ApiEndpoint method="GET" path="/oauth/authorize" />
 
-<ApiEndpoint method="GET" path="/oauth/authorize" auth="oauth_bearer" />
+Send the user’s browser to `https://app.zorveus.com/oauth/authorize` with these query parameters:
 
-The authorization request initiates the browser-based OAuth consent flow on `https://app.zorveus.com/oauth/authorize`.
-
----
-
-## Query Parameters
-
-<ParamField name="response_type" type="string" required>
-  Must be set to `code`.
-</ParamField>
-
-<ParamField name="client_id" type="string" required>
-  Your registered application Client ID (`zrv_client_...`).
-</ParamField>
-
-<ParamField name="redirect_uri" type="string" required>
-  URL-encoded callback destination matching your registered list.
-</ParamField>
-
-<ParamField name="scope" type="string" required>
-  Space-separated permissions. Requires `inference:write` and at least one model scope (e.g. `inference:write models:*`).
-</ParamField>
-
-<Callout type="warning" title="Model Scope Required">
-  OAuth authorization requests require at least one model scope such as `models:*` alongside `inference:write`. Omitting model scopes triggers a `zorveus_model_scope_required` authorization error.
-</Callout>
-
-<ParamField name="code_challenge" type="string" required>
-  Base64URL-encoded SHA-256 hash of your plaintext `code_verifier`.
-</ParamField>
-
-<ParamField name="code_challenge_method" type="string" required>
-  Must be set to `S256`.
-</ParamField>
-
-<ParamField name="state" type="string" required>
-  High-entropy CSRF mitigation token verified upon callback return.
-</ParamField>
-
----
-
-## Example Authorization URL
+<ParamField name="response_type" type="string" required>Use `code`.</ParamField>
+<ParamField name="client_id" type="string" required>Use the registered app client ID.</ParamField>
+<ParamField name="redirect_uri" type="string" required>Use an exact registered redirect URI.</ParamField>
+<ParamField name="scope" type="string" required>Provide space-separated scopes, including `inference:write` and at least one `models:` scope.</ParamField>
+<ParamField name="code_challenge" type="string" required>Provide the base64url-encoded SHA-256 digest of the PKCE verifier.</ParamField>
+<ParamField name="code_challenge_method" type="string" required>Use `S256`.</ParamField>
+<ParamField name="state" type="string">Provide a high-entropy value and verify it when the browser returns. Although the API permits omission, clients should use it for CSRF protection.</ParamField>
 
 ```text
-https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&scope=inference%3Awrite%20models%3A*&code_challenge=E9Melhoa2OwvFrGMTJguCH5ZiXV6lURbI7e1J0q_ges&code_challenge_method=S256&state=94a1b08c99e2
+https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fexample.com%2Fcallback&scope=inference%3Awrite%20models%3A*&code_challenge=YOUR_BASE64URL_CHALLENGE&code_challenge_method=S256&state=YOUR_RANDOM_STATE
 ```
+
+The requested scopes and models must fit the app’s registered policy. Do not put a client secret in this browser URL.

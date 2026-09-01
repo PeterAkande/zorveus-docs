@@ -9,35 +9,36 @@ Map your subscription plans to per-user spending caps, issue promotional credits
 
 ---
 
-## 1. Create a Startup Org, API Key, and Spend Limit
+## 1. Create a startup organization and inference key
 
 Before making inference requests in code, set up your organization and configure an API key with a spend limit in the [Zorveus Dashboard](https://app.zorveus.com):
 
 <Steps>
-  <Step title="Create a Startup Organization">
+  <Step title="Create a startup organization">
     Log in to [app.zorveus.com](https://app.zorveus.com) and create or select your company's **Startup** organization.
   </Step>
-  <Step title="Create an App and API Key">
-    Navigate to **Apps**, create a new application (e.g. `My AI SaaS`), and click **Create Key** under **Inference Keys**. Copy your generated key (`zrv_live_...`).
+  <Step title="Create an app and inference key">
+    Open **Apps**, create an application, and generate an inference key for it. Copy the generated `zrv_...` key.
   </Step>
-  <Step title="Attach a Spending Limit">
-    Select your API key in the dashboard, open **Spending Cap / Limit**, and set a monthly allowance for every user (e.g. `$10.00/month`). When a user's usage reaches this limit, Zorveus automatically blocks over-cap requests.
+  <Step title="Choose a credit mode">
+    Keep the default `enforce_if_present` mode if attributed users must have active credits. Use `track_only` while you measure usage without enforcing product-user credits.
   </Step>
 </Steps>
 
 <Callout type="note" title="One-Time Secret Display">
-  Inference keys (`zrv_live_...`) appear in plaintext only upon creation. Zorveus stores cryptographic hashes and cannot retrieve the raw secret later.
+  Inference keys (`zrv_...`) appear in plaintext only when you create or rotate them. Store the key in your backend secret manager.
 </Callout>
 
 ---
 
-## 2. Make an Inference Request in Code
+## 2. Send an attributed inference request
 
-Pass product-user details (`external_user_id`, `display_name`, `email`, and `user_metadata`) through Zorveus. Choose your client below, install its package, and run the matching example.
+Pass `external_user_id` at `metadata.external_user_id`. Put the optional name, email, and custom fields inside `metadata.product_user`.
 
 <KeyInserter type="inference" label="Test Key Inserter" placeholder="zrv_your_inference_key" />
 
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "Vercel AI SDK (@zorveus/sdk/vercel)", "cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (ZorveusOpenAI)", "Vercel AI SDK", "cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
 
 ```typescript
 // npm install @zorveus/sdk
@@ -60,7 +61,13 @@ async function main() {
       { role: "system", content: "You are a helpful coding assistant." },
       { role: "user", content: "Write a Python function to check for prime numbers." },
     ],
-    temperature: 0.7,
+        temperature: 0.7,
+    zorveusMetadata: {
+      externalUserId: "usr_sara_101",
+      displayName: "Sara Connor",
+      userEmail: "sara@example.com",
+      metadata: { plan: "pro" },
+    },
   });
 
   console.log(completion.choices[0].message.content);
@@ -122,7 +129,7 @@ print(response.choices[0].message.content)
 ```
 
 ```typescript
-// npm install @zorveus/sdk ai
+// npm install @zorveus/sdk ai @ai-sdk/openai
 import { createZorveus } from "@zorveus/sdk/vercel";
 import { generateText } from "ai";
 
@@ -157,9 +164,11 @@ curl https://api.zorveus.com/v1/chat/completions \
     ],
     "metadata": {
       "external_user_id": "usr_sara_101",
-      "display_name": "Sara Connor",
-      "email": "sara@example.com",
-      "user_metadata": {"plan": "pro"}
+      "product_user": {
+        "display_name": "Sara Connor",
+        "email": "sara@example.com",
+        "metadata": {"plan": "pro"}
+      }
     },
     "temperature": 0.7
   }'
@@ -185,8 +194,11 @@ response = client.chat.completions.create(
     extra_body={
         "metadata": {
             "external_user_id": "usr_sara_101",
-            "display_name": "Sara Connor",
-            "email": "sara@example.com",
+            "product_user": {
+                "display_name": "Sara Connor",
+                "email": "sara@example.com",
+                "metadata": {"plan": "pro"}
+            }
         }
     },
     temperature=0.7,
@@ -216,8 +228,11 @@ async function main() {
     extra_body: {
       metadata: {
         external_user_id: "usr_sara_101",
-        display_name: "Sara Connor",
-        email: "sara@example.com",
+        product_user: {
+          display_name: "Sara Connor",
+          email: "sara@example.com",
+          metadata: { plan: "pro" }
+        }
       },
     },
     temperature: 0.7,
@@ -234,7 +249,7 @@ main();
 <ApiRunner
   method="POST"
   path="/v1/chat/completions"
-  defaultBody='{\n  "model": "openai/gpt-4.1-mini",\n  "messages": [\n    {"role": "user", "content": "Write a Python function to check for prime numbers."}\n  ],\n  "metadata": {\n    "external_user_id": "usr_sara_101",\n    "display_name": "Sara Connor",\n    "email": "sara@example.com"\n  }\n}'
+  defaultBody='{\n  "model": "openai/gpt-4.1-mini",\n  "messages": [\n    {"role": "user", "content": "Write a Python function to check for prime numbers."}\n  ],\n  "metadata": {\n    "external_user_id": "usr_sara_101",\n    "product_user": {\n      "display_name": "Sara Connor",\n      "email": "sara@example.com"\n    }\n  }\n}'
 />
 
 <Callout type="success" title="Expected result">

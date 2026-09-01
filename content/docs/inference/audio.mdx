@@ -1,9 +1,7 @@
 ---
-title: Audio Transcription & Speech
-description: Transcribe audio files (STT) and synthesize natural speech (TTS) through Zorveus.
+title: Audio transcription and speech
+description: Transcribe audio files and synthesize speech through supported OpenAI-compatible routes.
 ---
-
-# Audio Transcription & Speech
 
 <ApiEndpoint method="POST" path="/v1/audio/speech" auth="inference_key" />
 
@@ -13,7 +11,7 @@ Zorveus routes text-to-speech (`/v1/audio/speech`) and audio transcription (`/v1
 
 ---
 
-## Text-to-Speech (TTS)
+## Generate speech
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
@@ -58,3 +56,30 @@ main();
 ```
 
 </CodeGroup>
+
+The response is binary audio. Write it to a file or stream it with the content type returned by the gateway. The selected model determines the available voices and response formats.
+
+## Transcribe audio
+
+<ApiEndpoint method="POST" path="/v1/audio/transcriptions" auth="inference_key" />
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_inference_key",
+)
+
+with open("meeting.wav", "rb") as audio_file:
+    transcript = client.audio.transcriptions.create(
+        model="openai/whisper-1",
+        file=audio_file,
+    )
+
+print(transcript.text)
+```
+
+Use `GET /v1/models` before selecting either model. Audio formats, file limits, voices, language options, and output formats depend on the provider route.
+
+Do not put the inference key in browser or mobile code. Upload audio to your backend, or mint a purpose-built short-lived credential only when a documented flow supports it.

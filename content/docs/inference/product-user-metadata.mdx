@@ -1,31 +1,29 @@
 ---
-title: Product-User Metadata
+title: Product-user metadata
 description: Pass custom customer identifiers, names, emails, and tracking tags inside inference requests.
 ---
 
-# Product-User Metadata
-
-Zorveus allows product teams to embed end-user context directly inside OpenAI-compatible requests for real-time attribution, metering, and credit deduction.
+Send product-user metadata with an OpenAI-compatible request to attribute usage and apply product-user controls.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Supported Metadata Fields
+## Supported metadata fields
 
-Inside `metadata` (or `extra_body.metadata` in Python):
+The request `metadata` object accepts these fields. In the Python OpenAI client, put the object at `extra_body.metadata`.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| **`external_user_id`** | string | Primary external customer ID in your database (e.g. `usr_98124`). |
-| **`product_user_id`** | string | Optional Zorveus internal product user UUID. |
-| **`name`** | string | User's display name for dashboard identification. |
-| **`email`** | string | User's email address for audit and search. |
-| **`plan`** | string | Custom subscription or customer tier name (e.g. `enterprise_seat`). |
+| `external_user_id` | string | Stable customer ID from your application. |
+| `product_end_user_id` | string | Internal Zorveus product-user ID. |
+| `product_user.display_name` | string | Name shown in the dashboard. |
+| `product_user.email` | string | Email used to derive the stored email hash. |
+| `product_user.metadata` | object | Your custom fields, such as `plan` or `workspace_id`. |
 
 ---
 
-## Code Example
+## Send metadata
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
@@ -43,9 +41,11 @@ response = client.chat.completions.create(
     extra_body={
         "metadata": {
             "external_user_id": "cust_uuid_9921",
-            "name": "Alex Mercer",
-            "email": "alex.mercer@company.io",
-            "plan": "pro_tier",
+            "product_user": {
+                "display_name": "Alex Mercer",
+                "email": "alex.mercer@company.io",
+                "metadata": {"plan": "pro_tier"},
+            },
         }
     },
 )
@@ -68,9 +68,11 @@ async function main() {
     ...({
       metadata: {
         external_user_id: "cust_uuid_9921",
-        name: "Alex Mercer",
-        email: "alex.mercer@company.io",
-        plan: "pro_tier",
+        product_user: {
+          display_name: "Alex Mercer",
+          email: "alex.mercer@company.io",
+          metadata: { plan: "pro_tier" },
+        },
       },
     } as any),
   });
@@ -82,3 +84,5 @@ main();
 ```
 
 </CodeGroup>
+
+If you provide both IDs, `product_end_user_id` identifies the existing Zorveus record. `external_user_id` remains your application-facing lookup key. The gateway does not infer `external_user_id` from the OpenAI `user` field.

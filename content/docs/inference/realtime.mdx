@@ -1,19 +1,17 @@
 ---
-title: Realtime WebSockets & Ephemeral Sessions
-description: Create short-lived ephemeral client secrets for low-latency Realtime WebSockets audio sessions.
+title: Realtime client secrets
+description: Create a short-lived client secret for a supported realtime model session.
 ---
 
-# Realtime WebSockets & Ephemeral Sessions
+<ApiEndpoint method="POST" path="/v1/realtime/client_secrets" auth="inference_key" />
 
-<ApiEndpoint method="POST" path="/v1/realtime/sessions" auth="inference_key" />
-
-The Realtime Sessions API mints short-lived, ephemeral client secrets (`ek_...`) allowing browser or mobile clients to establish direct WebSockets connections for real-time speech-to-speech audio interactions without exposing your master inference key.
+Your backend can request a short-lived provider client secret without exposing the long-lived Zorveus inference key to browser or mobile code.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Minting an Ephemeral Session Token
+## Create a client secret
 
 Your backend requests an ephemeral session token, specifying the permitted model and voice parameters:
 
@@ -23,49 +21,50 @@ Your backend requests an ephemeral session token, specifying the permitted model
 import requests
 
 response = requests.post(
-    "https://api.zorveus.com/v1/realtime/sessions",
+    "https://api.zorveus.com/v1/realtime/client_secrets",
     headers={
         "Content-Type": "application/json",
         "Authorization": "Bearer zrv_your_inference_key",
     },
-    json={
-        "model": "openai/gpt-4o-realtime-preview",
-        "voice": "verse",
-    },
+    json={"session": {"type": "realtime", "model": "openai/gpt-4o-realtime-preview"}},
 )
 
 session_data = response.json()
-# Ephemeral token safe to send to client browser: session_data['client_secret']['value']
-print("Ephemeral Client Secret:", session_data["client_secret"]["value"])
+print("Received client secret:", bool(session_data.get("value") or session_data.get("client_secret")))
 ```
 
 ```typescript
 async function createRealtimeSession() {
-  const response = await fetch("https://api.zorveus.com/v1/realtime/sessions", {
+  const response = await fetch("https://api.zorveus.com/v1/realtime/client_secrets", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer zrv_your_inference_key",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o-realtime-preview",
-      voice: "verse",
+      session: { type: "realtime", model: "openai/gpt-4o-realtime-preview" },
     }),
   });
 
   const data = await response.json();
-  return data.client_secret.value;
+  return data.value ?? data.client_secret;
 }
 ```
 
 ```bash
-curl https://api.zorveus.com/v1/realtime/sessions \
+curl https://api.zorveus.com/v1/realtime/client_secrets \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer zrv_your_inference_key" \
   -d '{
-    "model": "openai/gpt-4o-realtime-preview",
-    "voice": "verse"
+    "session": {
+      "type": "realtime",
+      "model": "openai/gpt-4o-realtime-preview"
+    }
   }'
 ```
 
 </CodeGroup>
+
+The returned shape depends on the upstream realtime API version. Accept either a top-level `value` or the documented `client_secret` object, then pass only the short-lived secret to the client.
+
+Use `GET /v1/models` and a controlled test before enabling a realtime model. A route allowlist alone does not prove that a provider deployment, pricing record, and realtime session contract are ready.

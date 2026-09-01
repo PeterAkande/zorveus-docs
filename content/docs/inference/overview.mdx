@@ -1,28 +1,28 @@
 ---
-title: Inference Overview
+title: Inference overview
 description: Overview of OpenAI-compatible inference capabilities supported on api.zorveus.com/v1.
 ---
 
-Zorveus routes AI inference requests through a high-performance proxy on `https://api.zorveus.com/v1`. It supports the OpenAI SDK specification across text generation, reasoning, multimodal inputs, structured responses, embeddings, and real-time audio.
+Zorveus exposes OpenAI-compatible inference routes at `https://api.zorveus.com/v1`. Available capabilities depend on the selected model and provider route, so discover models with the same inference key before calling a modality-specific endpoint.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Supported Inference Modalities
+## Inference modalities
 
 <CardGroup cols={2}>
   <Card title="Chat Completions" icon="terminal" href="/inference/chat-completions">
     Standard and reasoning completions across OpenAI, Anthropic, Gemini, and open models.
   </Card>
   <Card title="Streaming Completions" icon="zap" href="/inference/streaming">
-    Low-latency Server-Sent Events (SSE) token streaming.
+    Server-Sent Events (SSE) token streaming.
   </Card>
   <Card title="Tool Calling & Function Calling" icon="code" href="/inference/tool-calling">
     Structured schema execution and agentic tool invocation.
   </Card>
   <Card title="Responses API" icon="layers" href="/inference/responses">
-    Next-generation stateful responses and conversational threads.
+    OpenAI-compatible response items for supported provider routes.
   </Card>
   <Card title="Embeddings" icon="cpu" href="/inference/embeddings">
     Dense text embeddings for semantic search and retrieval (RAG).
@@ -34,7 +34,7 @@ Zorveus routes AI inference requests through a high-performance proxy on `https:
 
 ---
 
-## SDK Configuration
+## SDK configuration
 
 Point any official OpenAI client to `https://api.zorveus.com/v1`:
 

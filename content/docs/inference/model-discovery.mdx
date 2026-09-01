@@ -1,9 +1,7 @@
 ---
-title: Model Discovery
+title: Model discovery
 description: Query the models endpoint to discover live available models permitted for your inference key.
 ---
-
-# Model Discovery
 
 <ApiEndpoint method="GET" path="/v1/models" auth="inference_key" />
 
@@ -13,7 +11,7 @@ The `/v1/models` endpoint returns the dynamic list of concrete model IDs your in
 
 ---
 
-## Policy Expansion Semantics
+## Policy expansion
 
 When your App Connection defines wildcard policies like `*` or `openai/*`, the `/v1/models` endpoint **expands those wildcards into concrete routable model IDs** (e.g. `openai/gpt-4.1-mini`, `openai/gpt-4.1`, `anthropic/claude-3-7-sonnet`).
 
@@ -21,7 +19,7 @@ Wildcard strings are policy configurations—not valid target model identifiers 
 
 ---
 
-## Code Example
+## Code example
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
@@ -67,7 +65,7 @@ curl https://api.zorveus.com/v1/models \
 
 ---
 
-## Expected Response
+## Expected response
 
 ```json
 {

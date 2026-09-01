@@ -1,67 +1,17 @@
 ---
-title: Consent & Spending Caps
-description: How users choose funding organizations and configure monthly spending caps during OAuth consent.
+title: Consent and spending caps
+description: Understand the wallet, permissions, and cap selected during OAuth consent.
 ---
 
-During the OAuth 2.0 PKCE consent flow, users explicitly authorize third-party applications to charge AI inference requests to their Zorveus wallet.
+After Zorveus validates the authorization request, the user signs in and reviews the consent screen. The user then:
 
-Zorveus protects users by putting them in full control of which wallet pays for inference and enforcing hard monthly spending caps on a per-app basis.
+1. Selects an organization they are allowed to spend from.
+2. Reviews the requested scopes and model access.
+3. Chooses a limited cap that satisfies the app policy, or chooses unlimited when the app allows it.
+4. Approves or denies the request.
 
----
+The app registration, not authorization URL query parameters, defines `default_cap_amount`, `minimum_cap_amount`, `maximum_cap_amount`, `allow_unlimited_cap`, currency, and period. Periods can be `daily`, `monthly`, or `lifetime`.
 
-## User Consent Screen Sequence
+An app-connection cap covers aggregate spend through the connection. It is not a separate cap for every product user. Product-user caps and credit grants are configured independently.
 
-When your app redirects a user to `https://app.zorveus.com/oauth/authorize`, Zorveus presents a consent interface where the user completes 3 key choices:
-
-<Steps>
-  <Step title="1. Select Funding Wallet">
-    The user chooses whether to fund inference from their Personal Wallet or a Startup Organization workspace where they hold billing permissions.
-  </Step>
-  <Step title="2. Review Model Permissions & Scopes">
-    The user inspects the model allowlist requested by your app (e.g. `openai/*`, `anthropic/*`) and authorized actions (`inference:write`).
-  </Step>
-  <Step title="3. Configure Monthly Spending Cap">
-    The user selects a hard monthly ceiling (e.g. `$10.00 / month`) or selects Unlimited. Requests exceeding this cap are blocked automatically.
-  </Step>
-</Steps>
-
----
-
-## Developer Spending Cap Recommendations
-
-App developers can suggest spending cap boundaries by passing query parameters or setting default app limits in the Zorveus Dashboard:
-
-```text
-https://app.zorveus.com/oauth/authorize?
-  client_id=zrv_client_your_client_id&
-  redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&
-  scope=inference%3Awrite&
-  default_cap=15.00&
-  min_cap=5.00&
-  max_cap=100.00
-```
-
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `default_cap` | Decimal string | Pre-selected monthly spending limit in USD shown on the consent screen. |
-| `min_cap` | Decimal string | Minimum monthly cap required for the app to function properly. |
-| `max_cap` | Decimal string | Upper cap recommendation suggested to prevent accidental over-spending. |
-
----
-
-## What Happens When a Spending Cap is Hit
-
-Once an authorized application's total monthly inference usage reaches the user-defined spending cap:
-
-1. **Immediate API Block.** Subsequent inference calls using that token return an HTTP `429 Limit Exceeded` error.
-2. **Outbound Webhook Trigger.** Zorveus emits an `app_connection.cap_reached` webhook payload to your registered organization webhook URL.
-3. **User Dashboard Notification.** The user receives an in-app alert allowing them to adjust their spending cap or inspect usage logs.
-
----
-
-## User-Initiated Cap Modifications & Revocation
-
-Users can modify spending caps or revoke app permissions at any time from their Zorveus account dashboard:
-
-* **Cap Adjustments.** Increasing or decreasing a monthly cap takes effect immediately without requiring a new OAuth consent flow.
-* **Instant Revocation.** When a user revokes app access, the `access_token` (`zrv_...`) is invalidated instantly, returning `401 Unauthorized` on subsequent requests.
+Users can later change or revoke their connection from the dashboard. A revoked token fails authentication on subsequent inference calls.

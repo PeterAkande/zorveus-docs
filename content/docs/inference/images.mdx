@@ -1,9 +1,7 @@
 ---
-title: Image Generation
+title: Image generation
 description: Generate images and visual assets through OpenAI DALL-E and compatible models.
 ---
-
-# Image Generation
 
 <ApiEndpoint method="POST" path="/v1/images/generations" auth="inference_key" />
 
@@ -13,7 +11,7 @@ Generate images using models like `openai/dall-e-3`.
 
 ---
 
-## Code Example
+## Code example
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
@@ -59,3 +57,11 @@ main();
 ```
 
 </CodeGroup>
+
+## Handle image data
+
+Providers can return a temporary URL, base64 data, or another provider-specific result. The maintained Zorveus smoke test requests `b64_json` and verifies that the decoded file is non-empty.
+
+Check `GET /v1/models` before using the example model. Image size, quality, count, response format, and content-policy behavior depend on the selected model.
+
+Do not log base64 image output or place provider URLs in long-lived records unless your data policy permits it.

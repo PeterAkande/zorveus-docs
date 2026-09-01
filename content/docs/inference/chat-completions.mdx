@@ -1,9 +1,7 @@
 ---
-title: Chat Completions
+title: Chat completions
 description: Generate text and reasoning completions across OpenAI, Anthropic, Gemini, and open models.
 ---
-
-# Chat Completions
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
 
@@ -23,7 +21,7 @@ Authorization: Bearer zrv_your_inference_key
 
 ---
 
-## Request Parameters
+## Request parameters
 
 <ParamField name="model" type="string" required>
   The model identifier to route the request to (e.g. `openai/gpt-4.1-mini`, `anthropic/claude-3-7-sonnet`, `gemini/gemini-2.5-flash`).
@@ -46,12 +44,12 @@ Authorization: Bearer zrv_your_inference_key
 </ParamField>
 
 <ParamField name="metadata" type="object">
-  Zorveus-specific attribution metadata containing `external_user_id`, `name`, `email`, or custom tracking tags.
+  Zorveus attribution metadata. Use `external_user_id` for your customer ID and put optional profile fields inside `product_user`.
 </ParamField>
 
 ---
 
-## Code Examples
+## Code examples
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
@@ -136,7 +134,7 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ---
 
-## Expected Response
+## Expected response
 
 ```json
 {
@@ -164,7 +162,7 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ---
 
-## Common Errors
+## Common errors
 
 | Error Code | HTTP Status | Root Cause & Resolution |
 | :--- | :--- | :--- |

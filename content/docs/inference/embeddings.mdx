@@ -3,8 +3,6 @@ title: Embeddings
 description: Generate dense vector embeddings for semantic retrieval, similarity search, and RAG pipelines.
 ---
 
-# Embeddings
-
 <ApiEndpoint method="POST" path="/v1/embeddings" auth="inference_key" />
 
 The `/v1/embeddings` endpoint generates vector embeddings across supported embedding models (e.g. `openai/text-embedding-3-small`, `openai/text-embedding-3-large`).
@@ -13,7 +11,7 @@ The `/v1/embeddings` endpoint generates vector embeddings across supported embed
 
 ---
 
-## Code Example
+## Code example
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
@@ -65,3 +63,11 @@ curl https://api.zorveus.com/v1/embeddings \
 ```
 
 </CodeGroup>
+
+## Inputs and output
+
+`input` can be one string or an array when the selected provider supports batching. The response contains one embedding item for each accepted input. Store the model ID and vector dimension with the vectors so that you do not compare incompatible embeddings.
+
+Use `GET /v1/models` to find a routable embedding model. A model policy such as `openai/*` permits matching names, but it does not guarantee that a matching deployment is available.
+
+Batch limits, token limits, dimensions, and optional encoding formats come from the selected provider and model.
