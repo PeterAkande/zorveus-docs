@@ -1,10 +1,14 @@
 ---
-title: BYOK Cost Accounting
-description: Track wholesale upstream provider costs and observe zero-margin routing.
+title: BYOK cost accounting
+description: Understand the wallet and provider costs recorded for requests that use your own provider credentials.
 ---
 
-# BYOK Cost Accounting
+When a request uses a stored provider credential, Zorveus records the request with the `byok` billing mode. The usage event separates two costs:
 
-When using Bring Your Own Key credentials:
-- **`sell_cost`**: Recorded as `$0.000000`
-- **`provider_cost`**: Computed using benchmark provider rates to provide internal visibility into spend across departments and product features.
+- `provider_cost` is the estimated upstream model cost recorded for analytics.
+- `sell_cost` is the amount charged to the Zorveus wallet. It can include a configured BYOK platform fee.
+
+Do not assume that every BYOK request has a zero `sell_cost`. Check the usage event and your organization’s current billing configuration.
+
+Your upstream provider bills the credential owner separately. Zorveus wallet balances do not represent or settle that provider invoice.
+Zorveus offer Free routing up to $25k in monthly traffic. If your organization exceeds that threshold, Zorveus can apply a configured BYOK platform fee. Check the usage event and your organization’s current billing configuration.

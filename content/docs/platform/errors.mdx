@@ -1,53 +1,34 @@
 ---
-title: Error Handling & Error Codes
-description: Product API and OpenAI-compatible gateway error envelopes, status codes, and recovery steps.
+title: Error handling
+description: Handle product API and OpenAI-compatible gateway errors without relying on message text.
 ---
 
-# Error Handling & Error Codes
-
-Zorveus provides structured, actionable error responses across both API surfaces.
-
----
-
-## 1. Product & Management API Errors
+Product and management routes return a structured Zorveus error with a stable `code` and human-readable `message`. Gateway routes return an OpenAI-compatible `error` object. Log the request identifier when one is available.
 
 Endpoints on `https://api.zorveus.com` return standard JSON error envelopes:
 
 ```json
 {
   "error": {
-    "code": "invalid_parameter",
+    "code": "zorveus_invalid_parameter",
     "message": "The external_user_id field cannot exceed 128 characters.",
     "request_id": "req_84102941"
   }
 }
 ```
 
----
+Common gateway codes include:
 
-## 2. Gateway Inference Errors
+| Code | Typical status | Response |
+| --- | --- | --- |
+| `zorveus_malformed_or_missing_key` | 401 | Send a Bearer inference key. |
+| `zorveus_unknown_key` | 401 | Check that the key belongs to this environment. |
+| `zorveus_key_inactive` | 401 | Replace a revoked or inactive key. |
+| `zorveus_model_not_allowed` | 403 | Request a model allowed by the connection and key. |
+| `zorveus_unsupported_model` | 400 | Discover a currently available model with `GET /v1/models`. |
+| `zorveus_reservation_insufficient_balance` | 402 | Add wallet funds or correct the funding route. |
+| `zorveus_cap_exceeded` | 429 | Increase the applicable cap or wait for its period to reset. |
 
-Endpoints on `https://api.zorveus.com/v1` return OpenAI SDK-compatible error objects:
+Use the code for program logic. Message wording can change. Retry only transient failures and rate limits; do not retry authentication, policy, or balance failures without changing the request or account state.
 
-```json
-{
-  "error": {
-    "message": "Spending cap of $50.00 for connection con_1048 exceeded.",
-    "type": "insufficient_quota",
-    "code": "cap_exceeded",
-    "param": null
-  }
-}
-```
-
----
-
-## Canonical Error Codes
-
-| Code | HTTP Status | Meaning | Actionable Resolution |
-| :--- | :--- | :--- | :--- |
-| `invalid_api_key` | 401 | The inference key is missing or revoked | Rotate or generate a new key in dashboard |
-| `insufficient_balance` | 402 | Wallet balance depleted | Top up wallet or connect BYOK credentials |
-| `cap_exceeded` | 429 | Spending cap limit reached | Increase connection or org cap in dashboard |
-| `model_not_allowed` | 403 | Model not in connection policy | Update allowed model wildcard settings |
-| `rate_limit_exceeded` | 429 | Upstream or Zorveus RPM exceeded | Implement exponential backoff retry |
+See [Troubleshooting](/resources/troubleshooting) for diagnosis by symptom.

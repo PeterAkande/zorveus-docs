@@ -1,15 +1,34 @@
 ---
-title: Frequently Asked Questions
-description: Answers to common questions regarding billing, latency, BYOK, and enterprise compliance.
+title: Frequently asked questions
+description: Answers about credentials, product users, billing, Bring Your Own Key routing, latency, and stored usage data.
 ---
 
-# Frequently Asked Questions
-
 ### Does Zorveus add latency to AI inference?
-No. The Zorveus Gateway is built on high-performance async streaming infrastructure that adds less than 5ms overhead. Token streams pass directly through Server-Sent Events (SSE) with zero response buffering.
+
+Zorveus adds gateway processing and network transit to the provider request. Streaming endpoints return Server-Sent Events. Zorveus does not publish a fixed latency guarantee in these docs because overhead depends on the route, region, policy checks, and provider behavior.
 
 ### Can I mix BYOK keys and wallet-funded routing?
-Yes. If you add an OpenAI BYOK credential with model policy `openai/*`, all OpenAI requests route through your direct key. If you then call `anthropic/claude-3-7-sonnet` without an Anthropic key, Zorveus automatically falls back to your funded organization wallet.
+
+Yes. An eligible provider credential can route matching models through your provider account. If `auto_fallback_to_wallet` is enabled and the organization wallet can fund the request, Zorveus can add wallet-funded routing as a fallback. Credential status, model policy, priority, and app-connection access still apply.
 
 ### Are prompt inputs and completions stored?
-No. Zorveus operates a zero-data-retention policy for model inputs and completions by default. Only metadata (token counts, timestamps, user ID, cost) is stored in the ledger.
+
+Zorveus usage records contain accounting fields such as model, provider, token counts, cost, status, latency, and attribution IDs. The current usage schema does not contain prompt or completion text fields. Your selected AI provider may process or retain request content under its own policy. Consult the applicable privacy and provider terms before sending sensitive data.
+
+### Which key calls inference?
+
+Use an inference key that starts with `zrv_` against `https://api.zorveus.com/v1`. An OAuth token returned by the token endpoint is also an inference credential.
+
+Do not use an organization service key for inference. Service keys start with `zrv_svc_` and call supported management routes at `https://api.zorveus.com`.
+
+### Does an inference-key cap give every customer a separate allowance?
+
+No. The key belongs to an app connection, and an app-connection cap limits combined usage through that connection. Use product-user caps for hard per-user limits. Use product-user credit grants for customer balances that can expire or be revoked.
+
+### Must I create every product user before inference?
+
+No. Send `metadata.external_user_id` with the request. Zorveus can create or update the product user during reservation. Put optional profile fields inside `metadata.product_user`.
+
+### Does Bring Your Own Key mean that inference is free?
+
+No. The provider can bill the owner of the credential, and Zorveus allows free routing up till `$25k` in monthly traffic. Inspect both `provider_cost` and `sell_cost` in the usage event.

@@ -1,18 +1,18 @@
 ---
-title: Authentication & Credentials
-description: Complete matrix of credentials, headers, and security levels across Zorveus.
+title: Authentication and credentials
+description: Choose the credential and headers required by each Zorveus API surface.
 ---
 
 Zorveus uses distinct authentication schemes depending on the caller and security context.
 
 ---
 
-## Authentication Matrix
+## Authentication matrix
 
 | Credential Type | Header / Location | Target Surface | Permitted Caller |
 | :--- | :--- | :--- | :--- |
 | **Inference Key** (`zrv_...`) | `Authorization: Bearer zrv_...` | `api.zorveus.com/v1` | Server backends & authorized clients |
-| **Service Key** (`zrv_sk_...`) | `Authorization: Bearer zrv_sk_...` | `api.zorveus.com` | Backend server automation ONLY |
+| **Service key** (`zrv_svc_...`) | `Authorization: Bearer zrv_svc_...` | `api.zorveus.com` | Backend server automation only |
 | **OAuth Client Secret** | Form-encoded POST body | `/oauth/token` | Confidential OAuth backends ONLY |
 | **Dashboard Session** | Cookie (`session=...`) + `X-CSRF-Token` | `app.zorveus.com` | Authenticated browser sessions |
 
@@ -24,11 +24,11 @@ Zorveus uses explicit headers for authentication, tracking, and outbound webhook
 
 | Header Name | Context | Type | Description |
 | :--- | :--- | :--- | :--- |
-| **`Authorization`** | Request | `Bearer zrv_...` or `Bearer zrv_sk_...` | Authenticates AI Gateway or Management API requests. |
+| **`Authorization`** | Request | `Bearer zrv_...` or `Bearer zrv_svc_...` | Authenticates inference or supported Management API requests. |
 | **`X-Zorveus-Signature`** | Outbound Webhook | String (`t=...,v1=...`) | HMAC SHA-256 signature for verifying outbound webhook payloads. |
 | **`x-zorveus-request-id`** | Response | String (`zreq_...`) | Unique gateway request tracking identifier. |
 | **`x-zorveus-reservation-id`** | Response | String (`resv_...`) | Spend reservation tracking identifier. |
 
 <Callout type="note" title="Request Parameters vs Headers">
-  User identifiers (`external_user_id`) and application IDs (`app_id`) are passed in request metadata objects (`extra_body={"metadata": {"external_user_id": "..."}}`) or bound to API keys, **not** as custom `X-Zorveus-*` HTTP headers.
+  Product-user identifiers are passed in request metadata, for example `extra_body={"metadata": {"external_user_id": "...", "product_user": {"display_name": "..."}}}`. Application identity is bound to the key or connection, not supplied in a custom request header.
 </Callout>

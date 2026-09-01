@@ -1,28 +1,18 @@
 ---
 title: Pagination
-description: Cursor and limit-based pagination across list endpoints in Zorveus.
+description: Follow the pagination contract defined by each list endpoint.
 ---
 
-# Pagination
+Pagination is not identical across every route. Check the API reference for the endpoint you call.
 
-List endpoints (such as `/product-users`, `/apps`, and `/dashboard-api/usage/events`) support structured pagination.
-
----
-
-## Query Parameters
-
-- **`limit`**: Maximum records to return (default: `50`, max: `100`).
-- **`cursor`** or **`offset`**: Pointer to retrieve the next page of results.
-
----
-
-## Response Structure
+Cursor-based routes, including usage events and the wallet ledger, return `next_cursor` and `has_more`. Pass `next_cursor` back as `cursor` only while `has_more` is `true`.
 
 ```json
 {
-  "object": "list",
-  "data": [...],
-  "has_more": true,
-  "next_cursor": "cur_98a71b2c"
+  "items": [],
+  "next_cursor": "opaque-value",
+  "has_more": true
 }
 ```
+
+Collection names vary by resource, such as `items`, `events`, or `product_users`. Limits also vary.

@@ -1,36 +1,18 @@
 ---
-title: Rate Limits
-description: Understand request rate limits, retry policies, and exponential backoff strategies.
+title: Rate limits
+description: Handle Zorveus and upstream provider throttling safely.
 ---
 
-# Rate Limits
+Rate limits vary by route and deployment. Inference can also be limited by the selected upstream provider or BYOK account. Zorveus does not publish one universal management or inference quota.
 
-Zorveus enforces per-minute and per-day rate limits to safeguard upstream provider stability.
+When a response is `429`, inspect its error code before retrying. `zorveus_cap_exceeded` requires a cap or account change; a transient rate-limit error can be retried.
 
----
+For retryable requests:
 
-## Standard Rate Limits
+1. Honor `Retry-After` when it is present.
+2. Use exponential backoff with random jitter.
+3. Set a maximum attempt count and total deadline.
+4. Retry only requests that are safe to repeat or have an endpoint-specific idempotency contract.
+5. Reduce concurrency if throttling persists.
 
-- **Inference Gateway**: Dynamic based on your organization tier and upstream provider limits.
-- **Management API**: 300 requests per minute per Organization Service Key.
-
----
-
-## Retry Strategy with Exponential Backoff
-
-When receiving `429 Too Many Requests`, clients should inspect the `Retry-After` response header and implement exponential backoff with jitter:
-
-```python
-import time
-import random
-
-def call_with_retry(fn, max_retries=3):
-    for attempt in range(max_retries):
-        try:
-            return fn()
-        except Exception as e:
-            if attempt == max_retries - 1:
-                raise e
-            sleep_time = (2 ** attempt) + random.uniform(0, 1)
-            time.sleep(sleep_time)
-```
+Do not retry invalid keys, disallowed models, insufficient balances, or exhausted caps without first resolving their cause.

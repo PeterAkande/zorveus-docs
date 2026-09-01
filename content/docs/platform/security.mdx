@@ -1,18 +1,17 @@
 ---
-title: Security & Compliance
-description: Secret encryption, credential hygiene, least-privilege scoping, and audit controls.
+title: Security
+description: Protect Zorveus credentials, OAuth flows, provider secrets, and webhook endpoints.
 ---
 
-# Security & Compliance
+Use the least-privileged credential for each surface:
 
-Zorveus is architected with enterprise-grade security controls at every layer.
+- Keep service keys, confidential OAuth client secrets, and provider credentials on trusted servers.
+- Scope inference keys to the required models and connection.
+- Store returned secrets immediately because key and secret creation responses may be the only time the full value is shown.
+- Rotate and revoke credentials when they are exposed or no longer needed.
 
----
+OAuth uses authorization code with S256 PKCE and exact registered redirect URIs. Generate a fresh verifier and state value for each attempt, verify state on return, and exchange the code from a trusted backend for confidential clients.
 
-## Key Security Controls
+Zorveus stores provider credentials through its protected credential service. Your own logs, traces, and error reports must still redact Authorization headers, API keys, OAuth codes, PKCE verifiers, client secrets, and webhook secrets.
 
-1. **Encryption at Rest**: Provider API credentials stored in BYOK vaults are encrypted with AES-256-GCM using isolated customer encryption keys.
-2. **One-Time Secret Display**: Inference keys and service keys are displayed in plaintext only upon creation. Only cryptographic hashes are stored.
-3. **PKCE & Exact Redirect URIs**: OAuth 2.0 strictly enforces RFC 7636 PKCE code challenge verification and exact URI string matching.
-4. **Least-Privilege Model Scoping**: Connection model policies enforce that keys can only query explicitly permitted model wildcards.
-5. **Zero Token Logging**: Zorveus does not persist prompt or completion text bodies unless explicitly configured for moderation auditing.
+For webhooks, verify the signature against the raw request body before parsing or processing the event.

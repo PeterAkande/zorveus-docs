@@ -3,9 +3,9 @@ title: Product Users
 description: Programmatically manage, search, and track customer identities and usage limits.
 ---
 
-Product Users are your customers. You can create or update them automatically inline during inference or manage them explicitly using your Organization Service Key (`zrv_sk_...`).
+Product Users are your customers. You can create or update them automatically inline during inference or manage them explicitly using your Organization Service Key (`zrv_svc_...`).
 
-<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_sk_your_service_key" />
+<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_svc_your_service_key" />
 
 <Callout type="tip" title="Automatic Inline User Provisioning">
   You do not need to call the Management API to create users before making inference calls! Passing `external_user_id` inside inference request metadata automatically provisions the user in Zorveus on their first request.
@@ -23,7 +23,7 @@ Read a product user's live profile, configured spending cap, available credits, 
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
 const service = new ZorveusServiceClient({
-  apiKey: "zrv_sk_your_service_key",
+  apiKey: "zrv_svc_your_service_key",
 });
 
 // Fetch full user profile, active cap, credits, and monthly usage
@@ -39,7 +39,7 @@ console.log("Available Credits:", user.credit_summary.available_credits);
 ```python
 from zorveus import ZorveusServiceClient
 
-service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
+service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
 
 # Fetch full user profile, active cap, credits, and monthly usage
 user = service.product_users.get_by_external_id(
@@ -53,7 +53,7 @@ print(f"Available Credits: {user.credit_summary.available_credits}")
 
 ```bash
 curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id?app_id=app_support_123&external_user_id=usr_sara_101" \
-  -H "Authorization: Bearer zrv_sk_your_service_key"
+  -H "Authorization: Bearer zrv_svc_your_service_key"
 ```
 
 </CodeGroup>
@@ -70,7 +70,7 @@ For lightweight balance checks before initiating expensive operations, use the c
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
 const service = new ZorveusServiceClient({
-  apiKey: "zrv_sk_your_service_key",
+  apiKey: "zrv_svc_your_service_key",
 });
 
 const creditSummary = await service.productUsers.getCreditSummaryByExternalId({
@@ -84,7 +84,7 @@ console.log("Available Credits:", creditSummary.available_credits);
 ```python
 from zorveus import ZorveusServiceClient
 
-service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
+service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
 
 credits = service.product_users.get_by_external_id(
     app_id="app_support_123",
@@ -96,7 +96,7 @@ print(f"Available Balance: {credits.credit_summary.available_credits}")
 
 ```bash
 curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id/credit-summary?app_id=app_support_123&external_user_id=usr_sara_101" \
-  -H "Authorization: Bearer zrv_sk_your_service_key"
+  -H "Authorization: Bearer zrv_svc_your_service_key"
 ```
 
 </CodeGroup>
@@ -113,7 +113,7 @@ To update user profile details outside of inference requests:
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
 const service = new ZorveusServiceClient({
-  apiKey: "zrv_sk_your_service_key",
+  apiKey: "zrv_svc_your_service_key",
 });
 
 const user = await service.productUsers.createOrUpdate({
@@ -127,7 +127,7 @@ const user = await service.productUsers.createOrUpdate({
 ```python
 from zorveus import ZorveusServiceClient
 
-service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
+service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
 
 user = service.product_users.create_or_update(
     app_id="app_support_123",
@@ -140,7 +140,7 @@ user = service.product_users.create_or_update(
 ```bash
 curl -X PUT https://api.zorveus.com/api/v1/product-users/by-external-id \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_sk_your_service_key" \
+  -H "Authorization: Bearer zrv_svc_your_service_key" \
   -d '{
     "app_id": "app_support_123",
     "external_user_id": "usr_sara_101",

@@ -42,50 +42,6 @@ Each App configures an allowed models array. Requests specifying a model outside
 
 ---
 
-## Creating an App via Management API
+## Creating an App
 
-You can create and manage Apps programmatically using your Service Key (`zrv_service_...`):
-
-<ApiEndpoint method="POST" path="/apps" auth="service_key" />
-
-<CodeGroup titles={["cURL", "Python"]}>
-
-```bash
-curl -X POST https://api.zorveus.com/apps \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_service_your_service_key" \
-  -d '{
-    "name": "Production Customer Portal",
-    "description": "Customer-facing chat assistant",
-    "allowed_models": [
-      "openai/gpt-4.1-mini",
-      "anthropic/claude-3-5-haiku"
-    ],
-    "default_monthly_cap": "50.00"
-  }'
-```
-
-```python
-import requests
-
-response = requests.post(
-    "https://api.zorveus.com/apps",
-    headers={
-        "Content-Type": "application/json",
-        "Authorization": "Bearer zrv_service_your_service_key",
-    },
-    json={
-        "name": "Production Customer Portal",
-        "description": "Customer-facing chat assistant",
-        "allowed_models": [
-            "openai/gpt-4.1-mini",
-            "anthropic/claude-3-5-haiku",
-        ],
-        "default_monthly_cap": "50.00",
-    },
-)
-
-print(response.json())
-```
-
-</CodeGroup>
+You can create and manage Apps via the Zovreus dashboard.

@@ -1,16 +1,33 @@
 ---
-title: Azure OpenAI Provider Setup
+title: Azure OpenAI provider setup
 description: Configure Azure OpenAI Service deployments and custom endpoint routing.
 ---
 
-# Azure OpenAI Provider Setup
-
-Connect enterprise Azure OpenAI Service credentials to Zorveus.
+Azure credentials require both a secret and deployment configuration.
 
 ---
 
 ## Configuration
 
-- **Provider Name**: `azure`
-- **Required Config**: `api_key`, `api_base` (e.g. `https://your-resource.openai.azure.com`), `api_version`
-- **Model Wildcard**: `azure/*`
+- Provider ID: `azure`
+- Secret kinds: `api_key` or `azure_ad_token`
+- Required `provider_config` fields: `api_base` and `api_version`
+- Typical model policy: `azure/*`
+
+Put the key or Azure AD token in `secret`. Put the endpoint and API version in `provider_config`:
+
+```json
+{
+  "provider": "azure",
+  "credential_name": "Azure production",
+  "secret": "synthetic-secret",
+  "secret_kind": "api_key",
+  "provider_config": {
+    "api_base": "https://example-resource.openai.azure.com",
+    "api_version": "2025-01-01-preview"
+  },
+  "default_model_policy": ["azure/*"]
+}
+```
+
+The configured Azure deployment names must match the model routing configuration. Confirm them with a controlled request instead of assuming that an OpenAI public model name maps to the deployment.

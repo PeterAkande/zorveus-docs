@@ -1,30 +1,28 @@
 ---
-title: Token Exchange
+title: Token exchange
 description: Exchange short-lived authorization codes and PKCE verifiers for scoped inference tokens.
 ---
 
-# Token Exchange
-
-<ApiEndpoint method="POST" path="/oauth/token" auth="oauth_bearer" />
+<ApiEndpoint method="POST" path="/oauth/token" />
 
 Once the user approves your app, Zorveus redirects to your `redirect_uri` with `?code=...&state=...`. Your backend makes a server-to-server POST request to exchange the code for an inference token.
 
 ---
 
-## Token Request Parameters
+## Token request parameters
 
 | Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
 | **`grant_type`** | string | Yes | Must be `authorization_code`. |
 | **`client_id`** | string | Yes | Your application Client ID. |
-| **`client_secret`** | string | Yes | Your confidential Client Secret. |
+| **`client_secret`** | string | Yes, For confidential clients | Your confidential client secret. Public clients omit it. |
 | **`code`** | string | Yes | Single-use authorization code from redirect callback. |
 | **`code_verifier`** | string | Yes | Plaintext string used to generate `code_challenge`. |
 | **`redirect_uri`** | string | Yes | Exact URI sent in initial authorization request. |
 
 ---
 
-## Code Example
+## Code example
 
 <CodeGroup titles={["Node.js (TypeScript)", "Python", "cURL"]}>
 

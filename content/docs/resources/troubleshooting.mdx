@@ -1,38 +1,99 @@
 ---
-title: Troubleshooting Guide
-description: Diagnoses and resolutions for common inference errors, authentication failures, and billing issues.
+title: Troubleshooting
+description: Diagnose inference, product-user, service-key, provider, streaming, and OAuth failures.
 ---
 
-Find quick solutions to common integration and runtime errors.
+Zorveus product API errors use an `error` object with a stable `code` and a safe `message`. Log the HTTP status, error code, and request ID. Never log a key, OAuth code, provider secret, or prompt.
 
----
+```json
+{
+  "error": {
+    "code": "zorveus_cap_exceeded",
+    "message": "This request would exceed cap cap_123."
+  }
+}
+```
 
-## Inference Errors
+## Inference authentication fails
 
-### 1. `401 Unauthorized` (`invalid_api_key`)
-- **Cause**: The inference key is missing, malformed, or revoked.
-- **Fix**: Verify your environment variable contains the full `zrv_...` string. Generate a new key under **Apps** -> **Inference Keys** if necessary.
+For a missing or malformed inference key, the API returns `zorveus_malformed_or_missing_key`. For an unknown key, it returns `zorveus_unknown_key`. An inactive key returns `zorveus_key_inactive`.
 
-### 2. `403 Forbidden` (`model_not_allowed`)
-- **Cause**: The model specified (e.g. `anthropic/claude-3-7-sonnet`) is not covered by your App Connection's allowed model policy.
-- **Fix**: Update the allowed model wildcard in your dashboard to include `anthropic/*` or `*`.
+Check that `Authorization` contains the complete inference key:
 
-### 3. `402 Payment Required` (`insufficient_balance`)
-- **Cause**: Organization wallet balance is `$0.00` and no matching BYOK credential was found.
-- **Fix**: Top up your organization wallet or add a valid provider API key under **Provider Credentials**.
+```http
+Authorization: Bearer zrv_your_inference_key
+```
 
-### 4. `429 Too Many Requests` (`cap_exceeded`)
-- **Cause**: Spending limit on the organization, app connection, or product user has been reached.
-- **Fix**: Adjust or reset the spending cap in dashboard settings.
+If the key was revoked or lost, rotate it from the app connection and replace the backend secret. Zorveus shows the new raw key only once.
 
----
+## A model is rejected
 
-## OAuth Errors
+`zorveus_model_not_allowed` means the requested model is outside the inference key's model policy. `zorveus_unsupported_model` means Zorveus cannot route the model.
 
-### 1. `redirect_uri_mismatch`
-- **Cause**: The `redirect_uri` sent during `/oauth/authorize` does not match the registered list character-for-character.
-- **Fix**: Check for trailing slashes, exact protocol (`https://`), and port numbers.
+List the models available to the current key with `GET /v1/models`. Then update the app connection policy or choose a returned model ID. Do not assume that every provider model is routable.
 
-### 2. `invalid_grant` / `code_verifier_mismatch`
-- **Cause**: The `code_verifier` sent to `/oauth/token` does not match the hashed `code_challenge` from the authorization request.
-- **Fix**: Verify your SHA-256 Base64URL transformation and ensure the code verifier is stored accurately in session state.
+## Wallet funds are insufficient
+
+`zorveus_reservation_insufficient_balance` means the selected organization cannot reserve enough wallet value for the request. Top up the wallet or configure an eligible provider credential for Bring Your Own Key routing.
+
+A provider credential does not guarantee that the request will use it. Its status, model policy, routing priority, and app-connection access must all match.
+
+## A spending cap blocks the request
+
+`zorveus_cap_exceeded` means an organization, organization-member, app-connection, or product-user cap would be exceeded. Inspect the cap named in the error message.
+
+An app-connection cap applies to the connection's combined usage. A product-user cap applies only to that product user.
+
+## Product-user credits block the request
+
+`zorveus_product_user_credits_required` means the connection requires product-user attribution but the request did not resolve a product user. Send `metadata.external_user_id` or `metadata.product_end_user_id`.
+
+`zorveus_product_user_credits_insufficient` means the resolved product user lacks enough active, unexpired credit. Grant more credit, change the connection's `credit_mode`, or remove product-user attribution when `enforce_if_present` should use the organization wallet.
+
+## Product-user details do not appear
+
+Use the nested raw request shape:
+
+```json
+{
+  "metadata": {
+    "external_user_id": "usr_123",
+    "product_user": {
+      "display_name": "Ada Customer",
+      "email": "ada@example.com",
+      "metadata": {"plan": "pro"}
+    }
+  }
+}
+```
+
+Fields such as `metadata.name`, `metadata.email`, and `metadata.user_metadata` are not canonical product-user fields. The supported flat compatibility fields are `product_user_display_name`, `product_user_email`, and `product_user_metadata`.
+
+## A service-key request fails
+
+Service keys start with `zrv_svc_`. They authenticate supported management routes at `https://api.zorveus.com`, without an `/api/v1` prefix.
+
+| Code | Meaning | Fix |
+| --- | --- | --- |
+| `zorveus_malformed_or_missing_service_key` | The header is missing or malformed. | Send `Authorization: Bearer zrv_svc_...`. |
+| `zorveus_unknown_service_key` | No active record matches the key. | Check the secret or create a new key. |
+| `zorveus_service_key_inactive` | The key was revoked or disabled. | Replace it with an active key. |
+| `zorveus_service_key_scope_required` | The key lacks the route's scope. | Create a key with the required read or write scope. |
+
+## Streaming stops before completion
+
+Read Server-Sent Events until the stream emits `data: [DONE]` or closes. Preserve incomplete lines between network chunks. If the connection closes early, record the request ID and treat the result as incomplete.
+
+Retry only when your application can tolerate a second provider request. A retry can produce another billable completion.
+
+## OAuth redirects fail
+
+`zorveus_redirect_uri_mismatch` means the authorization request or token exchange used a URI that does not exactly match a registered redirect URI. Check the scheme, host, port, path, query, and trailing slash.
+
+For PKCE failures, keep the original verifier in a secure server session. Send the same `redirect_uri` and verifier during the token exchange. Authorization codes are single-use and expire.
+
+## Browser management requests fail
+
+Dashboard writes require the HTTP-only session cookie, a current `X-CSRF-Token` header, and an allowed `Origin`. Browser code cannot read or attach the session cookie manually. Send credentials with the request and obtain a CSRF token from `GET /auth/csrf`.
+
+If the problem continues, include the request ID, endpoint, HTTP status, and stable error code when you contact [support](/resources/support).

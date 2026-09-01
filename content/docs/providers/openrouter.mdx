@@ -1,16 +1,18 @@
 ---
-title: OpenRouter & Open Weights Setup
+title: OpenRouter provider setup
 description: Connect OpenRouter API keys to access DeepSeek, Llama 3, and open-weights models.
 ---
 
-# OpenRouter & Open Weights Setup
-
-Connect OpenRouter API keys (`sk-or-...`) to Zorveus.
+Use an OpenRouter key only when `GET /provider-credentials/providers` lists `openrouter` for the current deployment.
 
 ---
 
 ## Configuration
 
-- **Provider Name**: `openrouter`
-- **Model Wildcard**: `openrouter/*`
-- **Example Model**: `openrouter/deepseek-r1`
+- Provider ID: `openrouter`
+- Secret kind: `api_key`
+- Typical model policy: `openrouter/*`
+
+The OpenRouter model catalog changes independently from Zorveus. Use `GET /v1/models` to select a model available to the inference key. Do not copy a model slug from the upstream catalog unless the Zorveus model endpoint returns it.
+
+OpenRouter can route to several upstream providers. Provider identity, pricing, context limits, and content handling can vary by model route. Review the upstream model details before sending sensitive or regulated data.

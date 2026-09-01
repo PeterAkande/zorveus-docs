@@ -1,16 +1,18 @@
 ---
-title: NVIDIA NIM Provider Setup
+title: NVIDIA NIM provider setup
 description: Connect NVIDIA API Catalog and NIM microservice credentials.
 ---
 
-# NVIDIA NIM Provider Setup
-
-Connect your NVIDIA NIM API keys (`nvapi-...`) to Zorveus.
+Use an NVIDIA API Catalog or NIM credential when the runtime provider catalog lists `nvidia_nim`.
 
 ---
 
 ## Configuration
 
-- **Provider Name**: `nvidia`
-- **Model Wildcard**: `nvidia/*`
-- **Example Model**: `nvidia/llama-3.3-70b-instruct`
+- Canonical provider ID: `nvidia_nim`
+- Accepted aliases: `nvidia` and `nim`
+- Secret kind: `api_key`
+
+Use the canonical ID in new integrations. Query `GET /provider-credentials/providers` for the current provider label and requirements, then choose model names from `GET /v1/models`.
+
+Hosted NVIDIA endpoints and self-hosted NIM deployments can require different configuration. The current public credential catalog is the authority for fields accepted by Zorveus. Do not infer endpoint configuration from the model name.

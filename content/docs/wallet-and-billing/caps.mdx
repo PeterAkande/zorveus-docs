@@ -1,18 +1,16 @@
 ---
-title: Spending Caps Management
-description: Configure rolling monthly spending limits across organizations, keys, and product users.
+title: Spending caps
+description: Configure monthly spending limits for organizations, app connections, and product users.
 ---
 
-# Spending Caps Management
+Spending caps stop new reservations after the applicable monthly limit is reached. A cap is a guardrail, not a prepaid balance.
 
-<ApiEndpoint method="PUT" path="/caps" auth="dashboard_session" />
+## Cap scopes
 
-Spending caps act as circuit breakers to prevent unforeseen bills.
+- An organization cap limits aggregate organization spend.
+- An app-connection cap limits aggregate spend through that connection and all keys attached to it.
+- A product-user cap limits the attributed end user’s spend.
 
----
+Product-user credit grants are separate from caps. A grant creates spendable credit for one product user; a cap limits how much that user may spend during the period.
 
-## Configuring Caps
-
-- **Organization Cap**: Overall budget cap for the company.
-- **Connection Cap**: Spending limit per application or OAuth connection.
-- **Product-User Cap**: Max monthly spend allowed per end user.
+When more than one cap applies, the request must fit within every limit. Existing settled usage is not reversed when you lower a cap.

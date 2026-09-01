@@ -1,16 +1,15 @@
 ---
-title: Code Examples & SDK Recipes
-description: End-to-end repository examples and runnable integration recipes.
+title: Code examples and SDK recipes
+description: Find the shortest verified example for each integration path.
 ---
 
-# Code Examples & SDK Recipes
+Start with the guide that matches who pays for inference:
 
-Explore official open-source starter repositories and SDK recipes.
+- [Startup quickstart](/getting-started/startup-quickstart) for an organization-funded backend.
+- [Product-user quickstart](/getting-started/product-user-quickstart) for customer attribution, caps, and credits.
+- [OAuth app quickstart](/getting-started/oauth-app-quickstart) for user-funded connected applications.
+- [BYOK quickstart](/getting-started/byok-quickstart) for organization-owned upstream credentials.
 
----
+The inference guides include OpenAI SDK, native SDK, and direct HTTP examples. The [API reference](/api-reference/overview) contains the current management route schemas.
 
-## Starter Kits
-
-- **[Next.js AI Chatbot with Zorveus](https://github.com/zorveus/example-nextjs-chatbot)**: Full-stack Next.js App Router template with streaming responses, product-user attribution, and BYOK settings.
-- **[Python FastAPI Gateway Integration](https://github.com/zorveus/example-fastapi-backend)**: Backend server using Organization Service Keys for credit grants and product user upserts.
-- **[OAuth PKCE React App](https://github.com/zorveus/example-oauth-pkce-client)**: Single Page App demonstrating OAuth 2.0 PKCE login with user wallet authorization.
+Before copying a model ID, call `GET /v1/models` with the key you plan to use. Before copying a provider configuration, call the provider catalog route because availability differs by environment.

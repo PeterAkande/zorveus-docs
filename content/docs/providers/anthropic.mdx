@@ -1,16 +1,20 @@
 ---
-title: Anthropic Provider Setup
+title: Anthropic provider setup
 description: Configure Anthropic Claude API keys, model wildcards, and thinking modes.
 ---
 
-# Anthropic Provider Setup
-
-Connect your Anthropic API key (`sk-ant-...`) to Zorveus.
+Use an organization-owned Anthropic key for matching Claude requests.
 
 ---
 
 ## Configuration
 
-- **Provider Name**: `anthropic`
-- **Model Wildcard**: `anthropic/*`
-- **Example Model**: `anthropic/claude-3-7-sonnet`
+- Provider ID: `anthropic`
+- Secret kind: `api_key`
+- Typical model policy: `anthropic/*`
+
+Create the credential through the dashboard or the service-key route. Set `routing_mode` to `auto_resolve` for policy-based routing or `manual_grant_only` for explicit app-connection grants.
+
+The wildcard permits matching names. It does not guarantee that every Anthropic model is deployed or allowed for the inference key. Use `GET /v1/models` before selecting a model.
+
+Extended-thinking and tool-use fields depend on the selected model and provider contract. Test those fields with a controlled request before enabling them for customers.

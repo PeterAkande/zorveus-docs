@@ -1,16 +1,20 @@
 ---
-title: Google Gemini Provider Setup
+title: Google Gemini provider setup
 description: Configure Google AI Studio Gemini API keys and multimodal routing.
 ---
 
-# Google Gemini Provider Setup
-
-Connect your Google AI Studio API key (`AIzaSy...`) to Zorveus.
+Use a Google AI Studio key for supported Gemini routes.
 
 ---
 
 ## Configuration
 
-- **Provider Name**: `gemini`
-- **Model Wildcard**: `gemini/*`
-- **Example Model**: `gemini/gemini-2.5-flash`
+- Provider ID: `gemini`
+- Secret kind: `api_key`
+- Typical model policy: `gemini/*`
+
+Store the API key in `secret`. Do not put it in `provider_config`. Use `GET /provider-credentials/providers` to confirm the current secret requirements before building a credential form.
+
+After creation, send a request with a model returned by `GET /v1/models`. Gemini capabilities vary by model, including image input, audio understanding, tools, and structured output.
+
+For Google Cloud Vertex AI, use the separate `vertex_ai` provider contract. It uses `service_account_json` plus the required `project` and `location` configuration fields.

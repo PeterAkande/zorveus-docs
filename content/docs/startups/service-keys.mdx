@@ -1,109 +1,25 @@
 ---
-title: Service Keys
-description: Secure server-to-server management credentials for automating organization resources.
+title: Service keys
+description: Authenticate server-to-server management requests with organization-scoped permissions.
 ---
 
-Service Keys (`zrv_sk_...`) provide high-privilege programmatic access for backend-to-backend authentication against the Zorveus Management API (`https://api.zorveus.com`).
-
-<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_sk_your_service_key" />
-
-<Callout type="danger" title="Strict Backend-Only Credential">
-  Service keys must NEVER be included in frontend client bundles, mobile binaries, or browser-rendered code. They possess administrative authority to manage product users, grant credits, and configure billing settings.
-</Callout>
-
----
-
-## Authenticating API Requests
-
-Pass your Service Key in the HTTP `Authorization` header for all requests to `https://api.zorveus.com`:
+Service keys start with `zrv_svc_`. Keep them on trusted servers and send them as a Bearer token to supported management routes at `https://api.zorveus.com`.
 
 ```http
-Authorization: Bearer zrv_sk_your_service_key
+Authorization: Bearer zrv_svc_your_service_key
 ```
 
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL", "Python (Requests)"]}>
+Create, list, and revoke service keys through dashboard-session routes under `/orgs/{org_id}/service-keys`. The raw value is shown only at creation.
 
-```typescript
-import { ZorveusServiceClient } from "@zorveus/sdk";
+## Supported service-key surfaces
 
-// Initialize Zorveus management client with your Organization Service Key
-const service = new ZorveusServiceClient({
-  apiKey: "zrv_sk_your_service_key",
-});
+| Scope | Routes |
+| --- | --- |
+| `product_users:read` | Product-user profile, credit summary, and grant-list reads. |
+| `product_users:write` | Product-user upsert and credit-grant creation. |
+| `provider_credentials:write` | `/provider-credentials/org-programmatic` create, list, rotate, priority, delete, and connection-grant routes. |
+| `app_connections:write` | `POST /app-connections/org-programmatic`. |
 
-const user = await service.productUsers.getByExternalId({
-  appId: "app_123",
-  externalUserId: "usr_456",
-});
-```
+Administrative scopes such as `admin`, `admin:full`, `admin:write`, and `all` satisfy write checks. Read-oriented administrative scopes satisfy supported read checks.
 
-```python
-from zorveus import ZorveusServiceClient
-
-// Initialize Zorveus management client with your Organization Service Key
-service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
-
-user = service.product_users.get_by_external_id(
-    app_id="app_123",
-    external_user_id="usr_456",
-)
-```
-
-```bash
-curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id?app_id=app_123&external_user_id=usr_456" \
-  -H "Authorization: Bearer zrv_sk_your_service_key"
-```
-
-```python
-import requests
-
-response = requests.get(
-    "https://api.zorveus.com/api/v1/product-users/by-external-id",
-    headers={"Authorization": "Bearer zrv_sk_your_service_key"},
-    params={"app_id": "app_123", "external_user_id": "usr_456"},
-)
-
-user = response.json()
-```
-
-</CodeGroup>
-
----
-
-## Complete Service Key Endpoint Catalog
-
-### 1. Product Users and End-User Credit Management
-
-| HTTP Method | Route Endpoint | Required Scope | Description |
-| :--- | :--- | :--- | :--- |
-| **GET** | `/api/v1/product-users/by-external-id` | `product_users:read` | Look up a product user by your app's `external_user_id`. |
-| **GET** | `/api/v1/product-users/by-external-id/credit-summary` | `product_users:read` | Fetch credit balance summary for an external user. |
-| **PUT** | `/api/v1/product-users/by-external-id` | `product_users:write` | Upsert (create or update) a product user by `external_user_id`. |
-| **POST** | `/api/v1/product-users/by-external-id/credit-grants` | `product_users:write` | Grant free or promotional credits to a product user. |
-| **GET** | `/api/v1/product-users/by-external-id/credit-grants` | `product_users:read` | List credit grant history for a product user. |
-
-### 2. Provider Credentials Management
-
-| HTTP Method | Route Endpoint | Required Scope | Description |
-| :--- | :--- | :--- | :--- |
-| **GET** | `/api/v1/provider-credentials` | `provider_credentials:write` / `admin` | List all configured provider credentials for the organization. |
-| **POST** | `/api/v1/provider-credentials` | `provider_credentials:write` / `admin` | Add a new provider credential (e.g. OpenAI or Anthropic key). |
-| **POST** | `/api/v1/provider-credentials/{id}/rotate` | `provider_credentials:write` / `admin` | Rotate the secret key for a provider credential. |
-| **DELETE** | `/api/v1/provider-credentials/{id}` | `provider_credentials:write` / `admin` | Soft-delete a provider credential. |
-| **POST** | `/api/v1/provider-credentials/{id}/grants` | `provider_credentials:write` / `admin` | Link or grant a provider credential to an App Connection. |
-
-### 3. App Connections
-
-| HTTP Method | Route Endpoint | Required Scope | Description |
-| :--- | :--- | :--- | :--- |
-| **POST** | `/api/v1/app-connections` | `app_connections:write` / `admin` | Register or create a new App Connection under your organization. |
-
----
-
-## Scope Hierarchies
-
-* **Master Scopes (`all` / `admin` / `admin:full` / `admin:write`):** Master scopes that grant permission across all Service Key endpoints.
-* **`product_users:write`:** Grants permission to create product users and issue credit grants.
-* **`product_users:read`:** Grants read-only access to product user profiles, credit summaries, and grant history.
-* **`provider_credentials:write`:** Grants permission to create, rotate, delete, and link AI provider credentials.
-* **`app_connections:write`:** Grants permission to register and manage app connections.
+Service keys do not create developer apps through `POST /apps`, and they do not authenticate inference. Use a dashboard session for app management and an inference key for `/v1` model requests.

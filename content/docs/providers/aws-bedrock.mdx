@@ -1,16 +1,19 @@
 ---
-title: AWS Bedrock Provider Setup
-description: Configure AWS Bedrock IAM credentials for Anthropic Claude and Amazon Titan models.
+title: AWS Bedrock provider setup
+description: Check and configure the runtime credential contract for AWS Bedrock routes.
 ---
 
-# AWS Bedrock Provider Setup
-
-Connect AWS Bedrock credentials (`aws_access_key_id`, `aws_secret_access_key`, `aws_region_name`) to Zorveus.
+Bedrock support depends on the provider credential catalog and the deployed model routes.
 
 ---
 
 ## Configuration
 
-- **Provider Name**: `bedrock`
-- **Model Wildcard**: `bedrock/*`
-- **Example Model**: `bedrock/anthropic.claude-3-7-sonnet-20250219-v1:0`
+- Typical provider ID: `bedrock`
+- Typical model policy: `bedrock/*`
+
+Call `GET /provider-credentials/providers` before creating the credential. Use the returned secret kinds and required configuration fields as the contract. Do not place separate AWS fields into a request unless the catalog documents that shape.
+
+AWS authentication can use access keys, sessions, roles, or workload identity. The public Zorveus credential request accepts only the forms listed by the runtime catalog. If `bedrock` is absent, the deployment does not currently expose a supported Bedrock credential flow.
+
+Choose only models returned by `GET /v1/models` for the inference key.

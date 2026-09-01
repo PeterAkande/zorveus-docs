@@ -1,26 +1,11 @@
 ---
-title: Registering an OAuth App
-description: Register a connectable application, configure redirect URIs, scopes, and test users.
+title: Register an OAuth app
+description: Create a developer app and configure its redirect URIs, scopes, models, and cap policy.
 ---
 
-# Registering an OAuth App
+Create an OAuth app in the [Zorveus Dashboard](https://app.zorveus.com) to connect your product to Zorveus users. You can configure the app's redirect URIs, scopes, models, and cap policy.
 
-<ApiEndpoint method="POST" path="/apps" auth="dashboard_session" />
+Confidential apps receive a client secret at creation. Store it immediately because secrets are shown only when created or rotated. Public clients use PKCE without storing a client secret.
+If you misplace your secret, you can always rotate it on teh app details page.
 
-To build connectable applications, register your app inside a **Developer Organization** in the [Zorveus Dashboard](https://app.zorveus.com).
-
----
-
-## App Registration Fields
-
-| Field | Description | Example |
-| :--- | :--- | :--- |
-| **`name`** | User-facing application name shown on consent screen | `Cursor IDE Extension` |
-| **`redirect_uris`** | Exact matching HTTPS redirect destinations | `https://myapp.com/api/auth/callback` |
-| **`allowed_models`** | Model families your app will request | `openai/*`, `anthropic/*` |
-| **`scopes`** | Permissions requested (`inference:write`, `models:read`) | `inference:write` |
-| **`cap_policy`** | Default, minimum, and maximum recommended monthly spending caps | Default: `$20.00` |
-
-<Callout type="warning" title="Exact Matching Redirect URIs">
-  Zorveus enforces strict string matching on `redirect_uri`. Wildcards, path traversals, or scheme variations (e.g. `http://` in production) will be rejected during authorization requests.
-</Callout>
+Redirect URIs use exact matching. Register every environment explicitly and use HTTPS outside approved local development cases.

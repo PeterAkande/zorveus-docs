@@ -1,10 +1,7 @@
 ---
-title: Usage Analytics
-description: Query aggregate token consumption, spend summaries, and time-series metrics.
+title: Usage analytics
+description: Query raw usage events, time-series totals, and app-connection summaries.
 ---
 
-# Usage Analytics
-
-<ApiEndpoint method="GET" path="/dashboard-api/usage" auth="dashboard_session" />
-
-Inspect real-time token counts, request counts, and cost distributions broken down across models, providers, and users.
+You can view your organization's usage events, time-series totals, and app-connection summaries via the Zorveus dashboard . Usage events are recorded for every request that consumes a Zorveus resource on the organization workspace. The usage event includes the request's metadata, model, provider, and billing mode.
+Costs are returned as decimal strings. `provider_cost` and `sell_cost` serve different purposes, especially for BYOK requests. See [BYOK cost accounting](/wallet-and-billing/byok-costs).

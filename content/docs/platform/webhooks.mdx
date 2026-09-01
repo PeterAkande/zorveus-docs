@@ -5,7 +5,7 @@ description: Receive real-time HTTP event notifications for balance alerts, paym
 
 Zorveus Outbound Webhooks send real-time HTTP event notifications to your server whenever state changes occur within your organization workspace.
 
-Instead of polling Zorveus REST endpoints (`GET /wallet/balance`, `GET /product-users`), your server registers a webhook URL to receive event payloads automatically.
+Instead of polling Zorveus REST endpoints, your server registers a webhook URL to receive event payloads automatically.
 
 ---
 
@@ -58,52 +58,9 @@ Zorveus evaluates response HTTP status codes returned by your receiver endpoint:
 
 ---
 
-## Subscription Management API
+## Subscription Management
 
-Manage webhook settings using your Service Key (`zrv_service_...`).
-
-### Fetch Webhook Settings
-
-<ApiEndpoint method="GET" path="/api/v1/orgs/{org_id}/webhook" auth="service_key" />
-
-```json
-{
-  "org_id": "org_7k9xq2fm",
-  "webhook_url": "https://api.example.com/webhooks/zorveus",
-  "webhook_secret_preview": "...c123",
-  "webhook_events": [
-    "wallet.low_balance",
-    "wallet.payment_credited"
-  ],
-  "enabled": true
-}
-```
-
----
-
-### Update Webhook Settings
-
-<ApiEndpoint method="PUT" path="/api/v1/orgs/{org_id}/webhook" auth="service_key" />
-
-When updating webhook settings:
-
-1. Provide a `webhook_url` starting with `http://` or `https://`.
-2. Omit `webhook_secret` to let Zorveus generate a secret automatically (`zrv_whsec_...`).
-3. Note that the full `webhook_secret` appears in the response body **only once** upon creation or rotation. Subsequent GET requests return `webhook_secret_preview`.
-4. Set `webhook_url` to `null` or `""` to clear both URL and secret.
-5. Pass `"enabled": false` to pause webhook deliveries while keeping your saved `webhook_url` and `webhook_secret`. Pass `"enabled": true` to resume deliveries.
-
-```json
-{
-  "webhook_url": "https://api.example.com/webhooks/zorveus",
-  "webhook_events": [
-    "wallet.low_balance",
-    "wallet.payment_credited",
-    "product_user.cap_reached"
-  ],
-  "enabled": true
-}
-```
+Manage webhook subscriptions through the Zorveus dashboard in your settings.
 
 ---
 

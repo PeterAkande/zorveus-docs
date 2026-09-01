@@ -1,11 +1,12 @@
 ---
-title: Reauthorization Semantics
-description: Understand how re-running consent updates existing connections and revokes previous tokens.
+title: Reauthorization
+description: Replace an OAuth token and update the existing app connection.
 ---
 
-# Reauthorization Semantics
+Run the normal authorization-code flow again when a user needs to change funding, permissions, models, or cap policy.
 
-When an existing user re-authorizes your application:
-- **One Logical Active Connection**: Zorveus maintains exactly one active `user_oauth` connection per app-user pairing.
-- **Token Invalidation**: Reauthorization revokes all previous inference tokens issued for that connection and mints one replacement token.
-- **Policy Updates**: Any modified spending caps, selected funding organizations, or model permissions take effect immediately upon completion.
+If the user selects the same funding organization, token exchange reuses the existing logical app connection, applies the approved policy, revokes its older OAuth-issued inference keys, and returns one replacement token.
+
+If the user selects a different funding organization, the exchange creates a replacement connection for that selection and revokes the previous active connection. Your app must replace the stored access token after every successful reauthorization.
+
+Do not keep using the old token or assume a new authorization creates a second independently billable connection.

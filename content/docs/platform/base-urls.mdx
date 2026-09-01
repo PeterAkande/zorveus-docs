@@ -1,15 +1,15 @@
 ---
-title: Base URLs & Environments
-description: Production and local development endpoints for inference, management, and OAuth.
+title: Base URLs and environments
+description: Use the correct production host for inference, management, dashboard, and OAuth traffic.
 ---
 
-# Base URLs & Environments
+| Surface | Base URL | Use |
+| --- | --- | --- |
+| Inference gateway | `https://api.zorveus.com/v1` | OpenAI-compatible model requests and model discovery. |
+| Product and management API | `https://api.zorveus.com` | Service-key and dashboard-backed management routes. |
+| Dashboard and browser authorization | `https://app.zorveus.com` | Dashboard UI, sign-in, consent, and the browser authorization URL. |
+| Documentation | `https://docs.zorveus.com` | Developer documentation. |
 
-Zorveus routes traffic across dedicated domain surfaces:
+OAuth token exchange and revocation are API requests under `https://api.zorveus.com/oauth`. Start authorization in the browser at `https://app.zorveus.com/oauth/authorize`.
 
-| Environment / Service | Host | Protocol | Primary Purpose |
-| :--- | :--- | :--- | :--- |
-| **Inference Gateway** | `https://api.zorveus.com/v1` | HTTPS | OpenAI-compatible SDK endpoint |
-| **Management API** | `https://api.zorveus.com` | HTTPS | Service Key management operations |
-| **Dashboard & OAuth** | `https://app.zorveus.com` | HTTPS | User browser UI & OAuth consent |
-| **Documentation** | `https://docs.zorveus.com` | HTTPS | Public developer documentation |
+Do not add `/v1` to management routes. Do add it when configuring an OpenAI-compatible SDK base URL.

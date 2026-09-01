@@ -1,23 +1,38 @@
 ---
-title: Provider Integrations Overview
-description: Connect and route across major AI foundational model providers.
+title: Provider integrations
+description: Discover and configure upstream credentials for Bring Your Own Key routing.
 ---
 
-# Provider Integrations Overview
-
-Zorveus provides seamless multi-provider routing. You can use Zorveus-managed credentials or bring your own API keys for:
+Use `GET /provider-credentials/providers` as the current credential catalog. It returns each provider ID, accepted aliases, secret kinds, and required configuration fields.
 
 <CardGroup cols={2}>
   <Card title="OpenAI" icon="cpu" href="/providers/openai">
-    GPT-4.1, GPT-4o, DALL-E, Text-to-Speech, and Embeddings.
+    Configure an OpenAI API key and an `openai/*` model policy.
   </Card>
   <Card title="Google Gemini" icon="zap" href="/providers/gemini">
-    Gemini 2.5 Flash, Gemini 2.5 Pro, and Multimodal reasoning.
+    Configure a Google AI Studio key for `gemini/*` routes.
   </Card>
   <Card title="Anthropic" icon="layers" href="/providers/anthropic">
-    Claude 3.7 Sonnet, Claude 3.5 Haiku, and extended thinking models.
+    Configure an Anthropic API key for `anthropic/*` routes.
   </Card>
   <Card title="OpenRouter & Open Weights" icon="terminal" href="/providers/openrouter">
-    DeepSeek R1/V3, Meta Llama 3.3, Mistral, and specialized open models.
+    Use OpenRouter only when it appears in the runtime provider catalog.
   </Card>
 </CardGroup>
+
+## How routing selects a credential
+
+The gateway considers active credentials whose model policy matches the request. `auto_resolve` credentials can participate automatically. `manual_grant_only` credentials require an active grant to the app connection. Lower routing-priority numbers are considered before higher numbers.
+
+If `auto_fallback_to_wallet` is enabled and the wallet can fund the request, the gateway can add wallet-funded routing after eligible provider credentials. Successful BYOK usage records the provider cost and can also record a configured Zorveus platform fee.
+
+## Verify a provider
+
+1. Read the runtime provider catalog.
+2. Create and validate the credential.
+3. Confirm its model policy and routing mode.
+4. Grant it to the app connection when the mode requires a grant.
+5. List models with the inference key.
+6. Send a controlled inference request and inspect the usage event.
+
+A provider route or wildcard alone is not evidence that every upstream model is available.

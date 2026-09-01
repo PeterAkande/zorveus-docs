@@ -1,15 +1,6 @@
 ---
-title: Usage Filters & Time-Series
-description: Multi-dimensional filtering by application, product user, model, and date range.
+title: Usage filters and time series
+description: Filter usage by application, connection, product user, model, provider, billing mode, member, and time.
 ---
 
-# Usage Filters & Time-Series
-
-<ApiEndpoint method="GET" path="/dashboard-api/usage/events" auth="dashboard_session" />
-
-Filter usage records by multiple simultaneous dimensions:
-- `start_date` & `end_date`: ISO 8601 timestamps
-- `app_id`: Filter to a specific application
-- `model`: Filter to a specific model family (e.g. `openai/gpt-4.1-mini`)
-- `product_user_id`: Filter to an individual customer
-- `billing_mode`: Filter by `wallet_funded` or `byok`
+Filter usage events by application, connection, product user, model, provider, billing mode, member, and time. Usage events are recorded for every request that consumes a Zorveus resourc on the organization workspace. The usage event includes the request's metadata, model, provider, and billing mode.

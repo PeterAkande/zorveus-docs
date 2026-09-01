@@ -1,24 +1,16 @@
 ---
-title: Money and Dates Representation
-description: Exact decimal string representations and ISO 8601 timestamps used throughout Zorveus.
+title: Money and dates
+description: Preserve decimal amounts and timezone-aware timestamps across clients.
 ---
 
-# Money and Dates Representation
+Zorveus returns monetary amounts as decimal strings, such as `"10.00"` or `"0.000150"`. Parse them with a decimal or fixed-point library when you need arithmetic. Do not convert them to binary floating point for billing or reconciliation.
 
-Zorveus adheres to strict formatting standards across all data representations.
+Request schemas may accept a JSON number for a decimal field, but sending a string prevents the client from rounding the value before serialization.
 
----
+Timestamps use ISO 8601 and include a timezone offset, for example:
 
-## Monetary Values
+```text
+2026-08-13T20:45:00Z
+```
 
-- **Exact Decimal Strings**: All currency amounts (balances, caps, costs, grant amounts) are encoded as fixed-point decimal strings (e.g. `"10.00"`, `"0.000150"`).
-- **Zero Floating Point Inaccuracies**: Decimal strings eliminate binary floating-point representation artifacts across diverse client programming languages.
-
----
-
-## Timestamps
-
-- **ISO 8601 with UTC Offset**: All dates and timestamps are timezone-aware UTC strings:
-  ```text
-  2026-08-13T20:45:00Z
-  ```
+Send timezone-aware values for filters and date boundaries. Treat returned timestamps as instants, then convert them for display in the user’s timezone.
