@@ -3,18 +3,36 @@ title: Funding and billing
 description: Understand wallet-funded inference, BYOK routing, and product-user credit enforcement.
 ---
 
+Zorveus provides three primary billing mechanisms: organization wallet funding, Bring Your Own Key (BYOK) routing, and end-user credit grants.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
 ## Wallet-funded inference
 
-Zorvues supports inference requests that are funded by an organization wallet. The organization wallet is a balance of funds that can be used to pay for inference requests. The wallet can be funded by a variety of methods, including credit card, ACH, and wire transfer.
+Zorveus supports inference requests funded directly from your organization wallet. The wallet maintains a prepaid balance that settles inference requests across model providers.
 
-When an inference request is made, the Zorveus API checks the organization wallet balance to determine if there are sufficient funds to cover the cost of the request. If there are sufficient funds, the request is processed and the cost is deducted from the wallet balance. If there are insufficient funds, the request is rejected.
+When an inference request arrives, the gateway verifies active balance and spending caps. If funds are sufficient, the request executes and the exact token cost is deducted from the wallet ledger upon stream completion.
 
-## Bring your own key
+---
 
-With BYOK, Zorveus routes through an eligible organization-owned provider credential. The upstream provider bills that account directly. Usage records still include an estimated `provider_cost`; `sell_cost` can include a configured BYOK platform fee, so it is not universally zero. Currently we allow up to `$25k` free monthly usage for BYOK inference.
+## Bring Your Own Key (BYOK)
+
+With BYOK, Zorveus routes requests using your organization's encrypted API credentials (e.g. OpenAI, Anthropic, Google Gemini).
+
+- **Upstream billing**: The upstream provider bills your credit card or billing account directly for model tokens.
+- **$25,000/month free allowance**: Every organization receives up to **$25,000/month** in free BYOK routing (`sell_cost = $0.00`).
+- **Volume tiers (> $25,000/month)**: A configured volume platform fee applies only to the incremental volume exceeding $25k/month, settled against your Zorveus wallet balance.
+
+---
 
 ## Product-user credits
 
-Credit grants allocate a consumable balance to a product user. Whether that balance blocks a request depends on the app connection’s `credit_mode`. Credits do not replace the underlying organization funding route. Here, the inference request must include an identifiable product user (`external_user_id` or `product_user_id`).
+Credit grants allocate a promotional or plan-based spending allowance to a specific end user (`external_user_id`).
 
-All billing amounts returned by the API are decimal strings. Use a decimal library for calculations and the wallet ledger for authoritative reconciliation.
+Whether exhausting a credit balance blocks subsequent requests depends on the connection's `credit_mode`:
+- `strict_enforcement`: Over-budget requests are rejected immediately when the user's credits and allowance expire.
+- `unrestricted`: The organization wallet continues to fund overage without blocking the user.
+
+All financial amounts returned by the API are decimal strings. Use a decimal-compatible library for client-side calculations and refer to the wallet ledger for authoritative settlement.

@@ -5,30 +5,48 @@ description: Answers about credentials, product users, billing, Bring Your Own K
 
 ### Does Zorveus add latency to AI inference?
 
-Zorveus adds gateway processing and network transit to the provider request. Streaming endpoints return Server-Sent Events. Zorveus does not publish a fixed latency guarantee in these docs because overhead depends on the route, region, policy checks, and provider behavior.
+Zorveus adds negligible gateway processing and network transit to the provider request. Streaming endpoints return Server-Sent Events in real time. Latency depends primarily on the upstream provider, selected model, and geographical region.
+
+---
 
 ### Can I mix BYOK keys and wallet-funded routing?
 
-Yes. An eligible provider credential can route matching models through your provider account. If `auto_fallback_to_wallet` is enabled and the organization wallet can fund the request, Zorveus can add wallet-funded routing as a fallback. Credential status, model policy, priority, and app-connection access still apply.
+Yes. An eligible provider credential routes matching models through your upstream provider account. If `auto_fallback_to_wallet` is enabled and your organization wallet is funded, Zorveus automatically falls back to wallet-funded routing if your BYOK key encounters rate limits or quota exhaustion.
+
+---
+
+### Does Bring Your Own Key (BYOK) mean inference is free?
+
+No. Upstream model providers (OpenAI, Anthropic, Gemini) bill your credit card or invoice directly for model tokens.
+
+Zorveus provides **free BYOK routing for the first $25,000/month** in traffic (`sell_cost = $0.00`). If your monthly BYOK volume exceeds $25k, Zorveus applies a volume platform fee to the incremental traffic above $25k, settled against your Zorveus wallet.
+
+---
 
 ### Are prompt inputs and completions stored?
 
-Zorveus usage records contain accounting fields such as model, provider, token counts, cost, status, latency, and attribution IDs. The current usage schema does not contain prompt or completion text fields. Your selected AI provider may process or retain request content under its own policy. Consult the applicable privacy and provider terms before sending sensitive data.
+Zorveus usage records contain accounting and observability fields (model, provider, token counts, cost, status, latency, and user attribution). Zorveus does not persist prompt inputs or completion text.
+
+---
 
 ### Which key calls inference?
 
-Use an inference key that starts with `zrv_` against `https://api.zorveus.com/v1`. An OAuth token returned by the token endpoint is also an inference credential.
+Use an inference key (`zrv_...`) against `https://api.zorveus.com/v1`. Scoped OAuth user tokens are also valid inference credentials.
 
-Do not use an organization service key for inference. Service keys start with `zrv_svc_` and call supported management routes at `https://api.zorveus.com`.
+Do not use an organization Service Key for inference. Service keys (`zrv_service_...` or `zrv_svc_...`) are strictly for programmatic workspace management routes at `https://api.zorveus.com`.
+
+---
 
 ### Does an inference-key cap give every customer a separate allowance?
 
-No. The key belongs to an app connection, and an app-connection cap limits combined usage through that connection. Use product-user caps for hard per-user limits. Use product-user credit grants for customer balances that can expire or be revoked.
+No. An inference key belongs to an app connection, and an app-connection cap limits aggregate usage across that key.
 
-### Must I create every product user before inference?
+To enforce individual limits for each customer:
+- Use **Product-User Spend Caps** for monthly/daily spending caps per customer.
+- Use **Product-User Credit Grants** to issue one-time or promotional allowances to specific users.
 
-No. Send `metadata.external_user_id` with the request. Zorveus can create or update the product user during reservation. Put optional profile fields inside `metadata.product_user`.
+---
 
-### Does Bring Your Own Key mean that inference is free?
+### Must I register product users in advance?
 
-No. The provider can bill the owner of the credential, and Zorveus allows free routing up till `$25k` in monthly traffic. Inspect both `provider_cost` and `sell_cost` in the usage event.
+No. Simply pass `metadata.external_user_id` (e.g. `usr_123`) in your inference request payload or SDK client. Zorveus automatically provisions and tracks the product user on the fly.

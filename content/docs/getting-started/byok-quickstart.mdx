@@ -99,11 +99,15 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ## 3. Verify BYOK usage accounting
 
-In your Zorveus Dashboard under **Usage**:
-- **Billing Mode**: Tagged as `byok`
-- **Sell cost**: The amount applied by Zorveus, including any configured BYOK platform fee. In cases when usage is less than `$25k` per month, this is typically `$0`.
-- **Provider cost**: The estimated upstream model cost for analytics.
-- **Tokens**: Usage returned by the provider or measured by the gateway when available.
+In your Zorveus Dashboard under **Usage Analytics**:
+- **Billing mode**: Tagged as `byok`.
+- **Sell cost**: The platform fee charged by Zorveus. **$0.00 for the first $25,000/month** in BYOK traffic. Volume above $25k incurs a configured platform routing fee.
+- **Provider cost**: The estimated upstream model cost (e.g. OpenAI or Anthropic rates) recorded for analytics.
+- **Tokens**: Token counts measured by the gateway or returned by upstream providers.
+
+<Callout type="tip" title="BYOK Pricing & Free Tier">
+  All organizations receive up to **$25,000/month in free BYOK traffic**. See [BYOK Pricing & Cost Accounting](/wallet-and-billing/byok-costs) for complete details on volume tiers and wallet settlement.
+</Callout>
 
 ---
 
