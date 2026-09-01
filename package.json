@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "generate:api-reference": "node scripts/generate-api-reference.mjs",
+    "audit:docs": "node scripts/audit-docs.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },

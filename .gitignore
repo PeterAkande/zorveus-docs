@@ -42,5 +42,8 @@ public_documentation/
 openapi.json
 *.openapi.json
 scripts/
+!scripts/
+!scripts/generate-api-reference.mjs
+!scripts/audit-docs.mjs
 
 scratch_guides/

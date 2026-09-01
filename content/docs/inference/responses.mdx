@@ -1,19 +1,17 @@
 ---
 title: Responses API
-description: Execute modern OpenAI Responses API calls with structured outputs and automated state tracking.
+description: Generate a response through the OpenAI-compatible Responses API.
 ---
-
-# Responses API
 
 <ApiEndpoint method="POST" path="/v1/responses" auth="inference_key" />
 
-The Responses API provides a simplified, conversation-first interface for generating answers, multi-modal reasoning, and tool calls.
+Use the Responses API when your OpenAI client or application already uses `responses.create`. Zorveus forwards supported request fields to the selected provider route and records the resulting usage.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Code Example
+## Code example
 
 <CodeGroup titles={["Python (OpenAI SDK)", "cURL"]}>
 
@@ -44,3 +42,15 @@ curl https://api.zorveus.com/v1/responses \
 ```
 
 </CodeGroup>
+
+## Expected result
+
+A successful response contains output items and, when the SDK can derive it, `output_text`. The exact item types depend on the model and requested tools.
+
+Use `GET /v1/models` before selecting a model. Route availability does not prove that every model supports every Responses API feature.
+
+## Common failures
+
+- `zorveus_model_not_allowed` means the inference key policy excludes the model.
+- `zorveus_unsupported_model` means no current route can serve it.
+- Wallet, cap, or product-credit errors occur before provider spend.

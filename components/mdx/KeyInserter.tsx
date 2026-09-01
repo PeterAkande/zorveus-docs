@@ -24,7 +24,7 @@ export function KeyInserter({
     type === 'inference'
       ? 'zrv_your_inference_key'
       : type === 'service'
-      ? 'zrv_service_your_service_key'
+      ? 'zrv_svc_your_service_key'
       : 'zrv_client_your_client_id';
 
   const isCustom = value !== defaultPlaceholder;

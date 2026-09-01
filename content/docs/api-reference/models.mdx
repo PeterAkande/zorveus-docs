@@ -1,37 +1,41 @@
 ---
-title: Model Catalog API
-description: Reference and interactive runner for model catalog operations.
+title: Models Catalog API
+description: Routable model discovery 
 ---
 
-# Model Catalog
 
-<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
-
-## List Models
-
-<ApiEndpoint method="GET" path="/models" auth="dashboard_session" />
-
-Get the catalog of routable and billable models.
-
+<ApiEndpoint method="GET" path="/models" auth="inference_key" />
+Use the inference key to list models supported for that inference key based on its model policies.
 ### Parameters
 
 <ParamField name="provider" type="string">
-  Parameter in query
+  Filters or selects the request by provider.
 </ParamField>
 
 <ParamField name="route_status" type="string">
-  Parameter in query
+  Whether Zorveus can safely route and bill a model. Allowed values: `available`, `pricing_only`, `blocked`.
 </ParamField>
 
 <ParamField name="q" type="string">
-  Parameter in query
+  Filters or selects the request by q.
 </ParamField>
 
-<ParamField name="limit" type="string">
-  Parameter in query
+<ParamField name="limit" type="integer">
+  Filters or selects the request by limit.
 </ParamField>
 
-<ApiRunner method="GET" path="/models" authType="dashboard_session" />
+### Responses
+
+#### 200 Successful Response
+
+<ResponseField name="items" type="array<object>" required>
+  Returns the items value.
+</ResponseField>
+
+#### 422 Validation Error
+
+<ResponseField name="detail" type="array<object>">
+  Returns the detail value.
+</ResponseField>
 
 ---
-

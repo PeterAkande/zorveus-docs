@@ -1,140 +1,43 @@
 ---
-title: Credit Grants
-description: Issue consumable, expiring AI credit balances to specific product users.
+title: Product-user credit grants
+description: Allocate consumable credit to one product user and choose how the connection enforces it.
 ---
 
-Credit grants allocate dedicated dollar balances from your startup organization's budget to specific product users (`external_user_id`).
+Credit grants are balances assigned to a product user. They are separate from organization wallet funds and spending caps.
 
-Grants allow startups to offer welcome promotions, monthly subscription allocations, or customer support credits without building custom billing meters.
+Create or resolve the user and grant credit in one service-key request:
 
-<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_service_your_service_key" />
-
----
-
-## Balance Deduction Hierarchy
-
-When a product user sends an inference request, Zorveus deducts usage costs using the following order:
-
-1. **Active Credit Grants (Earliest Expiration First).** Zorveus burns active non-expired credit grants assigned to the user.
-2. **Organization Wallet Balance.** Once all active credit grants for the product user are exhausted, requests debit your organization's primary wallet.
-3. **Spend Limit Enforcement.** If the user has reached their monthly spend cap or your organization wallet balance is zero, the request fails with an HTTP `402 Payment Required` or `429 Limit Exceeded` response.
-
----
-
-## Issue a Credit Grant
-
-<ApiEndpoint method="POST" path="/product-users/{product_user_id}/credit-grants" auth="service_key" />
-
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL", "Python (Requests)", "Node.js (Fetch)"]}>
-
-```typescript
-import { ZorveusServiceClient } from "@zorveus/sdk";
-
-const service = new ZorveusServiceClient({
-  apiKey: "zrv_sk_your_service_key",
-});
-
-const grant = await service.productUsers.grantCreditByExternalId({
-  appId: "app_startup_123",
-  externalUserId: "usr_cust_94821",
-  amount: "10.000000000000",
-  source: "promotion",
-  reason: "Welcome promotion credit grant",
-});
-
-console.log("New Balance:", grant.credit_summary.available_credits);
-```
-
-```python
-from zorveus import ZorveusServiceClient
-
-service = ZorveusServiceClient(api_key="zrv_sk_your_service_key")
-
-grant = service.product_users.grant_credit_by_external_id(
-    app_id="app_startup_123",
-    external_user_id="usr_cust_94821",
-    amount="10.000000000000",
-    source="promotion",
-    reason="Welcome promotion credit grant",
-)
-
-print("New Balance:", grant.credit_summary.available_credits)
-```
+<ApiEndpoint method="POST" path="/product-users/by-external-id/credit-grants" auth="service_key" />
 
 ```bash
-curl -X POST https://api.zorveus.com/product-users/usr_cust_94821/credit-grants \
+curl -X POST https://api.zorveus.com/product-users/by-external-id/credit-grants \
+  -H "Authorization: Bearer zrv_svc_your_service_key" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_service_your_service_key" \
   -d '{
+    "app_id": "app_123",
+    "external_user_id": "customer_42",
     "amount": "10.00",
     "currency": "USD",
-    "expires_at": "2026-12-31T23:59:59Z",
-    "description": "Welcome promotion credit grant"
+    "source": "promotion",
+    "reason": "Welcome credit",
+    "expires_at": "2026-12-31T23:59:59Z"
   }'
 ```
 
-```python
-import requests
+The inference key `credit_mode` determines enforcement:
 
-response = requests.post(
-    "https://api.zorveus.com/product-users/usr_cust_94821/credit-grants",
-    headers={
-        "Content-Type": "application/json",
-        "Authorization": "Bearer zrv_service_your_service_key",
-    },
-    json={
-        "amount": "10.00",
-        "currency": "USD",
-        "expires_at": "2026-12-31T23:59:59Z",
-        "description": "Welcome promotion credit grant",
-    },
-)
+- `disabled` ignores product-user credits.
+- `track_only` records attribution without blocking on credit.
+- `enforce_if_present` enforces credit when a product user is attributed.
+- `enforce` requires product-user attribution and sufficient credit.
 
-print(response.json())
-```
+Active grants are consumed according to the backend’s grant ordering. Do not implement a client-side deduction hierarchy. Read the credit-summary endpoint for the authoritative available balance.
 
-```typescript
-const response = await fetch(
-  "https://api.zorveus.com/product-users/usr_cust_94821/credit-grants",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer zrv_service_your_service_key",
-    },
-    body: JSON.stringify({
-      amount: "10.00",
-      currency: "USD",
-      expires_at: "2026-12-31T23:59:59Z",
-      description: "Welcome promotion credit grant",
-    }),
-  }
-);
 
-const grant = await response.json();
-console.log(grant);
-```
+## Balance Deduction 
 
-</CodeGroup>
+When a product user sends an inference request, Zorveus deducts usage costs using the following order:
+1. Inference key Spending cap allowance. If the product user call is made using an inference key with a spending cap, Zorveus first checks if the all the metered request of the product user is within the remaining allowance.
+2. **Active Credit Grants (Earliest Expiration First).** If the inference spending cap is exceeded, Zorveus burns active non-expired credit grants assigned to the product user, if any is present.
 
----
-
-## List Active Grants for a Product User
-
-<ApiEndpoint method="GET" path="/product-users/{product_user_id}/credit-grants" auth="service_key" />
-
-```bash
-curl https://api.zorveus.com/product-users/usr_cust_94821/credit-grants \
-  -H "Authorization: Bearer zrv_service_your_service_key"
-```
-
----
-
-## Webhook Notifications
-
-Whenever a credit grant is added or fully consumed by a product user, Zorveus emits outbound webhooks:
-
-* `product_user.credits_granted`: Triggered when a new credit grant is issued.
-* `product_user.cap_reached`: Triggered when available credits and spend limits are hit.
-
-For setup details, see the [Outbound Webhooks Guide](/platform/webhooks).
+If no active credit grants are present, the request is rejected with an error response indicating insufficient funds.

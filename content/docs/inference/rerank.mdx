@@ -3,17 +3,15 @@ title: Rerank
 description: Rerank document search results for optimized retrieval accuracy in RAG workflows.
 ---
 
-# Rerank
-
 <ApiEndpoint method="POST" path="/v1/rerank" auth="inference_key" />
 
-Re-order document chunks by relevance to a query using reranking models (e.g. Cohere / Jina / BGE).
+Reorder candidate documents by their relevance to a query through a supported reranking model.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Code Example
+## Code example
 
 <CodeGroup titles={["cURL", "Python"]}>
 
@@ -58,3 +56,11 @@ print(response.json())
 ```
 
 </CodeGroup>
+
+## Request and result
+
+Send `query`, `documents`, and a routable `model`. Use `top_n` to limit returned results when the provider supports it. Each result identifies the original document position and includes a relevance score or provider-equivalent ranking value.
+
+Reranking does not retrieve documents. Retrieve a candidate set first, then rerank only the number of documents that fits the model's limits and your latency budget.
+
+Check `GET /v1/models` before using the example model. Provider model IDs and response fields can differ.

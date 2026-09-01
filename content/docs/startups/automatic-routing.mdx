@@ -42,7 +42,8 @@ Provider credentials can specify exact model matches or wildcard patterns:
 1. **Active Status Check.** Credentials toggled off or flagged with consecutive upstream API errors are excluded from routing.
 2. **Priority Score.** If multiple credentials match the requested model, Zorveus selects the credential with the highest priority integer (`priority: 30` takes precedence over `priority: 10`).
 3. **Round-Robin Equal Priority.** When credentials share identical priority values, Zorveus balances traffic evenly between them.
-4. **Zorveus Managed Fallback.** If no custom provider credential matches or if all BYOK routes fail, Zorveus routes the request through the Zorveus Managed Gateway, charging your organization wallet balance directly.
+4. **Key Cooldown.** If a credential is rate-limited or fails health checks, Zorveus temporarily excludes it from routing until it recovers. In that scenario, the next highest priority credential is selected.
+5. **Zorveus Managed Fallback.** If no custom provider credential matches or if all BYOK routes fail, Zorveus routes the request through the Zorveus Managed Gateway, charging your organization wallet balance directly.
 
 ---
 
@@ -50,14 +51,13 @@ Provider credentials can specify exact model matches or wildcard patterns:
 
 You can update provider credential priority programmatically using your Service Key (`zrv_service_...`):
 
-<ApiEndpoint method="PUT" path="/provider-credentials/{credential_id}" auth="service_key" />
+<ApiEndpoint method="PATCH" path="/provider-credentials/org-programmatic/{credential_id}/routing-priority" auth="service_key" />
 
 ```bash
-curl -X PUT https://api.zorveus.com/provider-credentials/cred_9921a \
+curl -X PATCH https://api.zorveus.com/provider-credentials/org-programmatic/cred_9921a/routing-priority \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_service_your_service_key" \
+  -H "Authorization: Bearer zrv_srv_your_service_key" \
   -d '{
-    "priority": 25,
-    "enabled": true
+    "routing_priority": 25,
   }'
 ```

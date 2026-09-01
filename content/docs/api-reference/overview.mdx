@@ -1,5 +1,5 @@
 ---
-title: API Reference Overview
+title: API reference overview
 description: Complete REST API Reference for the Zorveus Management and Product API on api.zorveus.com.
 ---
 
@@ -28,14 +28,14 @@ curl -O https://api.zorveus.com/openapi.json
 
 | Base URL | Purpose | Authentication |
 | :--- | :--- | :--- |
-| `https://api.zorveus.com` | Product Management & Admin API | `Authorization: Bearer zrv_service_...` |
+| `https://api.zorveus.com` | Product Management API | `Authorization: Bearer zrv_svc_...` |
 | `https://api.zorveus.com/v1` | OpenAI-compatible Inference Gateway | `Authorization: Bearer zrv_...` |
 
 ---
 
 ## Authentication Credentials
 
-- **Service Key (`zrv_service_...`)**: High-privilege secret for server-to-server management on `https://api.zorveus.com`.
+- **Service key (`zrv_svc_...`)**: Server-to-server management secret for supported routes on `https://api.zorveus.com`.
 - **Inference Key (`zrv_...`)**: Fast edge token used in `Authorization: Bearer zrv_...` for AI completions on `https://api.zorveus.com/v1` or checking key usage on `/inference-keys/usage`.
 - **Dashboard Session**: Browser session cookie with CSRF protection for web dashboard operations.
 
@@ -57,4 +57,3 @@ curl -O https://api.zorveus.com/openapi.json
     Inspect key usage summaries, raw ledger events, and spending analytics.
   </Card>
 </CardGroup>
-

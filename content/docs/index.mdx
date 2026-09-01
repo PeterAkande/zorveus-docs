@@ -1,5 +1,5 @@
 ---
-title: Zorveus Documentation
+title: Zorveus documentation
 description: Zorveus is an AI wallet, billing layer, and multi-provider gateway designed for two main developer workflows.
 ---
 
@@ -7,7 +7,7 @@ Zorveus sits between your application and model providers (OpenAI, Anthropic, Ge
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
-## Select Your Developer Path
+## Choose your developer path
 
 <CardGroup cols={2}>
   <Card title="Startups & AI Product Builders" icon="rocket" href="/getting-started/startup-quickstart">
@@ -23,11 +23,11 @@ Zorveus sits between your application and model providers (OpenAI, Anthropic, Ge
 ---
 
 
-## 30-Second Quickstart
+## Quickstart
 
 You can use the official **Zorveus SDKs** (`@zorveus/sdk` for TypeScript, `zorveus` for Python), framework adapters (`@zorveus/sdk/openai`, `@zorveus/sdk/vercel`, `zorveus[openai]`), or point any OpenAI-compatible client to `https://api.zorveus.com/v1`.
 
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "cURL", "TypeScript (OpenAI SDK)", "Go"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "cURL", "TypeScript (OpenAI SDK)", "Go", "Rust"]}>
 
 ```typescript
 import { Zorveus } from "@zorveus/sdk";
@@ -208,7 +208,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ---
 
-## Official SDKs and Framework Adapters
+## Official SDKs and framework adapters
 
 Zorveus provides official SDK packages for TypeScript and Python, along with drop-in adapters for standard frameworks like OpenAI and Vercel AI SDK:
 
@@ -230,9 +230,9 @@ Zorveus provides official SDK packages for TypeScript and Python, along with dro
   </Card>
 </CardGroup>
 
-### Framework Adapters
+### Framework adapters
 
-Framework adapters let you keep your existing OpenAI or Vercel AI SDK code while routing inference through Zorveus. They automatically attach user attribution (`external_user_id`), enforce budget caps, and handle wallet billing without requiring you to rewrite your existing API calls.
+Framework adapters let you keep your existing OpenAI or Vercel AI SDK code while routing inference through Zorveus. They can attach product-user attribution. The gateway, not the adapter, enforces the connection’s caps, credit mode, and funding policy.
 
 <CodeGroup titles={["Python OpenAI Adapter (zorveus[openai])", "TypeScript OpenAI Adapter (@zorveus/sdk/openai)", "TypeScript Vercel AI SDK (@zorveus/sdk/vercel)"]}>
 
@@ -290,17 +290,17 @@ const { textStream } = streamText({
 
 ---
 
-## Production Base URLs
+## Production base URLs
 
 | Surface | Production Endpoint | Usage |
 | :--- | :--- | :--- |
 | **Inference Gateway** | `https://api.zorveus.com/v1` | OpenAI-compatible inference (`/chat/completions`, `/models`, etc.) |
-| **Product & Management API** | `https://api.zorveus.com` | Programmatic management with Service Key (`zrv_service_...`) |
+| **Product & Management API** | `https://api.zorveus.com` | Programmatic management with a service key (`zrv_svc_...`) |
 | **Developer Dashboard** | `https://app.zorveus.com` | Web UI for workspace management, keys, wallets, and OAuth consent |
 
 ---
 
-## Explore by Topic
+## Explore by topic
 
 <CardGroup cols={2}>
   <Card title="Inference Capabilities" icon="cpu" href="/inference/overview">

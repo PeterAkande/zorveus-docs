@@ -4,7 +4,7 @@ import { Key, Shield, Lock, UserCheck } from 'lucide-react';
 interface ApiEndpointProps {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | string;
   path: string;
-  auth?: 'inference_key' | 'service_key' | 'dashboard_session' | 'oauth_bearer' | 'none' | string;
+  auth?: 'inference_key' | 'service_key' | 'dashboard_session' | 'oauth_client' | 'oauth_bearer' | 'none' | string;
 }
 
 const methodColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -22,7 +22,7 @@ const authConfig: Record<string, { label: string; icon: React.ComponentType<{ st
     color: 'text-[#4DFFB4] border-[#4DFFB4]/30 bg-[#4DFFB4]/10',
   },
   service_key: {
-    label: 'Service Key (Bearer zrv_service_...)',
+    label: 'Service Key (Bearer zrv_svc_...)',
     icon: Shield,
     color: 'text-blue-400 border-blue-500/30 bg-blue-500/10',
   },
@@ -33,6 +33,11 @@ const authConfig: Record<string, { label: string; icon: React.ComponentType<{ st
   },
   oauth_bearer: {
     label: 'OAuth Bearer Token',
+    icon: UserCheck,
+    color: 'text-purple-400 border-purple-500/30 bg-purple-500/10',
+  },
+  oauth_client: {
+    label: 'OAuth Client Contract',
     icon: UserCheck,
     color: 'text-purple-400 border-purple-500/30 bg-purple-500/10',
   },

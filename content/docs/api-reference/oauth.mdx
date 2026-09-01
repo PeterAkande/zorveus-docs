@@ -1,101 +1,87 @@
 ---
-title: OAuth Operations API
-description: Reference and interactive runner for oauth operations operations.
+title: OAuth API
+description: Authorization Code with PKCE, consent decisions, token exchange, and revocation operations.
 ---
-
-# OAuth Operations
-
-<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
 
 ## Authorize
 
-<ApiEndpoint method="GET" path="/oauth/authorize" auth="oauth_bearer" />
+<ApiEndpoint method="GET" path="/oauth/authorize" auth="none" />
 
-Validate an OAuth request and send the browser to login or consent.
+This operation does not require an existing Zorveus credential.
 
 ### Parameters
 
 <ParamField name="response_type" type="string" required>
-  Parameter in query
+  Filters or selects the request by response type.
 </ParamField>
 
 <ParamField name="client_id" type="string" required>
-  Parameter in query
+  Filters or selects the request by client id.
 </ParamField>
 
 <ParamField name="redirect_uri" type="string" required>
-  Parameter in query
+  Filters or selects the request by redirect uri.
 </ParamField>
 
 <ParamField name="scope" type="string" required>
-  Parameter in query
+  Filters or selects the request by scope.
 </ParamField>
 
 <ParamField name="code_challenge" type="string" required>
-  Parameter in query
+  Filters or selects the request by code challenge.
 </ParamField>
 
 <ParamField name="code_challenge_method" type="string" required>
-  Parameter in query
+  Filters or selects the request by code challenge method.
 </ParamField>
 
 <ParamField name="state" type="string">
-  Parameter in query
+  Filters or selects the request by state.
 </ParamField>
 
-<ApiRunner method="GET" path="/oauth/authorize" authType="oauth_bearer" />
-
----
-
-## Get Authorization Request
-
-<ApiEndpoint method="GET" path="/oauth/authorization-requests/{authorization_request_id}" auth="oauth_bearer" />
-
-Return the logged-in user's pending OAuth consent request.
-
-### Parameters
-
-<ParamField name="authorization_request_id" type="string" required>
-  Parameter in path
-</ParamField>
-
-<ApiRunner method="GET" path="/oauth/authorization-requests/{authorization_request_id}" authType="oauth_bearer" />
-
----
-
-## Decide Authorization Request
-
-<ApiEndpoint method="POST" path="/oauth/authorization-requests/{authorization_request_id}/decision" auth="oauth_bearer" />
-
-Approve or deny a pending OAuth consent request.
-
-### Parameters
-
-<ParamField name="authorization_request_id" type="string" required>
-  Parameter in path
-</ParamField>
-
-<ApiRunner method="POST" path="/oauth/authorization-requests/{authorization_request_id}/decision" authType="oauth_bearer" />
-
----
-
-## Token
-
-<ApiEndpoint method="POST" path="/oauth/token" auth="oauth_bearer" />
-
-Exchange an OAuth authorization code for a Zorveus inference key.
-
-<ApiRunner method="POST" path="/oauth/token" authType="oauth_bearer" />
 
 ---
 
 ## Revoke
 
-<ApiEndpoint method="POST" path="/oauth/revoke" auth="oauth_bearer" />
+<ApiEndpoint method="POST" path="/oauth/revoke" auth="oauth_client" />
 
-Revoke an OAuth-issued Zorveus inference token.
-
-<ApiRunner method="POST" path="/oauth/revoke" authType="oauth_bearer" />
+Revoke the API key issued.
 
 ---
 
+## Token
+
+<ApiEndpoint method="POST" path="/oauth/token" auth="oauth_client" />
+
+After the code has been gotten from the `/oauth/authorize` endpoint, you can exchange it for an access token (Which is the API key that can be used to make llm inference request to the Zorveus API). No refresh token is issued, so the access token will need to be re-issued after it expires.
+
+### Responses
+
+#### 200 Successful Response
+
+<ResponseField name="access_token" type="string" required>
+  Returns the access token value. This is the API key that can be used to make llm inference request to the Zorveus API.
+</ResponseField>
+
+<ResponseField name="api_base" type="string" required>
+  Returns the api base value.
+</ResponseField>
+
+<ResponseField name="app_connection_id" type="string" required>
+  Returns the app connection id value.
+</ResponseField>
+
+<ResponseField name="expires_in" type="integer" required>
+  Returns the expires in value.
+</ResponseField>
+
+<ResponseField name="scope" type="string" required>
+  Returns the scope value.
+</ResponseField>
+
+<ResponseField name="token_type" type="string" required>
+  Returns the token type value.
+</ResponseField>
+
+---

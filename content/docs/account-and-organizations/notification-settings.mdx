@@ -1,13 +1,23 @@
 ---
-title: Notification Settings
+title: Notification settings
 description: Configure email alerts for spending cap thresholds, wallet low-balance warnings, and invites.
 ---
 
-# Notification Settings
+Notification settings belong to the current dashboard user. They do not configure organization outbound webhooks.
 
-<ApiEndpoint method="PUT" path="/notification-settings" auth="dashboard_session" />
+## Channels
 
-Configure email and webhook alerts when:
-- Wallet balance drops below configured threshold (e.g. `$10.00`).
-- Spending cap reaches 80% and 100% of limit.
-- New member invitations are accepted.
+The supported channels are `email` and `in_app`.
+
+## Events
+
+You can enable or disable these event preferences:
+
+- `low_balance`
+- `cap_reached`
+- `app_connected` and `app_revoked`
+- `payment_credited` and `payment_failed`
+- `provider_credential_added` and `provider_credential_rotated`
+- `monthly_summary`
+
+To deliver organization events to your own server, configure [outbound webhooks](/platform/webhooks).

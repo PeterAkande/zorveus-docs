@@ -1,19 +1,17 @@
 ---
-title: Tool Calling
+title: Tool calling
 description: Execute structured function calls and JSON schema tools across supported models.
 ---
 
-# Tool Calling
-
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
 
-Zorveus seamlessly passes tool schemas and function call arguments between your application and supported model providers.
+Zorveus passes OpenAI-compatible tool definitions and returned tool-call arguments through supported model routes. Your application executes the tool and sends the tool result in a later request.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Code Example
+## Code example
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
@@ -94,3 +92,15 @@ main();
 ```
 
 </CodeGroup>
+
+## Complete the tool loop
+
+1. Send the tool schema with the conversation.
+2. Validate the returned function name and JSON arguments.
+3. Execute only an allowlisted function with validated inputs.
+4. Append the assistant tool call and your `tool` result to the messages.
+5. Send another completion request to obtain the final answer.
+
+Do not execute a function name or argument solely because a model returned it. Apply the same authorization checks that you use for any other application input.
+
+Tool support varies by model. Check `GET /v1/models`, then run a small tool-call test before enabling a model in production.

@@ -1,9 +1,7 @@
 ---
-title: Streaming Completions
-description: Stream real-time tokens over Server-Sent Events (SSE) using Zorveus low-latency proxy.
+title: Streaming completions
+description: Stream completion events over Server-Sent Events through the Zorveus gateway.
 ---
-
-# Streaming Completions
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
 
@@ -13,7 +11,7 @@ Setting `"stream": true` streams tokens incrementally as Server-Sent Events (SSE
 
 ---
 
-## Code Examples
+## Code examples
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
@@ -84,6 +82,8 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ---
 
-## Usage Accounting for Streams
+## Usage accounting for streams
 
-When streaming, token usage is accumulated by the Zorveus Gateway on the fly. The final usage event is settled immediately upon stream termination (`[DONE]` event) or client disconnection.
+Zorveus records the final provider outcome and available token usage after the stream completes or disconnects. A client disconnect does not guarantee that the upstream provider stopped before producing more billable output.
+
+Preserve incomplete SSE lines between network chunks. Treat a stream as complete only after `data: [DONE]` or a documented terminal event. If you retry after a disconnect, the provider can bill both requests.
