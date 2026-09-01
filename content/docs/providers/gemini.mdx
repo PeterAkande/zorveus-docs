@@ -1,20 +1,84 @@
 ---
 title: Google Gemini provider setup
-description: Configure Google AI Studio Gemini API keys and multimodal routing.
+description: Configure Google AI Studio Gemini API keys, native wire protocol, and multimodal routing.
 ---
 
-Use a Google AI Studio key for supported Gemini routes.
+Zorveus supports Google Gemini models via native Google GenAI wire protocols (`POST /v1beta/models/*`, `POST /vertex_ai/live`) as well as standard OpenAI-compatible `/v1/chat/completions`.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
 ## Configuration
 
-- Provider ID: `gemini`
-- Secret kind: `api_key`
-- Typical model policy: `gemini/*`
+- **Provider ID**: `gemini`
+- **Secret kind**: `api_key`
+- **Default model policy**: `gemini/*`
 
-Store the API key in `secret`. Do not put it in `provider_config`. Use `GET /provider-credentials/providers` to confirm the current secret requirements before building a credential form.
+Store your Google AI Studio API key in `secret`. Create the credential via the dashboard or using your Service Key:
 
-After creation, send a request with a model returned by `GET /v1/models`. Gemini capabilities vary by model, including image input, audio understanding, tools, and structured output.
+```bash
+curl -X POST https://api.zorveus.com/api/v1/provider-credentials \
+  -H "Authorization: Bearer zrv_service_your_service_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "gemini",
+    "secret_kind": "api_key",
+    "secret": "AIzaSy...",
+    "allowed_model_wildcards": ["gemini/*"],
+    "routing_mode": "auto_resolve"
+  }'
+```
 
-For Google Cloud Vertex AI, use the separate `vertex_ai` provider contract. It uses `service_account_json` plus the required `project` and `location` configuration fields.
+---
+
+## Inference usage
+
+You can call Gemini models directly using the standard OpenAI client format or through Zorveus SDKs:
+
+<CodeGroup titles={["Python (zorveus)", "TypeScript (@zorveus/sdk)", "cURL"]}>
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(api_key="zrv_your_inference_key")
+
+response = client.chat.completions.create(
+    model="google/gemini-2.0-flash",
+    messages=[{"role": "user", "content": "Explain quantum computing in one sentence."}],
+)
+print(response.choices[0].message.content)
+```
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_inference_key",
+});
+
+const response = await client.chat.completions.create({
+  model: "google/gemini-2.0-flash",
+  messages: [{ role: "user", content: "Explain quantum computing in one sentence." }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "google/gemini-2.0-flash",
+    "messages": [{"role": "user", "content": "Explain quantum computing in one sentence."}]
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Vertex AI integration
+
+For enterprise Google Cloud Vertex AI deployments, use the separate `vertex_ai` provider contract. It takes `service_account_json` with required `project` and `location` configuration fields.

@@ -1,20 +1,103 @@
 ---
 title: Anthropic provider setup
-description: Configure Anthropic Claude API keys, model wildcards, and thinking modes.
+description: Configure Anthropic Claude API keys, native wire protocol, and model routing.
 ---
 
-Use an organization-owned Anthropic key for matching Claude requests.
+Zorveus natively supports the Anthropic wire protocol (`POST /v1/messages`, `POST /v1/messages/count_tokens`), allowing you to use official Anthropic SDKs directly or route Claude models through standard OpenAI-compatible endpoints.
+
+<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Configuration
+## Native Anthropic SDK integration
 
-- Provider ID: `anthropic`
-- Secret kind: `api_key`
-- Typical model policy: `anthropic/*`
+Point official Anthropic SDK clients to `https://api.zorveus.com` using your Zorveus inference key:
 
-Create the credential through the dashboard or the service-key route. Set `routing_mode` to `auto_resolve` for policy-based routing or `manual_grant_only` for explicit app-connection grants.
+<CodeGroup titles={["Python (anthropic)", "TypeScript (@anthropic-ai/sdk)", "cURL"]}>
 
-The wildcard permits matching names. It does not guarantee that every Anthropic model is deployed or allowed for the inference key. Use `GET /v1/models` before selecting a model.
+```python
+# pip install anthropic
+import anthropic
 
-Extended-thinking and tool-use fields depend on the selected model and provider contract. Test those fields with a controlled request before enabling them for customers.
+client = anthropic.Anthropic(
+    base_url="https://api.zorveus.com",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.messages.create(
+    model="claude-3-7-sonnet-20250219",
+    max_tokens=1024,
+    messages=[
+        {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ],
+)
+
+print(response.content[0].text)
+```
+
+```typescript
+// npm install @anthropic-ai/sdk
+import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic({
+  baseURL: "https://api.zorveus.com",
+  apiKey: "zrv_your_inference_key",
+});
+
+const message = await anthropic.messages.create({
+  model: "claude-3-7-sonnet-20250219",
+  max_tokens: 1024,
+  messages: [
+    { role: "user", content: "Explain quantum computing in one sentence." }
+  ],
+});
+
+console.log(message.content);
+```
+
+```bash
+curl https://api.zorveus.com/v1/messages \
+  -H "x-api-key: zrv_your_inference_key" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{
+    "model": "claude-3-7-sonnet-20250219",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "Hello via Zorveus!"}]
+  }'
+```
+
+</CodeGroup>
+
+---
+
+## Bring Your Own Key (BYOK) setup
+
+You can supply your organization's Anthropic API key to pay Anthropic directly while Zorveus manages user allowances and attribution.
+
+- **Provider ID**: `anthropic`
+- **Secret kind**: `api_key`
+- **Default wildcard policy**: `anthropic/*`
+
+Create the credential in the developer dashboard or programmatically with your Service Key:
+
+```bash
+curl -X POST https://api.zorveus.com/api/v1/provider-credentials \
+  -H "Authorization: Bearer zrv_service_your_service_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "anthropic",
+    "secret_kind": "api_key",
+    "secret": "sk-ant-api03-...",
+    "allowed_model_wildcards": ["anthropic/*"],
+    "routing_mode": "auto_resolve"
+  }'
+```
+
+---
+
+## How Zorveus processes Anthropic calls
+
+1. **Authentication and limits**: Validates the inference key (`x-api-key: zrv_...` or `Authorization: Bearer zrv_...`) and confirms user allowances.
+2. **Credential injection**: When BYOK is configured, Zorveus securely decrypts and injects your Anthropic key. If a key encounters rate limits or quota exhaustion, Zorveus automatically fails over across backup credentials or system routes.
+3. **Usage settlement**: The gateway calculates input/output tokens and settles cost against the organization or connected user wallet.

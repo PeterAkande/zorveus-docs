@@ -1,11 +1,25 @@
 ---
 title: Inference overview
-description: Overview of OpenAI-compatible inference capabilities supported on api.zorveus.com/v1.
+description: Overview of multi-provider wire protocols and inference capabilities supported on api.zorveus.com.
 ---
 
-Zorveus exposes OpenAI-compatible inference routes at `https://api.zorveus.com/v1`. Available capabilities depend on the selected model and provider route, so discover models with the same inference key before calling a modality-specific endpoint.
+Zorveus sits between your applications and AI model providers, natively supporting the **Anthropic `/v1/messages`** wire protocol, standard **OpenAI `/v1/chat/completions`**, **Google Gemini**, and specialized audio, embedding, and realtime endpoints.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+
+---
+
+## Supported wire protocols and endpoints
+
+| Provider format | Endpoints | Example SDK usage |
+| :--- | :--- | :--- |
+| **Anthropic Native** | `POST /v1/messages`<br />`POST /v1/messages/count_tokens` | Standard Anthropic SDK (`@anthropic-ai/sdk`, `anthropic-python`) |
+| **OpenAI Chat Format** | `POST /v1/chat/completions`<br />`POST /chat/completions` | Standard OpenAI SDK (`openai`), Vercel AI SDK, LangChain |
+| **OpenAI Responses API** | `POST /v1/responses`<br />`POST /responses` | OpenAI Responses API format |
+| **Google Gemini Native** | `POST /v1beta/models/*`<br />`POST /vertex_ai/live` | Google GenAI SDK and Vertex AI live stream |
+| **Embeddings and Rerank** | `POST /v1/embeddings`<br />`POST /v1/rerank`, `POST /v2/rerank` | Cohere, Voyage, Jina, OpenAI embeddings and rerankers |
+| **Audio and Speech** | `POST /v1/audio/speech`<br />`POST /v1/audio/transcriptions` | OpenAI Whisper, TTS, Gemini Audio |
+| **Realtime Voice / WebSockets** | `POST /v1/realtime/calls`<br />`POST /v1/realtime/client_secrets`<br />`WS /v1/realtime` | OpenAI Realtime API, WebRTC, and WebSocket client sessions |
 
 ---
 
@@ -36,9 +50,44 @@ Zorveus exposes OpenAI-compatible inference routes at `https://api.zorveus.com/v
 
 ## SDK configuration
 
-Point any official OpenAI client to `https://api.zorveus.com/v1`:
+You can connect directly using the official Anthropic or OpenAI SDK by pointing the base URL to Zorveus:
 
-<CodeGroup titles={["Python", "TypeScript", "cURL"]}>
+<CodeGroup titles={["Anthropic (Python)", "Anthropic (TypeScript)", "OpenAI (Python)", "OpenAI (TypeScript)", "cURL"]}>
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url="https://api.zorveus.com",
+    api_key="zrv_your_inference_key",
+)
+
+response = client.messages.create(
+    model="claude-3-7-sonnet-20250219",
+    max_tokens=1024,
+    messages=[
+        {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ],
+)
+print(response.content[0].text)
+```
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic({
+  baseURL: "https://api.zorveus.com",
+  apiKey: "zrv_your_inference_key",
+});
+
+const message = await anthropic.messages.create({
+  model: "claude-3-7-sonnet-20250219",
+  max_tokens: 1024,
+  messages: [{ role: "user", content: "Explain quantum computing in one sentence." }],
+});
+
+console.log(message.content);
+```
 
 ```python
 from openai import OpenAI
@@ -47,6 +96,12 @@ client = OpenAI(
     base_url="https://api.zorveus.com/v1",
     api_key="zrv_your_inference_key",
 )
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Explain quantum computing in one sentence."}],
+)
+print(response.choices[0].message.content)
 ```
 
 ```typescript
@@ -56,6 +111,13 @@ const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
   apiKey: "zrv_your_inference_key",
 });
+
+const completion = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Explain quantum computing in one sentence." }],
+});
+
+console.log(completion.choices[0].message.content);
 ```
 
 ```bash
@@ -64,3 +126,11 @@ curl https://api.zorveus.com/v1/models \
 ```
 
 </CodeGroup>
+
+---
+
+## How Zorveus handles requests under the hood
+
+1. **Authentication and metering**: The gateway intercepts your request (`x-api-key: zrv_...` or `Authorization: Bearer zrv_...`), validates the inference key, and verifies active balance and credit caps.
+2. **BYOK injection and system routing**: If your organization configured custom provider credentials (e.g. Anthropic or OpenAI API keys), Zorveus securely injects them with automatic multi-key failover. Otherwise, requests route through Zorveus system credentials.
+3. **Usage settlement**: The gateway calculates token consumption and cost, then settles the ledger event in real time upon completion.
