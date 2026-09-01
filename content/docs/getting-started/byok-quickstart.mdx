@@ -1,6 +1,6 @@
 ---
-title: Bring Your Own Key (BYOK) Quickstart
-description: Connect your existing OpenAI, Anthropic, Gemini, or OpenRouter keys to Zorveus for unified routing and zero markup.
+title: Bring your own key (BYOK) quickstart
+description: Connect an upstream provider credential and route eligible inference through it.
 ---
 
 **Bring Your Own Key (BYOK)** allows your organization to store encrypted provider credentials in Zorveus. Requests matching your provider policy route directly through your upstream account.
@@ -13,7 +13,7 @@ description: Connect your existing OpenAI, Anthropic, Gemini, or OpenRouter keys
 
 ---
 
-## 1. Add a Provider Credential
+## 1. Add a provider credential
 
 You can add provider credentials either through the dashboard or programmatically using an Organization Service Key.
 
@@ -26,7 +26,7 @@ You can add provider credentials either through the dashboard or programmaticall
   </Step>
   <Step title="Configure Model Policy">
     Set the model policy to determine which models resolve to this key:
-    - `*`: Resolves all models supported by this provider
+    - `*`: Matches all models allowed for the credential
     - `openai/*`: Resolves all OpenAI models
     - `openai/gpt-4.1-mini`: Resolves only this specific model
   </Step>
@@ -34,9 +34,9 @@ You can add provider credentials either through the dashboard or programmaticall
 
 ---
 
-## 2. Automatic Routing in Action
+## 2. Route a request
 
-Once your provider credential is saved, make inference requests exactly as before. The Zorveus Gateway automatically inspects your organization's credentials, selects your matching key, decrypts it in memory, and dispatches the request to the upstream provider.
+After saving the credential, create or update an app connection whose model policy permits the route. Credentials in `auto_resolve` mode can be selected automatically. Credentials in `manual_grant_only` mode also need an explicit grant to the connection.
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
@@ -48,7 +48,7 @@ client = OpenAI(
     api_key="zrv_your_inference_key",
 )
 
-# zorveus automatically routes this to your saved OpenAI BYOK credential
+# The route uses BYOK when an eligible OpenAI credential resolves.
 response = client.chat.completions.create(
     model="openai/gpt-4.1-mini",
     messages=[
@@ -97,17 +97,17 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ---
 
-## 3. Verify BYOK Usage Accounting
+## 3. Verify BYOK usage accounting
 
 In your Zorveus Dashboard under **Usage**:
 - **Billing Mode**: Tagged as `byok`
-- **Sell Cost**: `$0.000000` (no Zorveus wallet deduction)
-- **Provider Cost**: Shows estimated upstream cost (e.g. `$0.000150`) based on standard provider token rates
-- **Tokens**: Full prompt and completion token counts recorded for product-user attribution and spending caps
+- **Sell cost**: The amount applied by Zorveus, including any configured BYOK platform fee. In cases when usage is less than `$25k` per month, this is typically `$0`.
+- **Provider cost**: The estimated upstream model cost for analytics.
+- **Tokens**: Usage returned by the provider or measured by the gateway when available.
 
 ---
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
   <Card title="Provider Credentials Deep Dive" icon="key" href="/startups/provider-credentials">

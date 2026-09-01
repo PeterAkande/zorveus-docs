@@ -46,7 +46,6 @@ An **Inference Key** (`zrv_...`) is the cryptographic secret issued under an App
 | **Service Key** | `zrv_service_...` | `https://api.zorveus.com` | Backend server ONLY | High (manages product users, grants, org) |
 | **OAuth Client Secret** | `zrv_client_secret_...` | `/oauth/token` | OAuth backend ONLY | Confidential client authentication |
 | **Provider Credential** | `sk-...` / encrypted | Upstream provider | Stored securely in Zorveus | Upstream provider account secret |
-| **Dashboard Session** | `session=...` Cookie | `https://app.zorveus.com` | User browser | Authenticated dashboard session |
 
 <Callout type="danger" title="Never Mix Service Keys and Inference Keys">
   Never paste a Service Key into the OpenAI client `api_key` parameter. The inference gateway (`/v1/chat/completions`) only accepts Inference Keys (`zrv_...`).

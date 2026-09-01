@@ -1,50 +1,20 @@
 ---
-title: Funding and Billing Models
-description: Understand how Zorveus handles wallet reservations, BYOK zero-margin routing, and product credit settlement.
+title: Funding and billing
+description: Understand wallet-funded inference, BYOK routing, and product-user credit enforcement.
 ---
 
-# Funding and Billing Models
+## Wallet-funded inference
 
-Zorveus provides three distinct billing modes to support diverse commercial architectures.
+Zorvues supports inference requests that are funded by an organization wallet. The organization wallet is a balance of funds that can be used to pay for inference requests. The wallet can be funded by a variety of methods, including credit card, ACH, and wire transfer.
 
----
+When an inference request is made, the Zorveus API checks the organization wallet balance to determine if there are sufficient funds to cover the cost of the request. If there are sufficient funds, the request is processed and the cost is deducted from the wallet balance. If there are insufficient funds, the request is rejected.
 
-## 1. Zorveus-Funded Wallet Usage
+## Bring your own key
 
-In the standard wallet-funded mode, Zorveus acts as the merchant of record for AI inference:
-- **Available vs Reserved Balance**: Before sending a request to the upstream provider, Zorveus computes a pre-flight reservation from your organization wallet.
-- **Settlement**: When the provider finishes streaming tokens, the actual token count and sell price are settled, and unused reserved funds are released immediately.
-- **Provider Cost vs Sell Cost**: Both metrics are recorded. The difference represents the Zorveus routing margin.
+With BYOK, Zorveus routes through an eligible organization-owned provider credential. The upstream provider bills that account directly. Usage records still include an estimated `provider_cost`; `sell_cost` can include a configured BYOK platform fee, so it is not universally zero. Currently we allow up to `$25k` free monthly usage for BYOK inference.
 
-```text
-[Pre-Flight Request]  ---> Reserve $0.0050 from Wallet
-[Streaming Tokens]    ---> Provider returns 450 tokens
-[Post-Flight Settle]  ---> Settle $0.0032 actual debit, release $0.0018 unspent
-```
+## Product-user credits
 
----
+Credit grants allocate a consumable balance to a product user. Whether that balance blocks a request depends on the app connection’s `credit_mode`. Credits do not replace the underlying organization funding route. Here, the inference request must include an identifiable product user (`external_user_id` or `product_user_id`).
 
-## 2. Bring Your Own Key (BYOK)
-
-When your organization attaches its own provider credentials (e.g. your company's direct OpenAI or Anthropic account):
-- **Zorveus Sell Cost**: `$0.000000` (Zorveus does not debit your wallet for model tokens).
-- **Direct Upstream Invoice**: The model provider invoices your corporate credit card or enterprise contract directly.
-- **Token Accounting**: Zorveus continues to track exact prompt/completion tokens, provider cost estimates, and product-user attribution.
-
----
-
-## 3. Product-User Credits
-
-When an app connection enforces product-user credits:
-- The inference request must include an identifiable product user (`external_user_id` or `product_user_id`).
-- The product user must hold an active, non-expired credit grant with sufficient remaining balance.
-- Consumed tokens debit the product user's credit balance first.
-- The startup funds the underlying organization wallet or BYOK credentials; credit grants represent internal allocation to customers.
-
----
-
-## Money Representation
-
-<Callout type="note" title="Decimal Precision">
-  All monetary values in the Zorveus API and usage events are formatted as exact decimal strings (e.g. `"0.004210"`) to avoid IEEE floating-point rounding errors across client languages.
-</Callout>
+All billing amounts returned by the API are decimal strings. Use a decimal library for calculations and the wallet ledger for authoritative reconciliation.

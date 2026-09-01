@@ -1,5 +1,5 @@
 ---
-title: Getting Started Overview
+title: Getting started
 description: Choose the right Zorveus integration path for your architecture and business model.
 ---
 
@@ -7,7 +7,7 @@ Zorveus provides three core integration models depending on who funds the AI usa
 
 ---
 
-## Choose Your Integration Mode
+## Choose your integration mode
 
 | Business Goal | Integration Mode | Funding Source | Key Credential |
 | :--- | :--- | :--- | :--- |
@@ -17,22 +17,22 @@ Zorveus provides three core integration models depending on who funds the AI usa
 
 ---
 
-## Core Credential Terminology
+## Credential terminology
 
 Understanding credential types ensures you use the correct secret in each context:
 
 - **Inference Key (`zrv_...`)**: Secret token used in `Authorization: Bearer zrv_...` against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`). Shown only once upon creation.
-- **Service Key (`zrv_service_...`)**: High-privilege management credential used server-to-server against the Product Management API (`https://api.zorveus.com`). Never expose this key in browser code or client apps.
+- **Service key (`zrv_svc_...`)**: High-privilege management credential used server-to-server against the Product Management API (`https://api.zorveus.com`). Never expose this key in browser code or client apps.
 - **Client ID & Client Secret (`zrv_client_...` / `zrv_client_secret_...`)**: Credentials for registered OAuth applications to authenticate during PKCE token exchanges.
 - **Provider Credential**: Encrypted upstream API keys (e.g. OpenAI, Anthropic, Gemini) stored in Zorveus for Bring Your Own Key (BYOK) routing.
 
 <Callout type="warning" title="Security Boundary">
-  Never use a **Service Key** for inference requests or inside frontend client bundles. Service keys have administrative access to manage product users, credit grants, and organization settings.
+  Never use a **Service Key** for inference requests or inside frontend client bundles. Depending on its scopes, it can manage product users, credit grants, provider credentials, or programmatic app connections.
 </Callout>
 
 ---
 
-## Production Endpoints
+## Production endpoints
 
 Always use production endpoints in deployed applications:
 
@@ -44,11 +44,11 @@ OAuth Authorize URL: https://app.zorveus.com/oauth/authorize
 
 ---
 
-## Quickstart Paths
+## Quickstart paths
 
 <CardGroup cols={2}>
   <Card title="Startup Quickstart" icon="rocket" href="/getting-started/startup-quickstart">
-    Send your first AI request in under 2 minutes using standard OpenAI SDKs and a Zorveus inference key.
+    Send your first request with an OpenAI-compatible client or Zorveus SDK.
   </Card>
   <Card title="Product-User Metering" icon="layers" href="/getting-started/product-user-quickstart">
     Attribute requests to specific end users and apply credit grants without extra database setup.

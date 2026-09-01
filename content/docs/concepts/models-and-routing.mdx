@@ -43,3 +43,6 @@ When an inference request arrives:
 1. **Connection-Specific Override**: Checks if the app connection has an explicitly bound provider key.
 2. **Organization BYOK Credential**: Checks if the organization has an active BYOK credential matching the requested model policy (sorted by priority).
 3. **Zorveus-Funded Credential**: Falls back to Zorveus-managed enterprise provider infrastructure (debiting the organization wallet).
+
+
+Use `GET /v1/models` with the inference key that will make the request. The response expands allowed policy patterns into concrete model IDs. Send one of those concrete IDs in the model request.

@@ -1,30 +1,30 @@
 ---
-title: Product-User Quickstart
+title: Product-user quickstart
 description: Attribute AI inference requests to your own customers using inline external user metadata.
 ---
 
-In Zorveus, **Product Users** represent your application's end users. Instead of building complex usage-tracking databases, you pass your customer's ID directly in the inference request metadata.
+Product users represent your application's customers. Pass your customer ID in each inference request so Zorveus can attribute usage and apply product-user credits or caps.
 
 <KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
 
 ---
 
-## Streamlined 2-Step Workflow
+## What you will build
 
-Connecting and tracking end-user consumption requires only two steps:
+This tutorial has two steps:
 
-1. **Automatic Inline Provisioning During Inference**: Configure the client with `external_user_id`. The SDK adds the product-user attribution to each request, and Zorveus creates or updates the user profile on the first request.
-2. **Querying User Details and Credit Balance**: Use `ZorveusServiceClient` with an Organization Service Key (`zrv_sk_...`) to inspect profile details, credit balances, or issue promotional top-ups.
+1. Send an inference request with `external_user_id`. Zorveus creates or updates the product user.
+2. Query the product user and credit summary with a service key (`zrv_svc_...`).
 
 ---
 
-## Step 1: Automatic Inline Provisioning During Inference
+## Step 1: Send product-user metadata
 
 When Zorveus processes a request for an `external_user_id` it has not seen before, it **automatically creates the product user** in your startup workspace.
 
-Subsequent requests from a client configured with the same `external_user_id` update the product user's profile metadata and aggregate usage.
+Subsequent requests with the same app and `external_user_id` resolve the same product user. Supplied profile fields can update that user, and settled requests contribute to usage totals.
 
-<CodeGroup titles={["Python (ZorveusOpenAI)", "TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+<CodeGroup titles={["Python (ZorveusOpenAI)", "TypeScript (@zorveus/sdk)", "TypeScript (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
 ```python
 # pip install zorveus[openai]
@@ -32,7 +32,7 @@ from zorveus.openai import ZorveusOpenAI
 
 # User is created automatically on their first inference call
 client = ZorveusOpenAI(
-    api_key="zrv_live_123...",
+    api_key="zrv_your_inference_key",
     external_user_id="usr_sara_101",
     display_name="Sara Connor",
     email="sara@example.com",
@@ -52,11 +52,7 @@ print(response.choices[0].message.content)
 import { Zorveus } from "@zorveus/sdk";
 
 const client = new Zorveus({
-  apiKey: "zrv_live_123...",
-  externalUserId: "usr_sara_101",
-  displayName: "Sara Connor",
-  email: "sara@example.com",
-  userMetadata: { plan: "pro" },
+  apiKey: "zrv_your_inference_key",
 });
 
 async function main() {
@@ -65,6 +61,12 @@ async function main() {
     messages: [
       { role: "user", content: "Summarize the latest trends in renewable energy." },
     ],
+    zorveusMetadata: {
+      externalUserId: "usr_sara_101",
+      displayName: "Sara Connor",
+      userEmail: "sara@example.com",
+      metadata: { plan: "pro" },
+    },
   });
 
   console.log(completion.choices[0].message.content);
@@ -73,34 +75,12 @@ async function main() {
 main();
 ```
 
-```python
-# pip install zorveus
-from zorveus import Zorveus
-
-client = Zorveus(
-    api_key="zrv_live_123...",
-    external_user_id="usr_sara_101",
-    display_name="Sara Connor",
-    email="sara@example.com",
-    user_metadata={"plan": "pro"},
-)
-
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "user", "content": "Summarize the latest trends in renewable energy."}
-    ],
-)
-
-print(response.choices[0].message.content)
-```
-
 ```typescript
 // npm install @zorveus/sdk openai
 import { ZorveusOpenAI } from "@zorveus/sdk/openai";
 
 const openai = new ZorveusOpenAI({
-  apiKey: "zrv_live_123...",
+  apiKey: "zrv_your_inference_key",
   externalUserId: "usr_sara_101",
   displayName: "Sara Connor",
   userEmail: "sara@example.com",
@@ -122,7 +102,7 @@ import { createZorveus } from "@zorveus/sdk/vercel";
 import { generateText } from "ai";
 
 const zorveus = createZorveus({
-  apiKey: "zrv_live_123...",
+  apiKey: "zrv_your_inference_key",
   externalUserId: "usr_sara_101",
 });
 
@@ -139,7 +119,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_live_123...",
+    api_key="zrv_your_inference_key",
 )
 
 response = client.chat.completions.create(
@@ -151,9 +131,11 @@ response = client.chat.completions.create(
     extra_body={
         "metadata": {
             "external_user_id": "usr_sara_101",
-            "name": "Sara Connor",
-            "email": "sara@example.com",
-            "plan": "pro",
+            "product_user": {
+                "display_name": "Sara Connor",
+                "email": "sara@example.com",
+                "metadata": {"plan": "pro"},
+            },
         }
     },
 )
@@ -164,7 +146,7 @@ print(response.choices[0].message.content)
 ```bash
 curl https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_live_123..." \
+  -H "Authorization: Bearer zrv_your_inference_key" \
   -d '{
     "model": "openai/gpt-4.1-mini",
     "messages": [
@@ -172,9 +154,11 @@ curl https://api.zorveus.com/v1/chat/completions \
     ],
     "metadata": {
       "external_user_id": "usr_sara_101",
-      "name": "Sara Connor",
-      "email": "sara@example.com",
-      "plan": "pro"
+      "product_user": {
+        "display_name": "Sara Connor",
+        "email": "sara@example.com",
+        "metadata": {"plan": "pro"}
+      }
     }
   }'
 ```
@@ -183,31 +167,17 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ---
 
-## Step 2: Query User Details and Credit Balance
+## Step 2: Query the user and credit balance
 
-When you need to view user profile details, active credit grants, or remaining balance, use `ZorveusServiceClient` with an Organization Service Key (`zrv_sk_...`):
+When you need to view user profile details, active credit grants, or remaining balance, use `ZorveusServiceClient` with an Organization Service Key (`zrv_svc_...`):
 
-<CodeGroup titles={["Python (zorveus)", "TypeScript (@zorveus/sdk)", "cURL"]}>
-
-```python
-from zorveus import ZorveusServiceClient
-
-service = ZorveusServiceClient(api_key="zrv_sk_live_123...")
-
-user_info = service.product_users.get_by_external_id(
-    app_id="app_123",
-    external_user_id="usr_sara_101"
-)
-
-print("Display Name:", user_info.product_user.display_name)
-print("Available Credits:", user_info.credit_summary.available_credits)
-```
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "cURL"]}>
 
 ```typescript
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
 const service = new ZorveusServiceClient({
-  apiKey: "zrv_sk_live_123...",
+  apiKey: "zrv_svc_your_service_key",
 });
 
 const userInfo = await service.productUsers.getByExternalId({
@@ -215,34 +185,40 @@ const userInfo = await service.productUsers.getByExternalId({
   externalUserId: "usr_sara_101",
 });
 
-console.log("Display Name:", userInfo.product_user.display_name);
-console.log("Available Credits:", userInfo.credit_summary.available_credits);
+const credits = await service.productUsers.getCreditSummaryByExternalId({
+  appId: "app_123",
+  externalUserId: "usr_sara_101",
+});
+
+console.log("Display name:", userInfo.display_name);
+console.log("Available credits:", credits.available_credits);
 ```
 
 ```bash
-curl -X GET "https://api.zorveus.com/api/v1/product-users/by-external-id?app_id=app_123&external_user_id=usr_sara_101" \
-  -H "Authorization: Bearer zrv_sk_live_123..."
+curl -X GET "https://api.zorveus.com/product-users/by-external-id?app_id=app_123&external_user_id=usr_sara_101" \
+  -H "Authorization: Bearer zrv_svc_your_service_key"
 ```
 
 </CodeGroup>
 
-<Callout type="tip" title="Issuing Top-Up Credits">
-  User creation is automatic! You only need to call `grant_credit_by_external_id` (or `grantCreditByExternalId` in TS) when explicitly adding top-up credits or promotional allowances to a user's balance.
+<Callout type="tip" title="Grant credits only when needed">
+  Inline inference creates the product user. Call `grantCreditByExternalId` only when your application adds a trial, subscription, promotional, or support balance.
 </Callout>
 
 ---
 
-## Identifier Resolution Precedence
+## Identifier resolution
 
-When attributing requests to product users, Zorveus applies the following hierarchy:
+Use one of these identifiers:
 
-1. **`external_user_id` (Recommended)**: Your own database primary key (e.g. `usr_98124`, `auth0|123456`). Zorveus indexes and resolves this immediately.
-2. **`product_user_id`**: An internal Zorveus UUID if you previously fetched or created the product user via the Management API.
-3. **OpenAI `user` field**: If `metadata.external_user_id` is omitted, Zorveus falls back to the standard OpenAI top-level `user` string as the `external_user_id`.
+1. `metadata.external_user_id` is your application's stable customer ID and the preferred integration field.
+2. `metadata.product_end_user_id` is the internal Zorveus ID returned by the Management API.
+
+The gateway does not use the OpenAI top-level `user` field as an `external_user_id` fallback.
 
 ---
 
-## Observing Product Users in Dashboard
+## Verify the product user
 
 After making the request:
 1. Go to [app.zorveus.com](https://app.zorveus.com) -> **Product Users**.
@@ -250,12 +226,12 @@ After making the request:
 3. View the customer's:
    - Lifetime token consumption and requests
    - Remaining credit balance (if credit grants are applied)
-   - Spending caps and active rate limits
-   - Full timeline of AI requests
+   - Spending caps
+   - Attributed usage records
 
 ---
 
-## Next Steps
+## Next steps
 
 <CardGroup cols={2}>
   <Card title="Product Users Management" icon="layers" href="/startups/product-users">
