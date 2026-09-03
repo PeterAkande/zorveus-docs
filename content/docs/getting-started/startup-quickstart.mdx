@@ -11,14 +11,21 @@ Map your subscription plans to per-user spending caps, issue promotional credits
 
 ## 1. Create a startup organization and API key
 
-Before making inference requests in code, set up your organization and configure an API key with a spend limit in the [Zorveus Dashboard](https://app.zorveus.com):
+<Callout type="warning" title="Select a Startup Organization">
+  To get an API key for your backend, you must create or select a **Startup Organization** in the dashboard. Do not select a Developer Organization. In Zorveus, Developer Organizations are reserved for third-party OAuth apps where end-users bring their own wallets. Even if you are a solo developer building a personal tool or backend, choose **Startup** to generate an API key.
+</Callout>
+
+Follow these steps in the [Zorveus Dashboard](https://app.zorveus.com):
 
 <Steps>
-  <Step title="Create a startup organization">
-    Log in to [app.zorveus.com](https://app.zorveus.com) and create or select your company's **Startup** organization.
+  <Step title="Select or create a Startup Organization">
+    Log in to [app.zorveus.com](https://app.zorveus.com). In the top-left organization dropdown, select or create a **Startup** workspace.
   </Step>
-  <Step title="Create an app and API key">
-    Open **Apps**, create an application, and generate an API key for it. Copy the generated `zrv_...` key.
+  <Step title="Fund your wallet or configure BYOK">
+    Add funds under **Wallet**, or connect your upstream provider credentials under **Provider Keys** for Bring Your Own Key routing.
+  </Step>
+  <Step title="Create an app and generate your API key">
+    Navigate to **Apps**, click **Create App**, and open your newly created application. Under the connection settings, click **Create API Key** and copy the generated `zrv_...` token.
   </Step>
   <Step title="Choose a credit mode">
     Keep the default `enforce_if_present` mode if attributed users must have active credits. Use `track_only` while you measure usage without enforcing product-user credits.
@@ -28,6 +35,25 @@ Before making inference requests in code, set up your organization and configure
 <Callout type="note" title="One-Time Secret Display">
   API keys (`zrv_...`) appear in plaintext only when you create or rotate them. Store the key in your backend secret manager.
 </Callout>
+
+---
+
+## Common gotchas to avoid
+
+<CardGroup cols={2}>
+  <Card title="Startup vs Developer Org" icon="alert-triangle">
+    Only Startup Organizations issue direct API keys (`zrv_...`). Developer Organizations only manage OAuth applications (`zrv_client_...`).
+  </Card>
+  <Card title="Base URL Trailing Path" icon="terminal">
+    OpenAI SDK clients require `https://api.zorveus.com/v1`. Anthropic SDK clients require `https://api.zorveus.com` without `/v1`.
+  </Card>
+  <Card title="API Key vs Service Key" icon="key">
+    Send your API key (`zrv_...`) to model routes. Never send your organization Service key (`zrv_svc_...`) to inference endpoints.
+  </Card>
+  <Card title="Automatic User Provisioning" icon="users">
+    You do not need to pre-register product users. Passing `metadata.external_user_id` creates and attributes the user on their first request.
+  </Card>
+</CardGroup>
 
 ---
 

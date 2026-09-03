@@ -50,7 +50,20 @@ Zorveus sits between your applications and AI model providers, natively supporti
 
 ## SDK configuration
 
-You can connect directly using the official Anthropic or OpenAI SDK by pointing the base URL to Zorveus:
+Different SDK clients append different default path prefixes. Configure the exact base URL matching your SDK:
+
+| SDK Client | Base URL parameter | Notes |
+| :--- | :--- | :--- |
+| **OpenAI Python / TypeScript** | `https://api.zorveus.com/v1` | OpenAI clients automatically append `/chat/completions`. |
+| **Anthropic Python / TypeScript** | `https://api.zorveus.com` | Anthropic clients automatically append `/v1/messages`. Do not add `/v1`. |
+| **Zorveus SDK (@zorveus/sdk)** | Default preconfigured | Connects automatically to `https://api.zorveus.com`. |
+| **Direct HTTP / cURL** | Full route path | Use `https://api.zorveus.com/v1/chat/completions` or `https://api.zorveus.com/v1/messages`. |
+
+<Callout type="warning" title="Avoid Anthropic base URL 404s">
+  Do not append `/v1` to the base URL when using the official Anthropic SDK (`@anthropic-ai/sdk` or `anthropic-python`). The Anthropic client appends `/v1/messages` on its own. Setting `baseURL: "https://api.zorveus.com/v1"` results in an invalid `https://api.zorveus.com/v1/v1/messages` request.
+</Callout>
+
+Point the base URL to Zorveus in your client initialization:
 
 <CodeGroup titles={["Anthropic (Python)", "Anthropic (TypeScript)", "OpenAI (Python)", "OpenAI (TypeScript)", "cURL"]}>
 

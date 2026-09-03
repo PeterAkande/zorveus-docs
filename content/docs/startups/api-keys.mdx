@@ -1,11 +1,11 @@
 ---
-title: API Keys
+title: API keys
 description: Create, rotate, scope, and revoke gateway API keys.
 ---
 
 API keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`) and provider-native wire endpoints.
 
-<Callout type="warning" title="Distinct from Service Keys">
+<Callout type="warning" title="Distinct from service keys">
   API keys (`zrv_...`) execute model inference and inspect connection spend. They cannot perform organization management. Programmatic organization administration requires a Service Key (`zrv_svc_...`). Never supply a Service Key to model inference endpoints.
 </Callout>
 
@@ -13,7 +13,33 @@ API keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway
 
 ---
 
-## 1. Check Live Usage & Spend Cap
+## 1. Create an API key in the dashboard
+
+To generate an API key, your account must have an active **Startup Organization**.
+
+<Steps>
+  <Step title="Select a Startup Organization">
+    Log in to [app.zorveus.com](https://app.zorveus.com). In the top-left organization dropdown, select or create a **Startup** organization. Do not select a Developer Organization; Developer Organizations only register third-party OAuth applications.
+  </Step>
+  <Step title="Create an app">
+    Open **Apps** in the sidebar, click **Create App**, enter an application name, and save.
+  </Step>
+  <Step title="Generate the key">
+    Inside your app, open the connection settings and click **Create API Key**. Copy the plaintext secret (`zrv_...`) immediately.
+  </Step>
+</Steps>
+
+<Callout type="note" title="One-time plaintext display">
+  When you generate or rotate an API key, the plaintext secret is displayed only once:
+  ```text
+  zrv_live_9a8f7c2b4d1e6f0a5c3e7d9b2a4f6c8e
+  ```
+  Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, rotate or generate a new key.
+</Callout>
+
+---
+
+## 2. Check live usage and spend cap
 
 You can query the current spending cap, spent amount this period, remaining balance, and reset date directly using the API key itself. 
 
@@ -105,28 +131,16 @@ print(f"Remaining Balance: {f'${usage[\"remaining_balance\"]}' if usage['remaini
 
 ---
 
-## 2. One-Time Plaintext Display
-
-When you generate or rotate an API key, the plaintext secret is displayed **only once**:
-
-```text
-zrv_live_9a8f7c2b4d1e6f0a5c3e7d9b2a4f6c8e
-```
-
-Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, rotate or generate a new key.
-
----
-
-## 3. Key Rotation Without Downtime
+## 3. Key rotation without downtime
 
 <Steps>
-  <Step title="Create New Key">
+  <Step title="Create new key">
     Under your App Connection, click **Create Secondary Key**.
   </Step>
-  <Step title="Deploy to Production">
+  <Step title="Deploy to production">
     Update your backend environment variables (`ZORVEUS_API_KEY`) with the new secret and deploy.
   </Step>
-  <Step title="Revoke Old Key">
+  <Step title="Revoke old key">
     Once traffic shifts, click **Revoke** on the previous key. Revocation is instantaneous across all edge gateway instances.
   </Step>
 </Steps>
