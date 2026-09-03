@@ -5,24 +5,25 @@ import { useKeyContext } from '../context/KeyContext';
 import { Key, RotateCcw, Check, Copy } from 'lucide-react';
 
 interface KeyInserterProps {
-  type?: 'inference' | 'service' | 'client';
+  type?: 'api' | 'inference' | 'service' | 'client';
   label?: string;
   placeholder?: string;
 }
 
 export function KeyInserter({
-  type = 'inference',
+  type = 'api',
   label,
   placeholder,
 }: KeyInserterProps) {
   const { apiKey, setApiKey, serviceKey, setServiceKey, clientId, setClientId } = useKeyContext();
   const [copied, setCopied] = React.useState(false);
 
-  const value = type === 'inference' ? apiKey : type === 'service' ? serviceKey : clientId;
-  const setValue = type === 'inference' ? setApiKey : type === 'service' ? setServiceKey : setClientId;
+  const isApi = type === 'api' || type === 'inference';
+  const value = isApi ? apiKey : type === 'service' ? serviceKey : clientId;
+  const setValue = isApi ? setApiKey : type === 'service' ? setServiceKey : setClientId;
   const defaultPlaceholder =
-    type === 'inference'
-      ? 'zrv_your_inference_key'
+    isApi
+      ? 'zrv_your_api_key'
       : type === 'service'
       ? 'zrv_svc_your_service_key'
       : 'zrv_client_your_client_id';
@@ -55,7 +56,7 @@ export function KeyInserter({
           </div>
           <div className="flex items-center gap-2">
             <span style={{ fontSize: '13px' }} className="font-semibold text-zinc-100">
-              {label || (type === 'inference' ? 'Inference Key Tester' : 'Service Key Inserter')}
+              {label || (isApi ? 'API Key Tester' : 'Service Key Inserter')}
             </span>
             <span
               style={{

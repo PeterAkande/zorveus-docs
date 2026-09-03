@@ -3,26 +3,26 @@ title: Usage & Analytics API
 description: Reference and interactive runner for usage & analytics operations.
 ---
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
-## Get Inference Key Usage Summary
+## Get API Key Usage Summary
 
-Inspect live period spend, spending caps, and remaining balance using an inference key directly.
+Inspect live period spend, spending caps, and remaining balance using an API key directly.
 
 <Callout type="tip" title="Public CORS Support">
   This endpoint has public CORS enabled and can be queried directly by browser clients and frontend extensions.
 </Callout>
 --
 
-<ApiEndpoint method="GET" path="/inference-keys/usage" auth="inference_key" />
+<ApiEndpoint method="GET" path="/inference-keys/usage" auth="api_key" />
 
 ### Headers
 
 | Header | Value | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `Authorization` | `Bearer <zrv_inference_key>` | **Yes** | Your active Zorveus inference key. |
+| `Authorization` | `Bearer <zrv_api_key>` | **Yes** | Your active Zorveus API key. |
 
-<ApiRunner method="GET" path="/inference-keys/usage" authType="inference_key" />
+<ApiRunner method="GET" path="/inference-keys/usage" authType="api_key" />
 
 #### Response (`200 OK`) — Capped Connection
 

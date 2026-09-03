@@ -5,7 +5,7 @@ description: Replace an OAuth token and update the existing app connection.
 
 Run the normal authorization-code flow again when a user needs to change funding, permissions, models, or cap policy.
 
-If the user selects the same funding organization, token exchange reuses the existing logical app connection, applies the approved policy, revokes its older OAuth-issued inference keys, and returns one replacement token.
+If the user selects the same funding organization, token exchange reuses the existing logical app connection, applies the approved policy, revokes its older OAuth-issued API keys, and returns one replacement token.
 
 If the user selects a different funding organization, the exchange creates a replacement connection for that selection and revokes the previous active connection. Your app must replace the stored access token after every successful reauthorization.
 

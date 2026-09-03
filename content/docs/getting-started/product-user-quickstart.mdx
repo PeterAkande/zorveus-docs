@@ -5,7 +5,7 @@ description: Attribute AI inference requests to your own customers using inline 
 
 Product users represent your application's customers. Pass your customer ID in each inference request so Zorveus can attribute usage and apply product-user credits or caps.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -13,7 +13,7 @@ Product users represent your application's customers. Pass your customer ID in e
 
 This tutorial has two steps:
 
-1. Send an inference request with `external_user_id`. Zorveus creates or updates the product user.
+1. Send an inference request with `external_user_id` using an API key (`zrv_...`). Zorveus creates or updates the product user.
 2. Query the product user and credit summary with a service key (`zrv_svc_...`).
 
 ---
@@ -32,7 +32,7 @@ from zorveus.openai import ZorveusOpenAI
 
 # User is created automatically on their first inference call
 client = ZorveusOpenAI(
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
     external_user_id="usr_sara_101",
     display_name="Sara Connor",
     email="sara@example.com",
@@ -52,7 +52,7 @@ print(response.choices[0].message.content)
 import { Zorveus } from "@zorveus/sdk";
 
 const client = new Zorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -80,7 +80,7 @@ main();
 import { ZorveusOpenAI } from "@zorveus/sdk/openai";
 
 const openai = new ZorveusOpenAI({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
   externalUserId: "usr_sara_101",
   displayName: "Sara Connor",
   userEmail: "sara@example.com",
@@ -102,7 +102,7 @@ import { createZorveus } from "@zorveus/sdk/vercel";
 import { generateText } from "ai";
 
 const zorveus = createZorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
   externalUserId: "usr_sara_101",
 });
 
@@ -119,7 +119,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 response = client.chat.completions.create(
@@ -146,7 +146,7 @@ print(response.choices[0].message.content)
 ```bash
 curl https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "model": "openai/gpt-4.1-mini",
     "messages": [

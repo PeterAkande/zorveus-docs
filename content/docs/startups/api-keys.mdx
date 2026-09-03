@@ -1,27 +1,31 @@
 ---
-title: Inference Keys
-description: Create, rotate, scope, and revoke gateway inference keys.
+title: API Keys
+description: Create, rotate, scope, and revoke gateway API keys.
 ---
 
-Inference keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`).
+API keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`) and provider-native wire endpoints.
 
-<KeyInserter type="inference" label="Inference Key" placeholder="zrv_your_inference_key" />
+<Callout type="warning" title="Distinct from Service Keys">
+  API keys (`zrv_...`) execute model inference and inspect connection spend. They cannot perform organization management. Programmatic organization administration requires a Service Key (`zrv_svc_...`). Never supply a Service Key to model inference endpoints.
+</Callout>
+
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
 ---
 
 ## 1. Check Live Usage & Spend Cap
 
-You can query the current spending cap, spent amount this period, remaining balance, and reset date directly using the inference key itself. 
+You can query the current spending cap, spent amount this period, remaining balance, and reset date directly using the API key itself. 
 
 <Callout type="tip" title="Public CORS Enabled">
-  `GET /inference-keys/usage` allows public CORS requests, making it safe and easy to call directly from browser applications, IDE extensions, and client-side frontends.
+  `GET /inference-keys/usage` allows public CORS requests, making it safe to call directly from browser applications, IDE extensions, and client-side frontends.
 </Callout>
 
 <CodeGroup titles={["cURL", "Browser / Frontend", "TypeScript SDK", "Python SDK"]}>
 
 ```bash
 curl -X GET "https://api.zorveus.com/inference-keys/usage" \
-  -H "Authorization: Bearer zrv_your_inference_key"
+  -H "Authorization: Bearer zrv_your_api_key"
 ```
 
 ```javascript
@@ -29,7 +33,7 @@ curl -X GET "https://api.zorveus.com/inference-keys/usage" \
 async function checkUsage() {
   const res = await fetch("https://api.zorveus.com/inference-keys/usage", {
     headers: {
-      Authorization: "Bearer zrv_your_inference_key",
+      Authorization: "Bearer zrv_your_api_key",
     },
   });
 
@@ -44,10 +48,10 @@ async function checkUsage() {
 import { Zorveus } from "@zorveus/sdk";
 
 const client = new Zorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
-const usage = await client.inferenceKeys.getUsage();
+const usage = await client.apiKeys.getUsage();
 console.log("Remaining Balance:", usage.remaining_balance);
 console.log("Reset Date:", usage.reset_at);
 ```
@@ -57,7 +61,7 @@ import requests
 
 response = requests.get(
     "https://api.zorveus.com/inference-keys/usage",
-    headers={"Authorization": "Bearer zrv_your_inference_key"},
+    headers={"Authorization": "Bearer zrv_your_api_key"},
 )
 
 usage = response.json()
@@ -103,13 +107,13 @@ print(f"Remaining Balance: {f'${usage[\"remaining_balance\"]}' if usage['remaini
 
 ## 2. One-Time Plaintext Display
 
-When you generate or rotate an inference key, the plaintext secret is displayed **only once**:
+When you generate or rotate an API key, the plaintext secret is displayed **only once**:
 
 ```text
 zrv_live_9a8f7c2b4d1e6f0a5c3e7d9b2a4f6c8e
 ```
 
-Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, you must rotate or generate a new key.
+Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, rotate or generate a new key.
 
 ---
 
@@ -126,4 +130,3 @@ Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, you m
     Once traffic shifts, click **Revoke** on the previous key. Revocation is instantaneous across all edge gateway instances.
   </Step>
 </Steps>
-

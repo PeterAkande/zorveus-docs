@@ -1,8 +1,9 @@
 ---
-title: Auth
+title: Authentication
 description: Authentication methods for the Zorveus API.
 ---
 
-Every request to the Zorveus API must be authenticated. The API supports two authentication methods:
-1. **Service Key**: A service key is a long-lived API key that can be used to authenticate requests to the Zorveus API. Service keys are associated with an organization and can be used to perform operations on behalf of the organization.
-2. **Inference Key**: An inference key is the API Key used for LLM inference requests.
+Every request to the Zorveus API must be authenticated. The API distinguishes between two distinct credential types:
+
+1. **API Key (`zrv_...`)**: Used to execute LLM inference requests against `https://api.zorveus.com/v1` (and provider-native endpoints) or inspect connection spend on `/inference-keys/usage`. API keys are issued under an App Connection and enforce model access policies and spend caps.
+2. **Service Key (`zrv_svc_...`)**: Used exclusively for backend organization management against `https://api.zorveus.com`. Service keys manage apps, provider credentials, product users, and webhooks. They cannot make inference requests.

@@ -5,13 +5,13 @@ description: Configure Anthropic Claude API keys, native wire protocol, and mode
 
 Zorveus natively supports the Anthropic wire protocol (`POST /v1/messages`, `POST /v1/messages/count_tokens`), allowing you to use official Anthropic SDKs directly or route Claude models through standard OpenAI-compatible endpoints.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
 ## Native Anthropic SDK integration
 
-Point official Anthropic SDK clients to `https://api.zorveus.com` using your Zorveus inference key:
+Point official Anthropic SDK clients to `https://api.zorveus.com` using your Zorveus API key:
 
 <CodeGroup titles={["Python (anthropic)", "TypeScript (@anthropic-ai/sdk)", "cURL"]}>
 
@@ -21,7 +21,7 @@ import anthropic
 
 client = anthropic.Anthropic(
     base_url="https://api.zorveus.com",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 response = client.messages.create(
@@ -41,7 +41,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({
   baseURL: "https://api.zorveus.com",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 const message = await anthropic.messages.create({
@@ -57,7 +57,7 @@ console.log(message.content);
 
 ```bash
 curl https://api.zorveus.com/v1/messages \
-  -H "x-api-key: zrv_your_inference_key" \
+  -H "x-api-key: zrv_your_api_key" \
   -H "anthropic-version: 2023-06-01" \
   -H "content-type: application/json" \
   -d '{
@@ -98,6 +98,6 @@ curl -X POST https://api.zorveus.com/api/v1/provider-credentials \
 
 ## How Zorveus processes Anthropic calls
 
-1. **Authentication and limits**: Validates the inference key (`x-api-key: zrv_...` or `Authorization: Bearer zrv_...`) and confirms user allowances.
+1. **Authentication and limits**: Validates the API key (`x-api-key: zrv_...` or `Authorization: Bearer zrv_...`) and confirms user allowances.
 2. **Credential injection**: When BYOK is configured, Zorveus securely decrypts and injects your Anthropic key. If a key encounters rate limits or quota exhaustion, Zorveus automatically fails over across backup credentials or system routes.
 3. **Usage settlement**: The gateway calculates input/output tokens and settles cost against the organization or connected user wallet.

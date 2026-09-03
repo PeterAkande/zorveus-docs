@@ -5,7 +5,7 @@ description: Configure Google AI Studio Gemini API keys, native wire protocol, a
 
 Zorveus supports Google Gemini models via native Google GenAI wire protocols (`POST /v1beta/models/*`, `POST /vertex_ai/live`) as well as standard OpenAI-compatible `/v1/chat/completions`.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -41,7 +41,7 @@ You can call Gemini models directly using the standard OpenAI client format or t
 ```python
 from zorveus import Zorveus
 
-client = Zorveus(api_key="zrv_your_inference_key")
+client = Zorveus(api_key="zrv_your_api_key")
 
 response = client.chat.completions.create(
     model="google/gemini-2.0-flash",
@@ -54,7 +54,7 @@ print(response.choices[0].message.content)
 import { Zorveus } from "@zorveus/sdk";
 
 const client = new Zorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 const response = await client.chat.completions.create({
@@ -67,7 +67,7 @@ console.log(response.choices[0].message.content);
 
 ```bash
 curl https://api.zorveus.com/v1/chat/completions \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "google/gemini-2.0-flash",

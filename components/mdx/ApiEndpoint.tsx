@@ -4,7 +4,7 @@ import { Key, Shield, Lock, UserCheck } from 'lucide-react';
 interface ApiEndpointProps {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | string;
   path: string;
-  auth?: 'inference_key' | 'service_key' | 'dashboard_session' | 'oauth_client' | 'oauth_bearer' | 'none' | string;
+  auth?: 'api_key' | 'inference_key' | 'service_key' | 'dashboard_session' | 'oauth_client' | 'oauth_bearer' | 'none' | string;
 }
 
 const methodColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -16,8 +16,13 @@ const methodColors: Record<string, { bg: string; text: string; border: string }>
 };
 
 const authConfig: Record<string, { label: string; icon: React.ComponentType<{ style?: React.CSSProperties }>; color: string }> = {
+  api_key: {
+    label: 'API Key (Bearer zrv_...)',
+    icon: Key,
+    color: 'text-[#4DFFB4] border-[#4DFFB4]/30 bg-[#4DFFB4]/10',
+  },
   inference_key: {
-    label: 'Inference Key (Bearer zrv_...)',
+    label: 'API Key (Bearer zrv_...)',
     icon: Key,
     color: 'text-[#4DFFB4] border-[#4DFFB4]/30 bg-[#4DFFB4]/10',
   },

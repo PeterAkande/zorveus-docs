@@ -3,11 +3,11 @@ title: Tool calling
 description: Execute structured function calls and JSON schema tools across supported models.
 ---
 
-<ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
 
 Zorveus passes OpenAI-compatible tool definitions and returned tool-call arguments through supported model routes. Your application executes the tool and sends the tool result in a later request.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -21,7 +21,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 tools = [
@@ -60,7 +60,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {

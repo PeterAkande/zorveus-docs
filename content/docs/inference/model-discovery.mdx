@@ -1,13 +1,13 @@
 ---
 title: Model discovery
-description: Query the models endpoint to discover live available models permitted for your inference key.
+description: Query the models endpoint to discover live available models permitted for your API key.
 ---
 
-<ApiEndpoint method="GET" path="/v1/models" auth="inference_key" />
+<ApiEndpoint method="GET" path="/v1/models" auth="api_key" />
 
-The `/v1/models` endpoint returns the dynamic list of concrete model IDs your inference key is currently authorized to route.
+The `/v1/models` endpoint returns the dynamic list of concrete model IDs your API key is currently authorized to route.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -28,7 +28,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 models = client.models.list()
@@ -41,7 +41,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -56,7 +56,7 @@ main();
 
 ```bash
 curl https://api.zorveus.com/v1/models \
-  -H "Authorization: Bearer zrv_your_inference_key"
+  -H "Authorization: Bearer zrv_your_api_key"
 ```
 
 </CodeGroup>

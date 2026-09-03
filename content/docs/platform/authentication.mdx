@@ -11,8 +11,8 @@ Zorveus uses distinct authentication schemes depending on the caller and securit
 
 | Credential Type | Header / Location | Target Surface | Permitted Caller |
 | :--- | :--- | :--- | :--- |
-| **Inference Key** (`zrv_...`) | `Authorization: Bearer zrv_...` | `api.zorveus.com/v1` | Server backends & authorized clients |
-| **Service key** (`zrv_svc_...`) | `Authorization: Bearer zrv_svc_...` | `api.zorveus.com` | Backend server automation only |
+| **API Key** (`zrv_...`) | `Authorization: Bearer zrv_...` | `api.zorveus.com/v1` | Server backends & authorized clients |
+| **Service Key** (`zrv_svc_...`) | `Authorization: Bearer zrv_svc_...` | `api.zorveus.com` | Backend server automation only |
 | **OAuth Client Secret** | Form-encoded POST body | `/oauth/token` | Confidential OAuth backends ONLY |
 | **Dashboard Session** | Cookie (`session=...`) + `X-CSRF-Token` | `app.zorveus.com` | Authenticated browser sessions |
 
@@ -24,7 +24,7 @@ Zorveus uses explicit headers for authentication, tracking, and outbound webhook
 
 | Header Name | Context | Type | Description |
 | :--- | :--- | :--- | :--- |
-| **`Authorization`** | Request | `Bearer zrv_...` or `Bearer zrv_svc_...` | Authenticates inference or supported Management API requests. |
+| **`Authorization`** | Request | `Bearer zrv_...` or `Bearer zrv_svc_...` | Authenticates model inference (API key) or supported Management API requests (service key). |
 | **`X-Zorveus-Signature`** | Outbound Webhook | String (`t=...,v1=...`) | HMAC SHA-256 signature for verifying outbound webhook payloads. |
 | **`x-zorveus-request-id`** | Response | String (`zreq_...`) | Unique gateway request tracking identifier. |
 | **`x-zorveus-reservation-id`** | Response | String (`resv_...`) | Spend reservation tracking identifier. |

@@ -3,11 +3,11 @@ title: Content moderation
 description: Check inputs and outputs against safety and content moderation models.
 ---
 
-<ApiEndpoint method="POST" path="/v1/moderations" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/moderations" auth="api_key" />
 
 Screen text inputs against safety policies using moderation endpoints.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -20,7 +20,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 response = client.moderations.create(
@@ -38,7 +38,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -59,6 +59,6 @@ main();
 
 Read `results[0].flagged` for the provider's overall decision and inspect category fields when your policy needs them. Category names and scores can change between moderation models, so store the model ID with any audit decision.
 
-Moderation is a model call. The request still passes through inference-key, model-policy, wallet, cap, and credit checks.
+Moderation is a model call. The request still passes through API-key, model-policy, wallet, cap, and credit checks.
 
 Use `GET /v1/models` to verify that the moderation model is routable. Do not present a moderation result as a legal or compliance determination.

@@ -24,7 +24,7 @@ curl -X POST https://api.zorveus.com/product-users/by-external-id/credit-grants 
   }'
 ```
 
-The inference key `credit_mode` determines enforcement:
+The API key `credit_mode` determines enforcement:
 
 - `disabled` ignores product-user credits.
 - `track_only` records attribution without blocking on credit.
@@ -37,7 +37,7 @@ Active grants are consumed according to the backend’s grant ordering. Do not i
 ## Balance Deduction 
 
 When a product user sends an inference request, Zorveus deducts usage costs using the following order:
-1. Inference key Spending cap allowance. If the product user call is made using an inference key with a spending cap, Zorveus first checks if the all the metered request of the product user is within the remaining allowance.
-2. **Active Credit Grants (Earliest Expiration First).** If the inference spending cap is exceeded, Zorveus burns active non-expired credit grants assigned to the product user, if any is present.
+1. **API Key Spending Cap Allowance.** If the product user call is made using an API key with a spending cap, Zorveus first checks if the request is within the remaining allowance.
+2. **Active Credit Grants (Earliest Expiration First).** Zorveus then burns active non-expired credit grants assigned to the product user, if any are present.
 
-If no active credit grants are present, the request is rejected with an error response indicating insufficient funds.
+If no active credit grants are present and the allowance is exhausted, the request is rejected with an error response indicating insufficient funds.

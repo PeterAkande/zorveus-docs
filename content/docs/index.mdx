@@ -5,7 +5,7 @@ description: Zorveus is an AI wallet, billing layer, and multi-provider gateway 
 
 Zorveus sits between your application and model providers (OpenAI, Anthropic, Gemini, OpenRouter), giving you unified AI inference, spending controls, and flexible wallet billing.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ## Choose your developer path
 
@@ -33,7 +33,7 @@ You can use the official **Zorveus SDKs** (`@zorveus/sdk` for TypeScript, `zorve
 import { Zorveus } from "@zorveus/sdk";
 
 const client = new Zorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -53,7 +53,7 @@ main();
 ```python
 from zorveus import Zorveus
 
-client = Zorveus(api_key="zrv_your_inference_key")
+client = Zorveus(api_key="zrv_your_api_key")
 
 response = client.chat.completions.create(
     model="openai/gpt-4.1-mini",
@@ -70,7 +70,7 @@ from zorveus.openai import ZorveusOpenAI
 
 # Official OpenAI Python SDK wrapper with native user attribution
 client = ZorveusOpenAI(
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
     external_user_id="usr_sara_101",
 )
 
@@ -89,7 +89,7 @@ import { createZorveus } from "@zorveus/sdk/vercel";
 import { generateText } from "ai";
 
 const zorveus = createZorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -107,7 +107,7 @@ main();
 ```bash
 curl https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "model": "openai/gpt-4.1-mini",
     "messages": [
@@ -121,7 +121,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -148,7 +148,7 @@ import (
 )
 
 func main() {
-	config := openai.DefaultConfig("zrv_your_inference_key")
+	config := openai.DefaultConfig("zrv_your_api_key")
 	config.BaseURL = "https://api.zorveus.com/v1"
 
 	client := openai.NewClientWithConfig(config)
@@ -185,7 +185,7 @@ use async_openai::{
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = OpenAIConfig::new()
         .with_api_base("https://api.zorveus.com/v1")
-        .with_api_key("zrv_your_inference_key");
+        .with_api_key("zrv_your_api_key");
 
     let client = Client::with_config(config);
 
@@ -242,7 +242,7 @@ from zorveus.openai import ZorveusOpenAI
 
 # Drop-in wrapper for official OpenAI Python SDK
 client = ZorveusOpenAI(
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
     external_user_id="usr_sara_101",
     display_name="Sara Connor"
 )
@@ -259,7 +259,7 @@ import { ZorveusOpenAI } from "@zorveus/sdk/openai";
 
 // Drop-in wrapper for official OpenAI TypeScript SDK
 const openai = new ZorveusOpenAI({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
   externalUserId: "usr_sara_101",
   displayName: "Sara Connor"
 });
@@ -276,7 +276,7 @@ import { createZorveus } from "@zorveus/sdk/vercel";
 import { streamText } from "ai";
 
 const zorveus = createZorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
   externalUserId: "usr_sara_101"
 });
 

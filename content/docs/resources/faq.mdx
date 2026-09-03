@@ -31,15 +31,15 @@ Zorveus usage records contain accounting and observability fields (model, provid
 
 ### Which key calls inference?
 
-Use an inference key (`zrv_...`) against `https://api.zorveus.com/v1`. Scoped OAuth user tokens are also valid inference credentials.
+Use an API key (`zrv_...`) against `https://api.zorveus.com/v1` or provider-native wire endpoints. Scoped OAuth user tokens are also valid inference credentials.
 
-Do not use an organization Service Key for inference. Service keys (`zrv_service_...` or `zrv_svc_...`) are strictly for programmatic workspace management routes at `https://api.zorveus.com`.
+Do not use an organization Service Key for inference. Service keys (`zrv_svc_...`) are strictly for programmatic workspace management routes at `https://api.zorveus.com`.
 
 ---
 
-### Does an inference-key cap give every customer a separate allowance?
+### Does an API-key cap give every customer a separate allowance?
 
-No. An inference key belongs to an app connection, and an app-connection cap limits aggregate usage across that key.
+No. An API key belongs to an app connection, and an app-connection cap limits aggregate usage across that key.
 
 To enforce individual limits for each customer:
 - Use **Product-User Spend Caps** for monthly/daily spending caps per customer.

@@ -11,8 +11,8 @@ Zorveus provides three core integration models depending on who funds the AI usa
 
 | Business Goal | Integration Mode | Funding Source | Key Credential |
 | :--- | :--- | :--- | :--- |
-| **Startup funds its own product** | [Startup Quickstart](/getting-started/startup-quickstart) | Startup Organization Wallet | Inference Key (`zrv_...`) |
-| **Startup uses existing provider keys** | [BYOK Quickstart](/getting-started/byok-quickstart) | Upstream Provider (Direct) | Inference Key + Stored Provider Secret |
+| **Startup funds its own product** | [Startup Quickstart](/getting-started/startup-quickstart) | Startup Organization Wallet | API Key (`zrv_...`) |
+| **Startup uses existing provider keys** | [BYOK Quickstart](/getting-started/byok-quickstart) | Upstream Provider (Direct) | API Key + Stored Provider Secret |
 | **End-user funds third-party app** | [OAuth App Quickstart](/getting-started/oauth-app-quickstart) | User's Personal/Company Wallet | Scoped OAuth Token (`zrv_...`) |
 
 ---
@@ -21,13 +21,13 @@ Zorveus provides three core integration models depending on who funds the AI usa
 
 Understanding credential types ensures you use the correct secret in each context:
 
-- **Inference Key (`zrv_...`)**: Secret token used in `Authorization: Bearer zrv_...` against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`). Shown only once upon creation.
-- **Service key (`zrv_svc_...`)**: High-privilege management credential used server-to-server against the Product Management API (`https://api.zorveus.com`). Never expose this key in browser code or client apps.
+- **API Key (`zrv_...`)**: Secret token used in `Authorization: Bearer zrv_...` against the model gateway (`https://api.zorveus.com/v1` or native wire endpoints). Used to execute model inference and inspect connection spend. Shown only once upon creation.
+- **Service Key (`zrv_svc_...`)**: High-privilege management credential used server-to-server against the Product Management API (`https://api.zorveus.com`). Reserved for backend administration; never expose this key in browser code and do not pass it to inference endpoints.
 - **Client ID & Client Secret (`zrv_client_...` / `zrv_client_secret_...`)**: Credentials for registered OAuth applications to authenticate during PKCE token exchanges.
 - **Provider Credential**: Encrypted upstream API keys (e.g. OpenAI, Anthropic, Gemini) stored in Zorveus for Bring Your Own Key (BYOK) routing.
 
 <Callout type="warning" title="Security Boundary">
-  Never use a **Service Key** for inference requests or inside frontend client bundles. Depending on its scopes, it can manage product users, credit grants, provider credentials, or programmatic app connections.
+  Never use a **Service Key** (`zrv_svc_...`) for model inference requests or inside frontend client bundles. Service keys are strictly for backend management (managing product users, credit grants, provider credentials, and connections). Model inference requires an **API Key** (`zrv_...`).
 </Callout>
 
 ---

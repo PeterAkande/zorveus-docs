@@ -3,11 +3,11 @@ title: Responses API
 description: Generate a response through the OpenAI-compatible Responses API.
 ---
 
-<ApiEndpoint method="POST" path="/v1/responses" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/responses" auth="api_key" />
 
 Use the Responses API when your OpenAI client or application already uses `responses.create`. Zorveus forwards supported request fields to the selected provider route and records the resulting usage.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -20,7 +20,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 response = client.responses.create(
@@ -34,7 +34,7 @@ print(response.output_text)
 ```bash
 curl https://api.zorveus.com/v1/responses \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "model": "openai/gpt-4.1-mini",
     "input": "What are three core benefits of edge computing?"
@@ -51,6 +51,6 @@ Use `GET /v1/models` before selecting a model. Route availability does not prove
 
 ## Common failures
 
-- `zorveus_model_not_allowed` means the inference key policy excludes the model.
+- `zorveus_model_not_allowed` means the API key policy excludes the model.
 - `zorveus_unsupported_model` means no current route can serve it.
 - Wallet, cap, or product-credit errors occur before provider spend.

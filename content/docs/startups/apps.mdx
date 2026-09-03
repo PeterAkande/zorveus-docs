@@ -3,7 +3,7 @@ title: Managing Apps
 description: Create and configure applications, model allowlists, and connection scopes.
 ---
 
-An **App** represents a product workspace in Zorveus that groups inference keys, allowed model policies, spending caps, and usage metrics.
+An **App** represents a product workspace in Zorveus that groups API keys, allowed model policies, spending caps, and usage metrics.
 
 Whether you run an internal AI feature or build a public platform, Apps provide strict boundaries around who can issue requests and which models they can access.
 
@@ -15,7 +15,7 @@ Zorveus supports two main app configurations:
 
 | App Type | Primary Use Case | Authentication Method | Funding Source |
 | :--- | :--- | :--- | :--- |
-| **Internal Startup App** | Backend services funding AI for your own product users. | Inference Key (`zrv_...`) or Service Key | Startup Organization Wallet |
+| **Internal Startup App** | Backend services funding AI for your own product users. | API Key (`zrv_...`) for inference, Service Key (`zrv_svc_...`) for management | Startup Organization Wallet |
 | **Developer OAuth App** | Third-party client tools or plugins where users bring their wallets. | OAuth 2.0 PKCE (`zrv_client_...`) | User's Personal or Team Wallet |
 
 ---

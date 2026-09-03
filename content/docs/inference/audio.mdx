@@ -3,11 +3,11 @@ title: Audio transcription and speech
 description: Transcribe audio files and synthesize speech through supported OpenAI-compatible routes.
 ---
 
-<ApiEndpoint method="POST" path="/v1/audio/speech" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/audio/speech" auth="api_key" />
 
 Zorveus routes text-to-speech (`/v1/audio/speech`) and audio transcription (`/v1/audio/transcriptions`) requests using OpenAI-compatible audio models.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -20,7 +20,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 response = client.audio.speech.create(
@@ -38,7 +38,7 @@ import fs from "fs";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -61,14 +61,14 @@ The response is binary audio. Write it to a file or stream it with the content t
 
 ## Transcribe audio
 
-<ApiEndpoint method="POST" path="/v1/audio/transcriptions" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/audio/transcriptions" auth="api_key" />
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 with open("meeting.wav", "rb") as audio_file:
@@ -82,4 +82,4 @@ print(transcript.text)
 
 Use `GET /v1/models` before selecting either model. Audio formats, file limits, voices, language options, and output formats depend on the provider route.
 
-Do not put the inference key in browser or mobile code. Upload audio to your backend, or mint a purpose-built short-lived credential only when a documented flow supports it.
+Do not put the API key in browser or mobile code. Upload audio to your backend, or mint a purpose-built short-lived credential only when a documented flow supports it.

@@ -3,7 +3,7 @@ title: API reference overview
 description: Complete REST API Reference for the Zorveus Management and Product API on api.zorveus.com.
 ---
 
-The Zorveus Product and Management API provides programmatic access to manage organizations, apps, inference keys, product users, and provider credentials.
+The Zorveus Product and Management API provides programmatic access to manage organizations, apps, API keys, product users, and provider credentials.
 
 ---
 
@@ -35,8 +35,8 @@ curl -O https://api.zorveus.com/openapi.json
 
 ## Authentication Credentials
 
-- **Service key (`zrv_svc_...`)**: Server-to-server management secret for supported routes on `https://api.zorveus.com`.
-- **Inference Key (`zrv_...`)**: Fast edge token used in `Authorization: Bearer zrv_...` for AI completions on `https://api.zorveus.com/v1` or checking key usage on `/inference-keys/usage`.
+- **API Key (`zrv_...`)**: High-performance bearer token used in `Authorization: Bearer zrv_...` for AI completions on `https://api.zorveus.com/v1` (and native provider wire endpoints) or checking spend on `/inference-keys/usage`.
+- **Service Key (`zrv_svc_...`)**: Server-to-server programmatic management secret for administrative operations on `https://api.zorveus.com` (such as provider credentials and webhooks). Service keys cannot make model inference calls.
 - **Dashboard Session**: Browser session cookie with CSRF protection for web dashboard operations.
 
 ---

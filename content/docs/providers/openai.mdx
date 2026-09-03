@@ -15,6 +15,6 @@ Use this guide to route matching requests through an OpenAI API key owned by you
 
 Create the credential with a unique `credential_name`, the OpenAI key in `secret`, and `default_model_policy: ["openai/*"]`. Use `auto_resolve` to make it eligible for matching connections, or `manual_grant_only` to require an explicit connection grant.
 
-Zorveus validates the key before storing it. The response contains a fingerprint, not the raw secret. Test a model returned by `GET /models` in the dashboard or `GET /v1/models` with the inference key before moving production traffic.
+Zorveus validates the key before storing it. The response contains a fingerprint, not the raw secret. Test a model returned by `GET /models` in the dashboard or `GET /v1/models` with the API key before moving production traffic.
 
 If OpenAI rejects the key, rotate it with the provider, then call the Zorveus credential-rotation operation. Deleting the old Zorveus credential also revokes its connection grants.

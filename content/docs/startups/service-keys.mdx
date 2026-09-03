@@ -22,4 +22,4 @@ Create, list, and revoke service keys through dashboard-session routes under `/o
 
 Administrative scopes such as `admin`, `admin:full`, `admin:write`, and `all` satisfy write checks. Read-oriented administrative scopes satisfy supported read checks.
 
-Service keys do not create developer apps through `POST /apps`, and they do not authenticate inference. Use a dashboard session for app management and an inference key for `/v1` model requests.
+Service keys do not create developer apps through `POST /apps`, and they do not authenticate inference. Use a dashboard session for app management and an API key (`zrv_...`) for `/v1` model requests.

@@ -23,7 +23,7 @@ const pageConfig = {
   },
   apps: {
     title: "Apps and connections API",
-    description: "Apps, app connections, inference keys, model policies, caps, and connection lifecycle operations.",
+    description: "Apps, app connections, API keys, model policies, caps, and connection lifecycle operations.",
   },
   oauth: {
     title: "OAuth API",
@@ -47,7 +47,7 @@ const pageConfig = {
   },
   usage: {
     title: "Usage and dashboard API",
-    description: "Usage events, summaries, time series, dashboard views, and inference-key spend.",
+    description: "Usage events, summaries, time series, dashboard views, and API key spend.",
   },
   models: {
     title: "Models and health API",
@@ -76,7 +76,7 @@ function pageFor(route) {
 
 function authFor(route, method) {
   if (route.startsWith("/health")) return "none";
-  if (route.startsWith("/inference-keys")) return "inference_key";
+  if (route.startsWith("/inference-keys")) return "api_key";
   if (route.startsWith("/product-users/by-external-id")) return "service_key";
   if (route.startsWith("/provider-credentials/org-programmatic")) return "service_key";
   if (route === "/oauth/authorize") return "none";
@@ -98,8 +98,8 @@ function authDescription(auth) {
   if (auth === "service_key") {
     return "Send an organization service key in " + backtick + "Authorization: Bearer zrv_svc_..." + backtick + ".";
   }
-  if (auth === "inference_key") {
-    return "Send an inference key in " + backtick + "Authorization: Bearer zrv_..." + backtick + ".";
+  if (auth === "api_key" || auth === "inference_key") {
+    return "Send an API key in " + backtick + "Authorization: Bearer zrv_..." + backtick + ".";
   }
   if (auth === "dashboard_session") {
     return "Use the HTTP-only dashboard session cookie. State-changing requests also require " + backtick + "X-CSRF-Token" + backtick + " and an allowed " + backtick + "Origin" + backtick + ".";
@@ -258,7 +258,7 @@ for (const [page, operations] of Object.entries(grouped)) {
     "description: " + config.description,
     "---",
     "",
-    "This reference mirrors the current public FastAPI schema. Dashboard operations use the browser session and CSRF contract. Programmatic operations state when they require an inference key or service key.",
+    "This reference mirrors the current public FastAPI schema. Dashboard operations use the browser session and CSRF contract. Programmatic operations state when they require an API key or service key.",
     "",
   ];
 

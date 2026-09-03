@@ -9,7 +9,7 @@ Map your subscription plans to per-user spending caps, issue promotional credits
 
 ---
 
-## 1. Create a startup organization and inference key
+## 1. Create a startup organization and API key
 
 Before making inference requests in code, set up your organization and configure an API key with a spend limit in the [Zorveus Dashboard](https://app.zorveus.com):
 
@@ -17,8 +17,8 @@ Before making inference requests in code, set up your organization and configure
   <Step title="Create a startup organization">
     Log in to [app.zorveus.com](https://app.zorveus.com) and create or select your company's **Startup** organization.
   </Step>
-  <Step title="Create an app and inference key">
-    Open **Apps**, create an application, and generate an inference key for it. Copy the generated `zrv_...` key.
+  <Step title="Create an app and API key">
+    Open **Apps**, create an application, and generate an API key for it. Copy the generated `zrv_...` key.
   </Step>
   <Step title="Choose a credit mode">
     Keep the default `enforce_if_present` mode if attributed users must have active credits. Use `track_only` while you measure usage without enforcing product-user credits.
@@ -26,7 +26,7 @@ Before making inference requests in code, set up your organization and configure
 </Steps>
 
 <Callout type="note" title="One-Time Secret Display">
-  Inference keys (`zrv_...`) appear in plaintext only when you create or rotate them. Store the key in your backend secret manager.
+  API keys (`zrv_...`) appear in plaintext only when you create or rotate them. Store the key in your backend secret manager.
 </Callout>
 
 ---
@@ -35,7 +35,7 @@ Before making inference requests in code, set up your organization and configure
 
 Pass `external_user_id` at `metadata.external_user_id`. Put the optional name, email, and custom fields inside `metadata.product_user`.
 
-<KeyInserter type="inference" label="Test Key Inserter" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="Test Key Inserter" placeholder="zrv_your_api_key" />
 
 <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (ZorveusOpenAI)", "Vercel AI SDK", "cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
@@ -46,7 +46,7 @@ import { Zorveus } from "@zorveus/sdk";
 
 // Initialize Zorveus client with API key and product user attribution
 const client = new Zorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
   externalUserId: "usr_sara_101", // Your internal user ID
   displayName: "Sara Connor",     // Optional user name for dashboard
   email: "sara@example.com",       // Optional user email
@@ -82,7 +82,7 @@ from zorveus import Zorveus
 
 # Initialize Zorveus client with API key and product user attribution
 client = Zorveus(
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
     external_user_id="usr_sara_101", # Your internal user ID
     display_name="Sara Connor",     # Optional user name for dashboard
     email="sara@example.com",       # Optional user email
@@ -108,7 +108,7 @@ from zorveus.openai import ZorveusOpenAI
 
 # Initialize OpenAI adapter with API key and product user attribution
 client = ZorveusOpenAI(
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
     external_user_id="usr_sara_101", # Your internal user ID
     display_name="Sara Connor",     # Optional user name for dashboard
     email="sara@example.com",       # Optional user email
@@ -135,7 +135,7 @@ import { generateText } from "ai";
 
 // Initialize Zorveus provider for Vercel AI SDK with product user attribution
 const zorveus = createZorveus({
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
   externalUserId: "usr_sara_101", // Your internal user ID
 });
 
@@ -155,7 +155,7 @@ main();
 # Pass Authorization header and product user metadata in request body
 curl https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "model": "openai/gpt-4.1-mini",
     "messages": [
@@ -181,7 +181,7 @@ from openai import OpenAI
 # Initialize standard OpenAI client pointing to Zorveus gateway
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 # Pass product user attribution metadata inside extra_body
@@ -214,7 +214,7 @@ import OpenAI from "openai";
 // Initialize standard OpenAI client pointing to Zorveus gateway
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -268,7 +268,7 @@ Because every Zorveus API key carries its own spending limits and model access r
 2. **Pro Tier Key**: Attach a higher monthly allowance (e.g. `$20.00/month`) with access to flagship models like `openai/gpt-4o` and `anthropic/claude-3.5-sonnet`.
 3. **Enterprise Tier Key**: Attach custom high-volume caps or unlimited spending with dedicated provider routing.
 
-When a customer changes plans, have your backend select the inference key for the new tier. Never expose an inference key to the customer. You can also update the key's spending limit through the dashboard or the [Zorveus Service API](/startups/service-keys).
+When a customer changes plans, have your backend select the API key for the new tier. Never expose an API key to the customer. You can also update the key's spending limit through the dashboard or the [Zorveus Service API](/startups/service-keys).
 
 ### Select a plan tier in backend code
 

@@ -10,7 +10,7 @@ interface ApiRunnerProps {
   defaultHeaders?: Record<string, string>;
   defaultBody?: string;
   defaultParams?: Record<string, string>;
-  authType?: 'inference_key' | 'service_key' | 'dashboard_session';
+  authType?: 'api_key' | 'inference_key' | 'service_key' | 'dashboard_session';
 }
 
 export function ApiRunner({
@@ -19,7 +19,7 @@ export function ApiRunner({
   defaultHeaders,
   defaultBody,
   defaultParams,
-  authType = 'inference_key',
+  authType = 'api_key',
 }: ApiRunnerProps) {
   const { apiKey, serviceKey } = useKeyContext();
   const [isOpen, setIsOpen] = useState(false);
@@ -121,7 +121,7 @@ export function ApiRunner({
               Target: <strong className="font-mono text-zinc-200">https://api.zorveus.com{path}</strong>
             </div>
             <div className="font-mono text-[11px] text-mint">
-              Auth: {authType === 'service_key' ? 'Service Key' : 'Inference Key'}
+              Auth: {authType === 'service_key' ? 'Service Key' : 'API Key'}
             </div>
           </div>
 

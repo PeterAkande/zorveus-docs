@@ -26,7 +26,7 @@ const predefinedFlows: Record<string, DiagramFlow> = {
         from: 'Client App',
         to: 'Zorveus Gateway',
         label: '1. POST /v1/chat/completions (Bearer zrv_...)',
-        description: 'Client calls OpenAI-compatible endpoint with inference key and optional product-user metadata.',
+        description: 'Client calls OpenAI-compatible endpoint with API key and optional product-user metadata.',
         type: 'request',
       },
       {

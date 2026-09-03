@@ -3,11 +3,11 @@ title: Streaming completions
 description: Stream completion events over Server-Sent Events through the Zorveus gateway.
 ---
 
-<ApiEndpoint method="POST" path="/v1/chat/completions" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
 
 Setting `"stream": true` streams tokens incrementally as Server-Sent Events (SSE) chunks, allowing your UI to display characters as they are generated.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -20,7 +20,7 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_inference_key",
+    api_key="zrv_your_api_key",
 )
 
 stream = client.chat.completions.create(
@@ -43,7 +43,7 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_inference_key",
+  apiKey: "zrv_your_api_key",
 });
 
 async function main() {
@@ -68,7 +68,7 @@ main();
 curl https://api.zorveus.com/v1/chat/completions \
   -N \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "model": "openai/gpt-4.1-mini",
     "messages": [

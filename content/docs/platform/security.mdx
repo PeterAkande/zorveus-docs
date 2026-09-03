@@ -6,7 +6,7 @@ description: Protect Zorveus credentials, OAuth flows, provider secrets, and web
 Use the least-privileged credential for each surface:
 
 - Keep service keys, confidential OAuth client secrets, and provider credentials on trusted servers.
-- Scope inference keys to the required models and connection.
+- Scope API keys to the required models and connection.
 - Store returned secrets immediately because key and secret creation responses may be the only time the full value is shown.
 - Rotate and revoke credentials when they are exposed or no longer needed.
 

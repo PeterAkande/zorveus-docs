@@ -3,7 +3,7 @@
   "root": true,
   "pages": [
     "apps",
-    "inference-keys",
+    "api-keys",
     "product-users",
     "credit-grants",
     "service-keys",

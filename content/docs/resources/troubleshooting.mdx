@@ -16,19 +16,19 @@ Zorveus product API errors use an `error` object with a stable `code` and a safe
 
 ## Inference authentication fails
 
-For a missing or malformed inference key, the API returns `zorveus_malformed_or_missing_key`. For an unknown key, it returns `zorveus_unknown_key`. An inactive key returns `zorveus_key_inactive`.
+For a missing or malformed API key, the API returns `zorveus_malformed_or_missing_key`. For an unknown key, it returns `zorveus_unknown_key`. An inactive key returns `zorveus_key_inactive`.
 
-Check that `Authorization` contains the complete inference key:
+Check that `Authorization` contains the complete API key:
 
 ```http
-Authorization: Bearer zrv_your_inference_key
+Authorization: Bearer zrv_your_api_key
 ```
 
 If the key was revoked or lost, rotate it from the app connection and replace the backend secret. Zorveus shows the new raw key only once.
 
 ## A model is rejected
 
-`zorveus_model_not_allowed` means the requested model is outside the inference key's model policy. `zorveus_unsupported_model` means Zorveus cannot route the model.
+`zorveus_model_not_allowed` means the requested model is outside the API key's model policy. `zorveus_unsupported_model` means Zorveus cannot route the model.
 
 List the models available to the current key with `GET /v1/models`. Then update the app connection policy or choose a returned model ID. Do not assume that every provider model is routable.
 

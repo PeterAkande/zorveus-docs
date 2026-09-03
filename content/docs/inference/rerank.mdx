@@ -3,11 +3,11 @@ title: Rerank
 description: Rerank document search results for optimized retrieval accuracy in RAG workflows.
 ---
 
-<ApiEndpoint method="POST" path="/v1/rerank" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/rerank" auth="api_key" />
 
 Reorder candidate documents by their relevance to a query through a supported reranking model.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -18,7 +18,7 @@ Reorder candidate documents by their relevance to a query through a supported re
 ```bash
 curl https://api.zorveus.com/v1/rerank \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "model": "cohere/rerank-v3.5",
     "query": "What is write-ahead logging?",
@@ -38,7 +38,7 @@ response = requests.post(
     "https://api.zorveus.com/v1/rerank",
     headers={
         "Content-Type": "application/json",
-        "Authorization": "Bearer zrv_your_inference_key",
+        "Authorization": "Bearer zrv_your_api_key",
     },
     json={
         "model": "cohere/rerank-v3.5",

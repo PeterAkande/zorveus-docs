@@ -3,11 +3,11 @@ title: Realtime client secrets
 description: Create a short-lived client secret for a supported realtime model session.
 ---
 
-<ApiEndpoint method="POST" path="/v1/realtime/client_secrets" auth="inference_key" />
+<ApiEndpoint method="POST" path="/v1/realtime/client_secrets" auth="api_key" />
 
-Your backend can request a short-lived provider client secret without exposing the long-lived Zorveus inference key to browser or mobile code.
+Your backend can request a short-lived provider client secret without exposing the long-lived Zorveus API key to browser or mobile code.
 
-<KeyInserter type="inference" label="Inference Key Tester" placeholder="zrv_your_inference_key" />
+<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
@@ -24,7 +24,7 @@ response = requests.post(
     "https://api.zorveus.com/v1/realtime/client_secrets",
     headers={
         "Content-Type": "application/json",
-        "Authorization": "Bearer zrv_your_inference_key",
+        "Authorization": "Bearer zrv_your_api_key",
     },
     json={"session": {"type": "realtime", "model": "openai/gpt-4o-realtime-preview"}},
 )
@@ -39,7 +39,7 @@ async function createRealtimeSession() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Bearer zrv_your_inference_key",
+      Authorization: "Bearer zrv_your_api_key",
     },
     body: JSON.stringify({
       session: { type: "realtime", model: "openai/gpt-4o-realtime-preview" },
@@ -54,7 +54,7 @@ async function createRealtimeSession() {
 ```bash
 curl https://api.zorveus.com/v1/realtime/client_secrets \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_inference_key" \
+  -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "session": {
       "type": "realtime",

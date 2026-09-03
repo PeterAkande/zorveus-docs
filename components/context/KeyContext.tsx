@@ -14,7 +14,7 @@ interface KeyContextType {
 }
 
 const KeyContext = createContext<KeyContextType>({
-  apiKey: 'zrv_your_inference_key',
+  apiKey: 'zrv_your_api_key',
   setApiKey: () => {},
   serviceKey: 'zrv_svc_your_service_key',
   setServiceKey: () => {},
@@ -27,7 +27,7 @@ const KeyContext = createContext<KeyContextType>({
 const STORAGE_LANG_KEY = 'zorveus_docs_lang_pref';
 
 export function KeyProvider({ children }: { children: ReactNode }) {
-  const [apiKey, setApiKey] = useState('zrv_your_inference_key');
+  const [apiKey, setApiKey] = useState('zrv_your_api_key');
   const [serviceKey, setServiceKey] = useState('zrv_svc_your_service_key');
   const [clientId, setClientId] = useState('zrv_client_your_client_id');
   const [activeLanguage, setActiveLanguageState] = useState('python');
