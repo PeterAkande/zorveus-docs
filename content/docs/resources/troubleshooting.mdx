@@ -46,9 +46,27 @@ An app-connection cap applies to the connection's combined usage. A product-user
 
 ## Product-user credits block the request
 
-`zorveus_product_user_credits_required` means the connection requires product-user attribution but the request did not resolve a product user. Send `metadata.external_user_id` or `metadata.product_end_user_id`.
+When a product user exhausts their active credits under an enforced credit mode, the gateway rejects the request with `403 Forbidden`:
 
-`zorveus_product_user_credits_insufficient` means the resolved product user lacks enough active, unexpired credit. Grant more credit, change the connection's `credit_mode`, or remove product-user attribution when `enforce_if_present` should use the organization wallet.
+```json
+{
+  "error": {
+    "message": "This product user does not have enough credits for this request.",
+    "code": "403",
+    "provider_specific_fields": {
+      "error": {
+        "code": "zorveus_product_user_credits_insufficient",
+        "message": "This product user does not have enough credits for this request."
+      }
+    }
+  }
+}
+```
+
+In official OpenAI and Zorveus SDK clients, this error raises `openai.PermissionDeniedError`:
+
+- `zorveus_product_user_credits_insufficient` (HTTP 403): The resolved product user lacks enough active, unexpired credit. Grant more credit via `grantCreditByExternalId`, change the connection's `credit_mode`, or prompt the user to top up.
+- `zorveus_product_user_credits_required` (HTTP 400): The connection requires product-user attribution, but the request omitted `metadata.external_user_id` or `metadata.product_end_user_id`.
 
 ## Product-user details do not appear
 

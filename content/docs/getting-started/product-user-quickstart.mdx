@@ -218,6 +218,48 @@ The gateway does not use the OpenAI top-level `user` field as an `external_user_
 
 ---
 
+## Handle exhausted product-user credits
+
+When an attributed product user runs out of credits under an enforced credit mode, the gateway rejects the request with HTTP `403 Forbidden` and error code `zorveus_product_user_credits_insufficient`.
+
+Standard OpenAI and Zorveus SDK clients raise `PermissionDeniedError`:
+
+<CodeGroup titles={["Python (zorveus / openai)", "TypeScript (@zorveus/sdk / openai)"]}>
+
+```python
+from openai import PermissionDeniedError
+
+try:
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", "content": "Hello!"}],
+        metadata={"external_user_id": "usr_sara_101"},
+    )
+except PermissionDeniedError as err:
+    # Product user credit balance exhausted
+    print(f"User requires top up: {err.message}")
+    # Prompt the user to upgrade or grant credits via Service Key
+```
+
+```typescript
+try {
+  const completion = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages: [{ role: "user", content: "Hello!" }],
+    metadata: { external_user_id: "usr_sara_101" },
+  });
+} catch (err: any) {
+  if (err?.status === 403) {
+    // Product user credit balance exhausted
+    console.warn("User out of credits:", err.message);
+  }
+}
+```
+
+</CodeGroup>
+
+---
+
 ## Verify the product user
 
 After making the request:

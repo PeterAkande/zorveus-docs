@@ -28,6 +28,8 @@ Common gateway codes include:
 | `zorveus_unsupported_model` | 400 | Discover a currently available model with `GET /v1/models`. |
 | `zorveus_reservation_insufficient_balance` | 402 | Add wallet funds or correct the funding route. |
 | `zorveus_cap_exceeded` | 429 | Increase the applicable cap or wait for its period to reset. |
+| `zorveus_product_user_credits_insufficient` | 403 | Product user has exhausted allocated credits. Grant credits or switch credit mode. |
+| `zorveus_product_user_credits_required` | 400 | Connection enforces user credits. Pass `metadata.external_user_id`. |
 
 Use the code for program logic. Message wording can change. Retry only transient failures and rate limits; do not retry authentication, policy, or balance failures without changing the request or account state.
 
