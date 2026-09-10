@@ -3,34 +3,59 @@ title: Error handling
 description: Handle product API and OpenAI-compatible gateway errors without relying on message text.
 ---
 
-Product and management routes return a structured Zorveus error with a stable `code` and human-readable `message`. Gateway routes return an OpenAI-compatible `error` object. Log the request identifier when one is available.
+Product and management routes return a structured Zorveus error with a stable `code` and human-readable `message`. Gateway routes return an OpenAI-compatible `error` object. Always branch on error `code` and HTTP status rather than parsing message strings.
 
-Endpoints on `https://api.zorveus.com` return standard JSON error envelopes:
+---
+
+## Standard error codes
+
+| Code | HTTP status | Meaning | Resolution |
+| :--- | :--- | :--- | :--- |
+| `zorveus_malformed_or_missing_key` | 401 | Missing or malformed Bearer key. | Check API key header configuration. |
+| `zorveus_unknown_key` | 401 | Key does not exist in this environment. | Verify workspace environment and key hash. |
+| `zorveus_key_inactive` | 401 | API key has been revoked or deactivated. | Generate a replacement API key. |
+| `zorveus_unsupported_model` | 400 | Model string is not recognized by Zorveus. | Discover available models with `GET /v1/models`. |
+| `zorveus_product_user_credits_required` | 400 | Connection enforces user credits but no product user was supplied. | Supply `user` or `metadata.external_user_id`. |
+| `zorveus_reservation_insufficient_balance` | 402 | Organization wallet lacks funds to cover estimated wallet charge or BYOK fee. | Prompt organization admin to top up the wallet balance. |
+| `zorveus_product_user_allowance_insufficient` | 403 | Request estimate exceeds product user remaining base cap and credits. | Reduce request output, increase cap, or grant credits. |
+| `zorveus_cap_exceeded` | 403 | Key or member cap has been reached and no credits are available. | Increase spending cap or wait for cap period reset. |
+| `zorveus_model_not_allowed` | 403 | Model is blocked by the connection allowed models policy. | Adjust model access policies on the app connection. |
+| `zorveus_app_connection_not_found` | 403 | Inference key or connection is invalid or revoked. | Verify app connection configuration. |
+| `zorveus_reservation_conflict` | 409 | Idempotency key was reused with conflicting parameters. | Ensure idempotency keys are uniquely generated per request. |
+| `rate_limit_exceeded` | 429 | Upstream model provider rate limit reached. | Retry with exponential backoff. |
+
+---
+
+## Allowance error payload
+
+When a request is blocked because an attributed product user has insufficient allowance, the gateway returns HTTP `403 Forbidden` with a detailed `params` breakdown:
 
 ```json
 {
   "error": {
-    "code": "zorveus_invalid_parameter",
-    "message": "The external_user_id field cannot exceed 128 characters.",
-    "request_id": "req_84102941"
+    "code": "zorveus_product_user_allowance_insufficient",
+    "message": "This request is estimated to cost 0.010000000000 USD, but the product user has 0.004720000000 USD of AI allowance remaining.",
+    "params": {
+      "cap_rule_id": "cap_123",
+      "cap_period": "monthly",
+      "currency": "USD",
+      "cap_amount": "0.010000000000",
+      "settled_spend_this_period": "0.005280000000",
+      "active_reservations_amount": "0.000000000000",
+      "remaining_base_allowance": "0.004720000000",
+      "promotional_credit_balance": "0.000000000000",
+      "available_allowance": "0.004720000000",
+      "estimated_request_cost": "0.010000000000",
+      "shortfall": "0.005280000000"
+    }
   }
 }
 ```
 
-Common gateway codes include:
+The OpenAI-compatible gateway surfaces this payload at `error.provider_specific_fields.error`.
 
-| Code | Typical status | Response |
-| --- | --- | --- |
-| `zorveus_malformed_or_missing_key` | 401 | Send a Bearer API key. |
-| `zorveus_unknown_key` | 401 | Check that the key belongs to this environment. |
-| `zorveus_key_inactive` | 401 | Replace a revoked or inactive key. |
-| `zorveus_model_not_allowed` | 403 | Request a model allowed by the connection and key. |
-| `zorveus_unsupported_model` | 400 | Discover a currently available model with `GET /v1/models`. |
-| `zorveus_reservation_insufficient_balance` | 402 | Add wallet funds or correct the funding route. |
-| `zorveus_cap_exceeded` | 429 | Increase the applicable cap or wait for its period to reset. |
-| `zorveus_product_user_credits_insufficient` | 403 | Product user has exhausted allocated credits. Grant credits or switch credit mode. |
-| `zorveus_product_user_credits_required` | 400 | Connection enforces user credits. Pass `metadata.external_user_id`. |
+All monetary amounts in `params` are decimal strings with 12 fractional digits. Parse them with an exact decimal type instead of binary floating point.
 
-Use the code for program logic. Message wording can change. Retry only transient failures and rate limits; do not retry authentication, policy, or balance failures without changing the request or account state.
+During migration, clients should also accept the legacy code `zorveus_product_user_credits_insufficient`. New user interfaces should display the allowance error parameters, because available allowance reflects both base cap and promotional credits.
 
 See [Troubleshooting](/resources/troubleshooting) for diagnosis by symptom.

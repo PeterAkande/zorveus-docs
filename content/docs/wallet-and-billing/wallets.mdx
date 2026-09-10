@@ -1,20 +1,40 @@
 ---
-title: Wallets & Balances
+title: Wallets and balances
 description: How available balances, pre-flight fund reservations, and ledger settlements operate.
 ---
 
-# Wallets & Balances
-
-Each spendable organization (`startup` and `personal`) contains an immutable double-entry ledger wallet.
+Each spendable organization (`startup` and `personal`) contains an append-only ledger wallet denominated in one currency.
 
 ---
 
-## Balance Types
+## Balance types
 
-- **Available Balance**: Uncommitted funds ready for new inference requests.
-- **Reserved Balance**: Funds locked for in-flight streaming requests.
-- **Total Balance**: Sum of available and reserved balances.
+A wallet tracks two distinct balance states:
+
+- **Available balance (`available_balance`)**: Uncommitted funds ready to fund new wallet reservations or BYOK platform fees.
+- **Reserved balance (`reserved_balance`)**: Funds held for in-flight requests that have started but not reached final settlement.
+- **Total balance**: The arithmetic sum of available and reserved balances.
 
 ```text
-Total Balance ($50.00) = Available ($48.20) + Reserved ($1.80)
+Total balance ($50.00) = available ($48.20) + reserved ($1.80)
 ```
+
+---
+
+## Reservation and settlement lifecycle
+
+To prevent race conditions and double-spending across concurrent requests, Zorveus uses a two-phase reservation lifecycle:
+
+1. **Pre-flight reservation**: Before calling the model provider, Zorveus checks `available_balance`. If funds are sufficient, the estimated cost moves from `available_balance` to `reserved_balance`.
+2. **Provider execution**: The gateway streams tokens from the model provider.
+3. **Settlement**: Upon stream completion, Zorveus calculates the actual cost:
+   - The actual cost is permanently debited from `reserved_balance`.
+   - Any unused reservation amount immediately returns to `available_balance`.
+
+If `available_balance` cannot cover the estimated reservation, the gateway returns HTTP `402 Payment Required` with error code `zorveus_reservation_insufficient_balance`.
+
+---
+
+## Append-only accounting
+
+Zorveus uses an append-only ledger rather than formal double-entry accounting. Balance modifications are recorded as immutable ledger entries. Adjustments and refunds create compensating entries rather than mutating historical records.

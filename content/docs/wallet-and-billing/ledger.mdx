@@ -1,17 +1,45 @@
 ---
 title: Wallet ledger
-description: Inspect the entries that explain changes to an organization wallet.
+description: Inspect the entries that explain changes to an organization wallet and product-user credit balances.
 ---
 
-# Wallet Ledger
-The Zorveus Ledger records every balance modification as an immutable transaction.
+The Zorveus ledger records every balance modification as an immutable entry. Ledger corrections always use compensating entries rather than row mutations or deletions.
 
 ---
 
-## Ledger Entry Types
+## Wallet ledger entry types
 
-- `top_up`: Inbound payment funds credited.
-- `inference_reservation`: Temporary hold during streaming.
-- `inference_settlement`: Final settled token charge.
-- `promotion_credit`: Promotional grant applied.
-- `refund`: Balance adjustment or reversal.
+Wallet entries explain changes to an organization cash balance:
+
+| Entry type | Description |
+| :--- | :--- |
+| `top_up` | Inbound checkout funds credited to available balance. |
+| `reservation_hold` | Temporary hold placed before provider execution. |
+| `reservation_release` | Unused reservation funds returned to available balance after call completion. |
+| `usage_debit` | Final settled token charge debited for wallet-funded inference. |
+| `byok_platform_fee` | Platform fee debited for BYOK usage exceeding the free monthly threshold. |
+| `refund` | Balance adjustment or payment reversal. |
+| `chargeback` | Payment dispute deduction. |
+| `administrative_adjustment` | Manual credit or debit correction applied by support. |
+
+---
+
+## Product-user credit ledger entry types
+
+Product-user credit ledgers track virtual credit grants assigned to end users:
+
+| Entry type | Description |
+| :--- | :--- |
+| `credit_grant_creation` | Promotional, trial, or purchased credit grant allocated to a product user. |
+| `credit_reservation` | Hold placed on active credit grants for virtual spend above base cap. |
+| `credit_settlement` | Final deduction from credit grants for completed virtual spend above base cap. |
+| `credit_release` | Unused credit reservation returned to the product user's available credits. |
+| `credit_expiry` | Unused credit deducted upon reaching its expiration timestamp. |
+| `credit_revocation` | Unused credit removed via service key or dashboard action. |
+| `administrative_adjustment` | Manual credit correction applied by your application. |
+
+---
+
+## Single transaction finalization
+
+When an inference call completes, Zorveus finalizes the usage event, wallet deduction, virtual cap accounting, credit consumption, and ledger entries in a single database transaction. This guarantees that wallet charges and virtual allowances remain synchronized.

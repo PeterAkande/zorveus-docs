@@ -1,16 +1,84 @@
 ---
 title: Spending caps
-description: Configure monthly spending limits for organizations, app connections, and product users.
+description: Configure daily, monthly, or lifetime virtual allowance limits for organizations, app connections, and product users.
 ---
 
-Spending caps stop new reservations after the applicable monthly limit is reached. A cap is a guardrail, not a prepaid balance.
+Spending caps define the base virtual allowance for a period. A cap is a spend guardrail, not a prepaid balance.
 
-## Cap scopes
+---
 
-- An organization cap limits aggregate organization spend.
-- An app-connection cap limits aggregate spend through that connection and all keys attached to it.
-- A product-user cap limits the attributed end user’s spend.
+## Cap scopes and periods
 
-Product-user credit grants are separate from caps. A grant creates spendable credit for one product user; a cap limits how much that user may spend during the period.
+Caps can be defined at three levels:
 
-When more than one cap applies, the request must fit within every limit. Existing settled usage is not reversed when you lower a cap.
+- **Organization cap**: Limits total aggregate virtual spend across all connections in the organization.
+- **App-connection cap**: Limits total virtual spend through that app connection and all keys attached to it.
+- **Product-user cap**: Defines the base allowance for an individual product user on that key.
+
+Each cap can run on a `daily`, `monthly`, or `lifetime` period.
+
+When multiple caps apply, a request must satisfy every applicable limit. Settled usage is never reversed when you lower a cap.
+
+---
+
+## Allowance formula and consumption order
+
+When an inference key has a configured cap, total available allowance combines the remaining base allowance and any active product-user credits:
+
+```text
+remaining allowance = remaining base allowance + available product-user credits
+```
+
+The remaining base allowance is calculated as:
+
+```text
+remaining base allowance = max(0, cap amount - completed period virtual spend - active reservations)
+```
+
+### Base cap is consumed first
+
+Usage consumes allowance in this order:
+
+1. **Remaining base allowance** on the inference key.
+2. **Available product-user credits** (oldest expiring grants first).
+3. **Uncovered virtual spend** (in non-blocking track-only mode or request overruns).
+
+```text
+Configured monthly cap:        $10.00
+Virtual spend so far:           $8.00
+Remaining base allowance:       $2.00
+Available user credits:         $5.00
+
+Incoming request estimate:      $3.00
+Base allowance reserved:        $2.00
+Credits reserved:               $1.00
+Remaining credits after call:   $4.00
+```
+
+The first $2.00 is covered by the base cap. Only the $1.00 excess is deducted from product-user credits.
+
+---
+
+## When no cap exists
+
+If an inference key has no cap rule, virtual allowance is unlimited across all credit modes:
+
+- The request is allowed through.
+- Virtual spend is recorded in the ledger.
+- Zero product-user credits are consumed.
+
+Product-user credits extend an existing cap. They do not create a ceiling when no cap exists.
+
+---
+
+## Allowance overrun policies
+
+When a model response exceeds remaining allowance, the connection `overrun_policy` determines how Zorveus responds:
+
+| Policy | Behavior on active request | Excess virtual spend | Future allowance |
+| :--- | :--- | :--- | :--- |
+| `limit_output` (default) | Lowers provider output limit to the affordable amount | Records unexpected variance as uncovered | No planned debt |
+| `allow_overrun` | Sends the full client or safe output limit | Records excess as uncovered virtual spend | Forgiven when new allowance becomes available |
+| `carry_overrun_forward` | Sends the full client or safe output limit | Records excess as uncovered spend and debt | Repaid automatically from later credit grants or base cap resets |
+
+If an enforced request cannot be admitted, the gateway rejects the call with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient` or `zorveus_cap_exceeded`).

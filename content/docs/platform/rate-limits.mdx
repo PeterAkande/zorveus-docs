@@ -5,7 +5,7 @@ description: Handle Zorveus and upstream provider throttling safely.
 
 Rate limits vary by route and deployment. Inference can also be limited by the selected upstream provider or BYOK account. Zorveus does not publish one universal management or inference quota.
 
-When a response is `429`, inspect its error code before retrying. `zorveus_cap_exceeded` requires a cap or account change; a transient rate-limit error can be retried.
+When an upstream provider throttles a request, the gateway returns `429 Too Many Requests`. Unlike policy or cap rejections (which return `403 Forbidden`), transient 429 errors can be retried safely.
 
 For retryable requests:
 
@@ -15,4 +15,4 @@ For retryable requests:
 4. Retry only requests that are safe to repeat or have an endpoint-specific idempotency contract.
 5. Reduce concurrency if throttling persists.
 
-Do not retry invalid keys, disallowed models, insufficient balances, or exhausted caps without first resolving their cause.
+Do not retry authentication failures (401), wallet balance shortfalls (402), or exhausted caps and allowances (403) without first resolving their root cause.

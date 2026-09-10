@@ -1,11 +1,11 @@
 ---
 title: Product-user credit grants
-description: Allocate consumable credit to one product user and choose how the connection enforces it.
+description: Allocate consumable credit to one product user and configure connection credit modes.
 ---
 
-Credit grants are balances assigned to a product user. They are separate from organization wallet funds and spending caps.
+Credit grants allocate spendable virtual credit to a product user in your application. They are distinct from organization wallet balances and spending caps.
 
-Create or resolve the user and grant credit in one service-key request:
+Create or resolve the user and grant credit in one service key request:
 
 <ApiEndpoint method="POST" path="/product-users/by-external-id/credit-grants" auth="service_key" />
 
@@ -24,20 +24,31 @@ curl -X POST https://api.zorveus.com/product-users/by-external-id/credit-grants 
   }'
 ```
 
-The API key `credit_mode` determines enforcement:
+---
 
-- `disabled` ignores product-user credits.
-- `track_only` records attribution without blocking on credit.
-- `enforce_if_present` enforces credit when a product user is attributed.
-- `enforce` requires product-user attribution and sufficient credit.
+## Connection credit enforcement modes
 
-Active grants are consumed according to the backend’s grant ordering. Do not implement a client-side deduction hierarchy. Read the credit-summary endpoint for the authoritative available balance.
+The app connection defines a `credit_mode` that governs allowance enforcement:
 
+| Mode | Request with product user | Request without product user | Behavior |
+| :--- | :--- | :--- | :--- |
+| `enforce_if_present` (default) | Enforces base cap plus credits | Bypasses cap checks, records virtual spend | Recommended for keys serving both user traffic and internal jobs. |
+| `enforce` | Enforces base cap plus credits | Enforces key-level cap | Strict enforcement across all traffic. |
+| `track_only` | Allocates cap and credits without blocking | Allocates cap without blocking | Never rejects for allowance. Records `uncovered_virtual_spend`. |
+| `disabled` | Bypasses cap checks and credits | Bypasses cap checks | Records virtual spend for reporting without quota limits. |
 
-## Balance Deduction 
+User OAuth app connections always return `credit_mode: "enforce"`. The update endpoint rejects any other value for user OAuth connections.
 
-When a product user sends an inference request, Zorveus deducts usage costs using the following order:
-1. **API Key Spending Cap Allowance.** If the product user call is made using an API key with a spending cap, Zorveus first checks if the request is within the remaining allowance.
-2. **Active Credit Grants (Earliest Expiration First).** Zorveus then burns active non-expired credit grants assigned to the product user, if any are present.
+---
 
-If no active credit grants are present and the allowance is exhausted, the request is rejected with an error response indicating insufficient funds.
+## Allowance formula and deduction order
+
+When a product user sends an inference request on a capped key, Zorveus consumes allowance in this order:
+
+1. **Remaining base allowance**: Zorveus checks the inference key spending cap. If base allowance remains, usage is applied to the cap first.
+2. **Active credit grants (earliest expiration first)**: If the request exceeds remaining base allowance, the excess is deducted from active unexpired credit grants.
+3. **Uncovered virtual spend**: In non-blocking `track_only` mode or when overruns occur, spend beyond the cap and credits is recorded as uncovered virtual spend.
+
+If an inference key has no cap rule, virtual allowance is unlimited across all credit modes. The request succeeds, virtual spend is recorded, and zero product-user credits are consumed. Credits extend an existing cap; they do not enforce a quota where no cap is configured.
+
+If remaining base allowance and active credits cannot cover the estimated request, the gateway rejects the request with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient`).

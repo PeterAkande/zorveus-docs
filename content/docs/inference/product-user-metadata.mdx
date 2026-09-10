@@ -3,29 +3,32 @@ title: Product-user metadata
 description: Pass custom customer identifiers, names, emails, and tracking tags inside inference requests.
 ---
 
-Send product-user metadata with an OpenAI-compatible request to attribute usage and apply product-user controls.
+Send product-user metadata with an OpenAI-compatible request to attribute usage, track customer analytics, and enforce spending caps and credits.
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
 ---
 
-## Supported metadata fields
+## Supported request fields
 
-The request `metadata` object accepts these fields. In the Python OpenAI client, put the object at `extra_body.metadata`.
+Zorveus accepts user attribution directly through the standard OpenAI request body:
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `external_user_id` | string | Stable customer ID from your application. |
-| `product_end_user_id` | string | Internal Zorveus product-user ID. |
-| `product_user.display_name` | string | Name shown in the dashboard. |
-| `product_user.email` | string | Email used to derive the stored email hash. |
-| `product_user.metadata` | object | Your custom fields, such as `plan` or `workspace_id`. |
+| `user` | string | Standard OpenAI end-user ID from your application (such as `"usr_123"`). Mapped directly to `external_user_id`. |
+| `metadata.external_user_id` | string | Alternative way to pass your application customer ID inside the metadata object. |
+| `metadata.product_end_user_id` | string | Internal Zorveus product-user ID (`"peu_..."`) if already resolved. |
+| `metadata.product_user.display_name` | string | Customer display name shown in the dashboard. |
+| `metadata.product_user.email` | string | Customer email address. |
+| `metadata.product_user.metadata` | object | Custom key-value pairs (such as `{"plan": "pro"}`). |
 
 ---
 
-## Send metadata
+## Attribution examples
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+You can supply attribution using the native OpenAI `user` field or the nested `metadata` dictionary:
+
+<CodeGroup titles={["Python (Standard OpenAI user field)", "Python (extra_body metadata)", "TypeScript (OpenAI SDK)"]}>
 
 ```python
 from openai import OpenAI
@@ -35,12 +38,31 @@ client = OpenAI(
     api_key="zrv_your_api_key",
 )
 
+# Pass customer ID directly using OpenAI's standard user parameter
 response = client.chat.completions.create(
     model="openai/gpt-4.1-mini",
     messages=[{"role": "user", "content": "Generate 3 taglines for an electric bicycle."}],
+    user="cust_uuid_9921",
+)
+
+print(response.choices[0].message.content)
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_api_key",
+)
+
+# Pass rich profile metadata inside extra_body
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Generate 3 taglines for an electric bicycle."}],
+    user="cust_uuid_9921",
     extra_body={
         "metadata": {
-            "external_user_id": "cust_uuid_9921",
             "product_user": {
                 "display_name": "Alex Mercer",
                 "email": "alex.mercer@company.io",
@@ -65,9 +87,9 @@ async function main() {
   const completion = await client.chat.completions.create({
     model: "openai/gpt-4.1-mini",
     messages: [{ role: "user", content: "Generate 3 taglines for an electric bicycle." }],
+    user: "cust_uuid_9921",
     ...({
       metadata: {
-        external_user_id: "cust_uuid_9921",
         product_user: {
           display_name: "Alex Mercer",
           email: "alex.mercer@company.io",
@@ -85,4 +107,22 @@ main();
 
 </CodeGroup>
 
-If you provide both IDs, `product_end_user_id` identifies the existing Zorveus record. `external_user_id` remains your application-facing lookup key. The gateway does not infer `external_user_id` from the OpenAI `user` field.
+---
+
+## Identifier resolution and scoping
+
+- **`user` and `external_user_id`**: The gateway maps the top-level `user` field directly to `external_user_id`. If you provide both `user` and `metadata.external_user_id`, ensure they match.
+- **`product_end_user_id`**: If you pass both the internal Zorveus ID and an external ID, Zorveus verifies they refer to the same record.
+- **Key-bound attribution**: When an API key is provisioned specifically for one end user, the gateway binds the product user automatically. Requests using that key inherit the product user without passing any body fields.
+- **Invalid identifiers**: If a supplied product-user identifier cannot be resolved, Zorveus returns HTTP `403 Forbidden`. It will never treat an invalid user ID as an unmetered call.
+
+---
+
+## Response tracking headers
+
+Zorveus returns tracking headers in every inference response:
+
+| Header | Description |
+| :--- | :--- |
+| `x-zorveus-request-id` | Unique request identifier (`zreq_...`) for audit tracing and debugging. |
+| `x-zorveus-reservation-id` | Unique reservation identifier (`resv_...`) held for the request. |

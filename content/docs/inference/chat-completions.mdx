@@ -166,8 +166,10 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 | Error Code | HTTP Status | Root Cause & Resolution |
 | :--- | :--- | :--- |
-| `invalid_api_key` | 401 | The `zrv_...` key is missing, invalid, or revoked. Generate a new key in the dashboard. |
-| `model_not_allowed` | 403 | The requested model is outside your App Connection's allowed model policy. Update allowed model wildcards. |
-| `insufficient_balance` | 402 | Organization wallet balance is exhausted and no active BYOK credential matches. Top up balance or add BYOK key. |
-| `cap_exceeded` | 429 | The organization, connection, or product-user periodic spending cap has been reached. |
-| `zorveus_product_user_credits_insufficient` | 403 | The attributed product user has exhausted their active credits under an enforced credit mode. |
+| `zorveus_malformed_or_missing_key` | 401 | The API key is missing, invalid, or revoked. Check key configuration. |
+| `zorveus_reservation_insufficient_balance` | 402 | Organization wallet lacks funds to cover the estimated wallet charge or BYOK platform fee. Top up wallet balance. |
+| `zorveus_product_user_allowance_insufficient` | 403 | The estimated request cost exceeds the product user's remaining base allowance plus promotional credits. |
+| `zorveus_cap_exceeded` | 403 | The organization, connection, or product-user spending cap has been reached. |
+| `zorveus_model_not_allowed` | 403 | The requested model is outside your connection's allowed model policy. |
+| `zorveus_reservation_conflict` | 409 | Idempotency key was reused with mismatched request parameters. |
+| `rate_limit_exceeded` | 429 | Upstream model provider rate limit reached. Retry with exponential backoff. |

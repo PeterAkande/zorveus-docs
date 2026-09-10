@@ -1,6 +1,6 @@
 ---
 title: BYOK pricing and cost accounting
-description: Understand pricing thresholds, wallet settlement, and provider costs for Bring Your Own Key requests.
+description: Understand pricing thresholds, wallet settlement, virtual spend, and provider costs for Bring Your Own Key requests.
 ---
 
 When your organization routes requests using Bring Your Own Key (BYOK) credentials, upstream model providers bill your accounts directly while Zorveus provides gateway routing, spend caps, and attribution.
@@ -13,57 +13,85 @@ When your organization routes requests using Bring Your Own Key (BYOK) credentia
 
 Zorveus includes a free monthly routing allowance for all BYOK traffic:
 
-| Monthly BYOK traffic volume | Zorveus platform fee | Upstream provider billing |
+| Monthly BYOK provider cost | Zorveus platform fee | Upstream provider billing |
 | :--- | :--- | :--- |
-| **First $25,000 / month** | **$0.00** (`sell_cost = $0.00`) | Upstream provider bills you directly |
-| **Above $25,000 / month** | Configured volume platform fee | Upstream provider bills you directly |
+| First $25,000 / month | $0.00 (`sell_cost = $0.00`) | Upstream provider bills you directly |
+| Above $25,000 / month | Configured volume platform fee | Upstream provider bills you directly |
 
-<Callout type="info" title="Free Tier Threshold">
-  Every organization receives **$25,000 per month** of free BYOK routing traffic. The Zorveus platform fee only applies to the incremental volume exceeding $25,000 within a calendar month.
+<Callout type="info" title="Free tier threshold">
+  Every organization receives $25,000 per month of free BYOK routing traffic. The Zorveus platform fee only applies to the incremental provider spend exceeding $25,000 within a calendar month.
 </Callout>
 
 ---
 
-## How usage accounting works
+## The three financial amounts in BYOK
 
-For every inference request routed through a BYOK credential, the Zorveus gateway records a usage event containing two distinct cost fields:
+Every BYOK inference call generates three distinct financial amounts:
 
-### 1. Provider cost (`provider_cost`)
-* Represents the estimated cost charged by the upstream model provider (e.g. OpenAI, Anthropic, Google Gemini).
-* Recorded purely for analytics, customer attribution, and spend cap enforcement.
-* **Not debited from your Zorveus wallet** (the upstream provider bills your credit card or invoice directly).
+### 1. Virtual spend (`virtual_spend`)
+- Reference-priced value of AI usage consumed against spending caps and product-user credits.
+- Calculated with the exact same reference pricing as wallet-funded requests.
+- Changing from wallet to BYOK does not alter how much product allowance your customers consume.
 
 ### 2. Sell cost (`sell_cost`)
-* Represents the amount debited from your Zorveus organization wallet.
-* Under the $25k/month free tier, `sell_cost` is `$0.00`.
-* For volume exceeding $25k/month, `sell_cost` reflects the configured platform routing fee.
+- Amount deducted from your Zorveus organization wallet.
+- Under the free monthly threshold, `sell_cost` is `$0.000000000000`.
+- For volume exceeding the threshold, `sell_cost` reflects the configured platform routing fee.
+
+### 3. Provider cost (`provider_cost`)
+- Upstream wholesale cost charged by the model provider (OpenAI, Anthropic, Google, etc.).
+- The provider bills your direct credit card or invoice. Zorveus does not pay the provider for BYOK calls.
+- Recorded in Zorveus for cost reporting and monthly fee calculation.
 
 ---
 
-## Sample usage event
+## Sample BYOK usage event
 
 Here is how a BYOK usage record appears in webhook events and API responses:
 
 ```json
 {
-  "event_id": "evt_01J8N2K3P4Q5R6S7T8U9V0W1X2",
-  "billing_mode": "byok",
+  "usage_event_id": "ue_01J8N2K3P4Q5R6S7T8U9V0W1X2",
+  "billing_mode": "byok_external",
   "provider": "openai",
   "model": "openai/gpt-4.1-mini",
-  "prompt_tokens": 850,
-  "completion_tokens": 150,
-  "total_tokens": 1000,
-  "provider_cost": "0.000210",
-  "sell_cost": "0.000000",
+  "input_tokens": 1000,
+  "output_tokens": 150,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0,
+  "virtual_spend": "0.000350000000",
+  "provider_cost": "0.000210000000",
+  "sell_cost": "0.000000000000",
   "currency": "USD",
-  "external_user_id": "usr_customer_8492"
+  "external_user_id": "usr_customer_8492",
+  "status": "succeeded"
 }
 ```
 
 ---
 
-## What happens when you exceed $25k/month
+## Platform fee calculation and wallet funding
 
-1. **Continuous routing**: Your AI traffic is never interrupted when crossing the $25,000 monthly threshold.
-2. **Platform fee settlement**: The configured platform fee for volume above $25k is automatically deducted from your organization's Zorveus prepaid wallet balance.
-3. **Wallet balance reminders**: Maintain a funded Zorveus wallet balance if your organization anticipates monthly BYOK traffic above $25,000.
+When monthly BYOK provider cost crosses the $25,000 threshold, Zorveus calculates the platform fee only on the excess:
+
+```text
+feeable provider cost =
+    max(0, monthly provider cost after request - threshold)
+    - max(0, monthly provider cost before request - threshold)
+
+platform fee = feeable provider cost * fee percentage
+```
+
+The organization wallet pays this fee. Product-user credits never pay platform fees.
+
+Before dispatching a feeable BYOK request, Zorveus places an estimated fee reservation on the organization wallet. If the wallet lacks funds, the request returns HTTP `402 Payment Required` (`zorveus_reservation_insufficient_balance`). Maintain a funded wallet balance if you expect monthly BYOK traffic above $25,000.
+
+---
+
+## Automatic fallback to wallet
+
+Organizations can enable `auto_fallback_to_wallet` on their BYOK routing policy:
+
+1. **Routing order**: Zorveus tries eligible BYOK credentials first. If all BYOK credentials encounter provider rate limits (429), quota exhaustion, or timeouts, the gateway routes to Zorveus-managed wallet routes.
+2. **Fallback event**: When fallback succeeds, the usage event records `billing_mode: "wallet"` and logs the failed BYOK attempts in the provider attempt history.
+3. **No fallback on user errors**: Fallback never triggers on invalid prompts, context length errors, or bad parameters (HTTP 400).

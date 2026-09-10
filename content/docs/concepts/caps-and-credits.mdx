@@ -1,42 +1,83 @@
 ---
-title: Caps and Credits
-description: Compare hard spending limits (caps) with consumable product-user credit grants.
+title: Caps and credits
+description: Compare base spending allowances with consumable product-user credit grants.
 ---
 
-# Caps and Credits
-
-Zorveus provides two distinct controls to govern AI expenditures: **Spending Caps** and **Credit Grants**.
+Zorveus provides two distinct controls to govern AI expenditures: spending caps and credit grants.
 
 ---
 
-## Caps vs. Credits at a Glance
+## Caps and credits at a glance
 
-| Feature | Spending Cap | Credit Grant |
+| Feature | Spending cap | Credit grant |
 | :--- | :--- | :--- |
-| **Purpose** | Hard ceiling on financial liability | Allocate consumable promotional or paid value |
-| **Reset Behavior** | Resets periodically (e.g. monthly) | Non-replenishing (consumes balance until 0) |
-| **Applied To** | Organization, App Connection, Product User | Product User |
-| **Enforcement** | Blocks requests once ceiling is reached | Blocks requests when credit balance is exhausted |
-| **Funding Source** | Organization Wallet or BYOK | Startup Organization budget |
+| Purpose | Base virtual allowance for a period | Consumable credits owned by one product user |
+| Reset behavior | Resets periodically (daily, monthly, or lifetime) | Non-replenishing, expires at set date or consumed to zero |
+| Applied to | Organization, app connection, product user | Product user in one application |
+| Enforcement | Rejects when base allowance plus credits are exhausted | Extends base allowance before requests are rejected |
+| Funding source | Organization wallet or BYOK | Granted by your application, extends virtual allowance |
 
 ---
 
-## 1. Spending Caps
+## Spending caps
 
-A **Spending Cap** specifies a maximum allowable spend over a rolling window (e.g. `$25.00` per month):
-- Evaluated prior to pre-flight token reservation.
-- If the current period's spend plus the pending reservation exceeds the cap, the gateway rejects the request with `429 Too Many Requests` (`error.code: "cap_exceeded"`).
-- Caps can be configured at three distinct levels:
-  1. **Organization Cap**: Overall organization spend limit.
-  2. **Connection / Key Cap**: Specific limit for a single app connection or OAuth token.
-  3. **Product-User Cap**: Per-user limit enforcing fair use across your customer base.
+A spending cap sets the base virtual allowance over a period:
+
+- Evaluated during pre-flight token reservation.
+- Configured across daily, monthly, or lifetime periods.
+- Rejection returns `403 Forbidden` with error code `zorveus_cap_exceeded` or `zorveus_product_user_allowance_insufficient`.
+- Caps apply at three distinct levels:
+  1. Organization cap: overall organization spend limit.
+  2. Connection or key cap: specific limit for an app connection or API key.
+  3. Product-user cap: per-user base allowance on that key.
+
+If an inference key has no cap rule, virtual allowance is unlimited across all credit modes. Requests pass through, virtual spend is recorded, and zero product-user credits are consumed. Credits extend a configured cap, but they do not create a cap where none exists.
 
 ---
 
-## 2. Product-User Credit Grants
+## Product-user credit grants
 
-A **Credit Grant** assigns a finite dollar value (e.g. `$5.00` trial credit) to a product user:
+A credit grant assigns spendable credit to one product user:
+
 - Multiple grants stack additively.
-- Grants with the earliest expiration date are debited first (FIFO).
-- You can revoke remaining balances at any time via the Management API.
-- Zorveus remains agnostic to your application tier names (Free, Pro, Enterprise); you translate your billing rules into grants.
+- Eligible grants are consumed by earliest expiry first.
+- Grants are not organization wallet funds. Granting credits does not deposit money into the organization wallet, and consuming credits does not pay an upstream model provider.
+- Remaining balances can be inspected or revoked via the service key API.
+
+---
+
+## Allowance formula and consumption order
+
+When an inference key has a configured cap, the available allowance is:
+
+```text
+remaining allowance = remaining base allowance + available product-user credits
+```
+
+The remaining base allowance is:
+
+```text
+remaining base allowance = max(0, cap amount - completed period virtual spend - active reservations)
+```
+
+### Consumption order: base cap first
+
+Usage consumes allowance in this order:
+
+1. Remaining base allowance on the key.
+2. Available product-user credits (oldest expiring first).
+3. Uncovered virtual spend (in non-blocking track-only mode or request overruns).
+
+For example, on a $10 monthly cap with $8 spent so far, the user has $2 base allowance remaining. If the user holds $5 in credits and sends a request estimated at $3, Zorveus reserves the first $2 from the base cap and only $1 from credits.
+
+---
+
+## Allowance overrun policies
+
+App connections configure an `overrun_policy` that controls what happens when a model response exceeds remaining allowance:
+
+| Policy | Behavior on active request | Excess virtual spend | Future allowance |
+| :--- | :--- | :--- | :--- |
+| `limit_output` (default) | Reduces provider max tokens to the affordable amount | Records unexpected variance as uncovered | No planned debt |
+| `allow_overrun` | Lets the request run to declared or safe limit | Records excess as uncovered virtual spend | Forgiven when new allowance becomes available |
+| `carry_overrun_forward` | Lets the request run to declared or safe limit | Records excess as uncovered spend and debt | Repaid from later credit grants or next base cap reset |

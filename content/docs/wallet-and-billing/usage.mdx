@@ -1,7 +1,78 @@
 ---
 title: Usage analytics
-description: Query raw usage events, time-series totals, and app-connection summaries.
+description: Query raw usage events, time-series totals, cache-aware token breakdowns, and financial metrics.
 ---
 
-You can view your organization's usage events, time-series totals, and app-connection summaries via the Zorveus dashboard . Usage events are recorded for every request that consumes a Zorveus resource on the organization workspace. The usage event includes the request's metadata, model, provider, and billing mode.
-Costs are returned as decimal strings. `provider_cost` and `sell_cost` serve different purposes, especially for BYOK requests. See [BYOK cost accounting](/wallet-and-billing/byok-costs).
+You can inspect usage events, time-series totals, and connection summaries in the Zorveus dashboard or via the dashboard API. Usage records are created for every completed inference request.
+
+---
+
+## The three financial metrics in usage logs
+
+Every usage record reports three distinct financial amounts:
+
+| Field | Meaning |
+| :--- | :--- |
+| `virtual_spend` | Reference-priced value of AI usage consumed against caps and credits. Applies to wallet and BYOK identically. |
+| `sell_cost` | Amount charged to your organization wallet. Zero for BYOK unless a platform fee applies. |
+| `provider_cost` | Upstream model provider cost. Billed directly by the provider in BYOK, or paid by Zorveus in wallet mode. |
+
+Never show `provider_cost` as your customer's usage amount unless your reference pricing explicitly sets sell price equal to provider cost.
+
+---
+
+## Cache-aware token reporting
+
+When upstream providers report prompt cache metrics, Zorveus includes the breakdown in the usage event:
+
+```json
+{
+  "usage_event_id": "ue_123",
+  "model": "anthropic/claude-sonnet-4-5",
+  "provider": "anthropic",
+  "input_tokens": 10000,
+  "output_tokens": 2000,
+  "cache_read_input_tokens": 7000,
+  "cache_creation_input_tokens": 1500,
+  "cache_creation_1h_input_tokens": 500,
+  "cache_usage_breakdown_status": "reported",
+  "pricing_service_tier": "standard",
+  "cache_pricing_fallback_reason": null,
+  "cache_savings": "0.010500000000",
+  "virtual_spend": "0.025000000000",
+  "sell_cost": "0.000000000000",
+  "provider_cost": "0.018000000000",
+  "billing_mode": "byok_external",
+  "status": "succeeded"
+}
+```
+
+### Input token categories
+
+- **Total input (`input_tokens`)**: The normalized grand total of input tokens.
+- **Cache read (`cache_read_input_tokens`)**: Reused cached prompt tokens.
+- **Cache creation (`cache_creation_input_tokens`)**: Input tokens cached with default provider retention.
+- **Cache creation 1h (`cache_creation_1h_input_tokens`)**: Input tokens cached with one-hour provider retention.
+- **Normal input**: Calculated as `input_tokens - cache_read_input_tokens - cache_creation_input_tokens - cache_creation_1h_input_tokens`.
+
+### Allowance savings
+
+The `cache_savings` field reports reference-priced virtual allowance saved by prompt cache reads compared with normal input prices. In BYOK mode, display this as **AI allowance saved** or **Reference-price cache savings**, rather than provider invoice savings.
+
+### Breakdown status values
+
+| Status | Meaning |
+| :--- | :--- |
+| `reported` | The provider returned a valid cache breakdown. |
+| `not_reported` | The provider does not report cache counts for this call. Old events also use this status. |
+| `invalid` | The provider returned conflicting token totals. Zorveus falls back to normal input pricing. |
+
+---
+
+## Overrun and uncovered spend fields
+
+Usage events track any unexpected spend that exceeds reservations:
+
+- **`uncovered_virtual_spend`**: Virtual spend exceeding base cap and credits under track-only mode or request overruns.
+- **`unfunded_wallet_charge`**: Wallet charge that could not be debited due to wallet exhaustion during overrun.
+- **`overrun_policy`**: The policy active for the request (`limit_output`, `allow_overrun`, or `carry_overrun_forward`).

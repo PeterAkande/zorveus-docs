@@ -70,4 +70,4 @@ When executing model requests using a user's OAuth access token (`zrv_...`), the
 ```
 
 * **HTTP `401 Unauthorized`**: Returned if the user revoked app access or the token was invalidated. Prompt the user to reconnect their Zorveus wallet.
-* **HTTP `429 Too Many Requests / Limit Exceeded`**: Returned if the user's monthly spending cap for your app has been reached. Direct the user to their Zorveus dashboard to increase their cap.
+* **HTTP `403 Forbidden`**: Returned if the user's spending cap for your app has been reached (`zorveus_cap_exceeded`). Direct the user to their Zorveus dashboard to increase their cap.

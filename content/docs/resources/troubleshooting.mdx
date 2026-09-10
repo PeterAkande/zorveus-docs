@@ -40,23 +40,31 @@ A provider credential does not guarantee that the request will use it. Its statu
 
 ## A spending cap blocks the request
 
-`zorveus_cap_exceeded` means an organization, organization-member, app-connection, or product-user cap would be exceeded. Inspect the cap named in the error message.
+`zorveus_cap_exceeded` (HTTP 403) means an organization, app-connection, or product-user cap would be exceeded. Inspect the cap named in the error message.
 
 An app-connection cap applies to the connection's combined usage. A product-user cap applies only to that product user.
 
-## Product-user credits block the request
+## Product-user allowance blocks the request
 
-When a product user exhausts their active credits under an enforced credit mode, the gateway rejects the request with `403 Forbidden`:
+When a product user exhausts their base cap and active credits under an enforced credit mode, the gateway rejects the request with `403 Forbidden`:
 
 ```json
 {
   "error": {
-    "message": "This product user does not have enough credits for this request.",
+    "message": "This request is estimated to cost 0.010000000000 USD, but the product user has 0.004720000000 USD of AI allowance remaining.",
     "code": "403",
     "provider_specific_fields": {
       "error": {
-        "code": "zorveus_product_user_credits_insufficient",
-        "message": "This product user does not have enough credits for this request."
+        "code": "zorveus_product_user_allowance_insufficient",
+        "message": "This request is estimated to cost 0.010000000000 USD, but the product user has 0.004720000000 USD of AI allowance remaining.",
+        "params": {
+          "cap_amount": "0.010000000000",
+          "remaining_base_allowance": "0.004720000000",
+          "promotional_credit_balance": "0.000000000000",
+          "available_allowance": "0.004720000000",
+          "estimated_request_cost": "0.010000000000",
+          "shortfall": "0.005280000000"
+        }
       }
     }
   }
@@ -65,8 +73,8 @@ When a product user exhausts their active credits under an enforced credit mode,
 
 In official OpenAI and Zorveus SDK clients, this error raises `openai.PermissionDeniedError`:
 
-- `zorveus_product_user_credits_insufficient` (HTTP 403): The resolved product user lacks enough active, unexpired credit. Grant more credit via `grantCreditByExternalId`, change the connection's `credit_mode`, or prompt the user to top up.
-- `zorveus_product_user_credits_required` (HTTP 400): The connection requires product-user attribution, but the request omitted `metadata.external_user_id` or `metadata.product_end_user_id`.
+- `zorveus_product_user_allowance_insufficient` (HTTP 403): The product user lacks enough remaining base allowance plus promotional credits. Grant more credit, raise the base cap, or wait for the cap period to reset. Legacy clients may still receive `zorveus_product_user_credits_insufficient`.
+- `zorveus_product_user_credits_required` (HTTP 400): The connection requires product-user attribution, but the request omitted `user` or `metadata.external_user_id`.
 
 ## Product-user details do not appear
 

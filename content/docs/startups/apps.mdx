@@ -42,6 +42,23 @@ Each App configures an allowed models array. Requests specifying a model outside
 
 ---
 
-## Creating an App
+## Connection policies
 
-You can create and manage Apps via the Zovreus dashboard.
+Each App Connection contains execution policies that govern inference requests:
+
+### 1. Credit enforcement mode (`credit_mode`)
+- `enforce_if_present` (default): Enforces spending caps and product-user credits when a product user is supplied. Bypasses caps for internal requests without a product user.
+- `enforce`: Strictly enforces caps on all requests.
+- `track_only`: Records virtual spend and allocates base cap and credits without blocking.
+- `disabled`: Bypasses cap checks and credits for benchmarking or analytics.
+
+### 2. Allowance overrun policy (`overrun_policy`)
+- `limit_output` (default): Automatically lowers the provider output token limit to the affordable budget.
+- `allow_overrun`: Lets the request run to declared limits, recording any excess as uncovered virtual spend.
+- `carry_overrun_forward`: Lets the request run to declared limits, recording excess as allowance debt repaid by future credits or cap resets.
+
+---
+
+## Creating an app
+
+You can create and configure apps in the Zorveus dashboard under **Apps**.
