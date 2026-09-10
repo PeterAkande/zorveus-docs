@@ -1,35 +1,51 @@
 ---
 title: Spending caps
-description: Configure daily, monthly, or lifetime virtual allowance limits for organizations, app connections, and product users.
+description: Configure daily, monthly, or lifetime spending caps and overrun policies in the Zorveus dashboard.
 ---
 
-Spending caps define the base virtual allowance for a period. A cap is a spend guardrail, not a prepaid balance.
+Spending caps define the base virtual allowance for your organization, app connections, and product users. A cap acts as a spend ceiling, not a prepaid deposit.
+
+You configure and monitor spending caps directly in the [Zorveus Dashboard](https://app.zorveus.com).
 
 ---
 
-## Cap scopes and periods
+## Configuring caps in the dashboard
 
-Caps can be defined at three levels:
+To set up or update spending caps for an application:
 
-- **Organization cap**: Limits total aggregate virtual spend across all connections in the organization.
-- **App-connection cap**: Limits total virtual spend through that app connection and all keys attached to it.
-- **Product-user cap**: Defines the base allowance for an individual product user on that key.
+1. Open the [Zorveus Dashboard](https://app.zorveus.com) and navigate to **Apps**.
+2. Select your application and open **Connection settings**.
+3. Under **Spending caps**, configure:
+   - **Cap amount**: Maximum reference-priced virtual spend permitted during the period (such as `$50.00`).
+   - **Period**: Choose `daily`, `monthly`, or `lifetime`.
+   - **Allowance overrun policy**: Choose how Zorveus handles requests that exceed remaining allowance.
+4. Save your changes. New limits take effect immediately across all edge gateways.
 
-Each cap can run on a `daily`, `monthly`, or `lifetime` period.
+The dashboard displays a live progress bar for each active cap showing current period spend, remaining base allowance, and the next reset timestamp.
 
-When multiple caps apply, a request must satisfy every applicable limit. Settled usage is never reversed when you lower a cap.
+---
+
+## Cap scopes
+
+Zorveus supports three cap levels:
+
+- **Organization cap**: Configured in **Settings** -> **Billing**. Restricts aggregate AI spend across all apps and keys in the organization.
+- **App-connection cap**: Configured in **Apps** -> **Connection settings**. Restricts total spend through that connection and its API keys.
+- **Product-user cap**: Sets an individual customer base allowance on that key. You can monitor individual customer spend under **Product Users** in the dashboard.
+
+When multiple caps apply, every limit must have sufficient remaining allowance for a request to proceed. Lowering a cap does not reverse or alter settled usage.
 
 ---
 
 ## Allowance formula and consumption order
 
-When an inference key has a configured cap, total available allowance combines the remaining base allowance and any active product-user credits:
+When an inference key has a configured cap, total spendable allowance combines the remaining base cap with any active product-user credits:
 
 ```text
 remaining allowance = remaining base allowance + available product-user credits
 ```
 
-The remaining base allowance is calculated as:
+The remaining base allowance is:
 
 ```text
 remaining base allowance = max(0, cap amount - completed period virtual spend - active reservations)
@@ -37,7 +53,7 @@ remaining base allowance = max(0, cap amount - completed period virtual spend - 
 
 ### Base cap is consumed first
 
-Usage consumes allowance in this order:
+When requests arrive, Zorveus consumes allowance in this order:
 
 1. **Remaining base allowance** on the inference key.
 2. **Available product-user credits** (oldest expiring grants first).
@@ -55,30 +71,31 @@ Credits reserved:               $1.00
 Remaining credits after call:   $4.00
 ```
 
-The first $2.00 is covered by the base cap. Only the $1.00 excess is deducted from product-user credits.
+The base cap covers the first $2.00. The excess $1.00 is deducted from user credits.
 
 ---
 
-## When no cap exists
+## Uncapped connections
 
-If an inference key has no cap rule, virtual allowance is unlimited across all credit modes:
+If no cap is configured on an app connection in the dashboard:
 
-- The request is allowed through.
-- Virtual spend is recorded in the ledger.
+- Virtual allowance is unlimited.
+- Inference requests pass through without allowance rejections.
+- Virtual spend is recorded in your dashboard analytics.
 - Zero product-user credits are consumed.
 
-Product-user credits extend an existing cap. They do not create a ceiling when no cap exists.
+Product-user credits extend a configured cap. They do not restrict spending when an app connection is uncapped.
 
 ---
 
 ## Allowance overrun policies
 
-When a model response exceeds remaining allowance, the connection `overrun_policy` determines how Zorveus responds:
+In your app connection settings in the dashboard, the **Allowance overrun policy** controls what happens when a model response exceeds remaining allowance:
 
-| Policy | Behavior on active request | Excess virtual spend | Future allowance |
+| Policy | Dashboard setting | Behavior on active request | Excess virtual spend |
 | :--- | :--- | :--- | :--- |
-| `limit_output` (default) | Lowers provider output limit to the affordable amount | Records unexpected variance as uncovered | No planned debt |
-| `allow_overrun` | Sends the full client or safe output limit | Records excess as uncovered virtual spend | Forgiven when new allowance becomes available |
-| `carry_overrun_forward` | Sends the full client or safe output limit | Records excess as uncovered spend and debt | Repaid automatically from later credit grants or base cap resets |
+| `limit_output` (default) | Limit output tokens | Lowers provider max tokens to the affordable amount | Records unexpected variance as uncovered |
+| `allow_overrun` | Allow overrun | Sends full client or safe output limit | Records excess as uncovered virtual spend, forgiven on next reset |
+| `carry_overrun_forward` | Carry overrun forward | Sends full client or safe output limit | Records excess as debt, repaid from next credit grant or cap reset |
 
-If an enforced request cannot be admitted, the gateway rejects the call with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient` or `zorveus_cap_exceeded`).
+If an enforced request exceeds remaining allowance before calling the provider, the gateway rejects the call with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient` or `zorveus_cap_exceeded`). The dashboard logs the rejection in your usage events.

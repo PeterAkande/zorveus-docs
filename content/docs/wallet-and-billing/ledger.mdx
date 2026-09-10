@@ -1,45 +1,55 @@
 ---
 title: Wallet ledger
-description: Inspect the entries that explain changes to an organization wallet and product-user credit balances.
+description: Inspect the transaction audit feed and ledger entries in the Zorveus dashboard.
 ---
 
-The Zorveus ledger records every balance modification as an immutable entry. Ledger corrections always use compensating entries rather than row mutations or deletions.
+The Zorveus ledger provides an immutable, transparent audit trail of every financial transaction in your organization.
 
----
-
-## Wallet ledger entry types
-
-Wallet entries explain changes to an organization cash balance:
-
-| Entry type | Description |
-| :--- | :--- |
-| `top_up` | Inbound checkout funds credited to available balance. |
-| `reservation_hold` | Temporary hold placed before provider execution. |
-| `reservation_release` | Unused reservation funds returned to available balance after call completion. |
-| `usage_debit` | Final settled token charge debited for wallet-funded inference. |
-| `byok_platform_fee` | Platform fee debited for BYOK usage exceeding the free monthly threshold. |
-| `refund` | Balance adjustment or payment reversal. |
-| `chargeback` | Payment dispute deduction. |
-| `administrative_adjustment` | Manual credit or debit correction applied by support. |
+You can inspect all ledger activity in the [Zorveus Dashboard](https://app.zorveus.com) under **Billing & Wallets** -> **Ledger**.
 
 ---
 
-## Product-user credit ledger entry types
+## Viewing the ledger in the dashboard
 
-Product-user credit ledgers track virtual credit grants assigned to end users:
+The ledger view displays a chronological transaction log with filters for date range, transaction type, and application.
 
-| Entry type | Description |
-| :--- | :--- |
-| `credit_grant_creation` | Promotional, trial, or purchased credit grant allocated to a product user. |
-| `credit_reservation` | Hold placed on active credit grants for virtual spend above base cap. |
-| `credit_settlement` | Final deduction from credit grants for completed virtual spend above base cap. |
-| `credit_release` | Unused credit reservation returned to the product user's available credits. |
-| `credit_expiry` | Unused credit deducted upon reaching its expiration timestamp. |
-| `credit_revocation` | Unused credit removed via service key or dashboard action. |
-| `administrative_adjustment` | Manual credit correction applied by your application. |
+For each entry, the dashboard shows:
+
+- **Timestamp**: Exact UTC date and time the transaction finalized.
+- **Entry type**: The category of financial movement (such as a top-up or inference settlement).
+- **Amount**: The debit or credit amount.
+- **Resulting balance**: Your available and reserved balance following the entry.
+- **Reference ID**: The associated request identifier (`zreq_...`), invoice ID, or reservation ID (`resv_...`).
+
+You can export the filtered ledger to CSV at any time for accounting reconciliation.
 
 ---
 
-## Single transaction finalization
+## Wallet transaction types
 
-When an inference call completes, Zorveus finalizes the usage event, wallet deduction, virtual cap accounting, credit consumption, and ledger entries in a single database transaction. This guarantees that wallet charges and virtual allowances remain synchronized.
+Wallet ledger entries explain every change to your prepaid cash balance:
+
+| Entry type | Dashboard label | Description |
+| :--- | :--- | :--- |
+| `top_up` | Top up | Inbound card or bank payment credited to your available balance. |
+| `reservation_hold` | Reservation hold | Temporary hold placed on available funds while an inference call streams. |
+| `reservation_release` | Reservation release | Unused reservation funds returned to available balance after call completion. |
+| `usage_debit` | Inference charge | Final token charge debited for completed wallet-funded inference. |
+| `byok_platform_fee` | BYOK platform fee | Platform fee charged for BYOK volume exceeding your free monthly threshold. |
+| `refund` | Refund | Credit adjustment or payment reversal. |
+| `chargeback` | Dispute | Payment dispute deduction. |
+| `administrative_adjustment` | Adjustment | Manual correction applied by support or billing operations. |
+
+---
+
+## Product-user credit history
+
+Virtual credits granted to end users have their own audit trail separate from organization cash balances.
+
+To view an individual customer's credit history:
+
+1. In the [Zorveus Dashboard](https://app.zorveus.com), go to **Product Users**.
+2. Select a customer and click **Credit history**.
+3. Inspect active grants, expired balances, and deductions applied against completed requests.
+
+Credit ledger entries track grant creation, reservation holds, completed usage deductions, and expirations.

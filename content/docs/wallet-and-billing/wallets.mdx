@@ -1,19 +1,21 @@
 ---
 title: Wallets and balances
-description: How available balances, pre-flight fund reservations, and ledger settlements operate.
+description: Manage prepaid organization balances, balance reservations, and wallet top-ups in the Zorveus dashboard.
 ---
 
-Each spendable organization (`startup` and `personal`) contains an append-only ledger wallet denominated in one currency.
+Every spendable organization in Zorveus has a prepaid wallet denominated in USD. The wallet funds model inference on Zorveus-managed routes and pays platform fees on high-volume BYOK traffic.
+
+You manage and fund your wallet in the [Zorveus Dashboard](https://app.zorveus.com) under **Billing & Wallets**.
 
 ---
 
-## Balance types
+## Dashboard balance overview
 
-A wallet tracks two distinct balance states:
+When you open **Billing & Wallets**, the dashboard displays three balance metrics:
 
-- **Available balance (`available_balance`)**: Uncommitted funds ready to fund new wallet reservations or BYOK platform fees.
-- **Reserved balance (`reserved_balance`)**: Funds held for in-flight requests that have started but not reached final settlement.
-- **Total balance**: The arithmetic sum of available and reserved balances.
+- **Available balance (`available_balance`)**: Uncommitted funds ready to reserve for new inference calls or BYOK platform fees.
+- **Reserved balance (`reserved_balance`)**: Funds temporarily held for in-flight requests that are currently streaming tokens.
+- **Total balance**: The total value in your account (`available_balance + reserved_balance`).
 
 ```text
 Total balance ($50.00) = available ($48.20) + reserved ($1.80)
@@ -21,20 +23,43 @@ Total balance ($50.00) = available ($48.20) + reserved ($1.80)
 
 ---
 
-## Reservation and settlement lifecycle
+## Topping up your wallet
 
-To prevent race conditions and double-spending across concurrent requests, Zorveus uses a two-phase reservation lifecycle:
+To add funds to your organization wallet:
 
-1. **Pre-flight reservation**: Before calling the model provider, Zorveus checks `available_balance`. If funds are sufficient, the estimated cost moves from `available_balance` to `reserved_balance`.
-2. **Provider execution**: The gateway streams tokens from the model provider.
-3. **Settlement**: Upon stream completion, Zorveus calculates the actual cost:
-   - The actual cost is permanently debited from `reserved_balance`.
-   - Any unused reservation amount immediately returns to `available_balance`.
+1. In the [Zorveus Dashboard](https://app.zorveus.com), navigate to **Billing & Wallets**.
+2. Click **Top Up Balance**.
+3. Choose an amount (such as `$25.00`, `$100.00`, or a custom amount).
+4. Pay securely using a credit card, debit card, or bank transfer.
+5. Funds appear in your **Available balance** immediately after payment confirmation.
 
-If `available_balance` cannot cover the estimated reservation, the gateway returns HTTP `402 Payment Required` with error code `zorveus_reservation_insufficient_balance`.
+### Auto-recharge
+
+To prevent service interruptions in production, you can enable auto-recharge in the dashboard:
+
+- **Threshold**: Set a minimum available balance (for example, `$20.00`).
+- **Recharge amount**: Specify how much to add when your balance drops below the threshold (for example, `$100.00`).
 
 ---
 
-## Append-only accounting
+## How the platform handles reservations
 
-Zorveus uses an append-only ledger rather than formal double-entry accounting. Balance modifications are recorded as immutable ledger entries. Adjustments and refunds create compensating entries rather than mutating historical records.
+When an application sends an inference request using your API key:
+
+1. **Pre-flight hold**: Zorveus estimates the maximum request cost and checks your **Available balance**. If funds are sufficient, the estimate moves from available to reserved balance.
+2. **Model execution**: The gateway streams the model completion to your application.
+3. **Settlement**: When the stream closes, Zorveus calculates the exact token charge:
+   - The actual charge is deducted from your reserved balance.
+   - Any unused reservation hold returns to your **Available balance** immediately.
+
+---
+
+## What happens when funds run out
+
+If your **Available balance** cannot cover an incoming request's estimated hold:
+
+- The gateway rejects the call with HTTP `402 Payment Required` and error code `zorveus_reservation_insufficient_balance`.
+- The dashboard highlights your wallet status as requiring a top-up.
+- Existing completed requests and in-flight streams finish normally.
+
+Top up your wallet in the dashboard to restore inference traffic immediately.
