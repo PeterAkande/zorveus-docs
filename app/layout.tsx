@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Zorveus Documentation',
     description:
-      'One wallet and control layer for using AI across products and providers.',
+      'Access AI models across providers, track each user’s usage, and enforce spending limits. Fund requests through Zorveus or bring your own provider credentials.',
     url: 'https://docs.zorveus.com',
     siteName: 'Zorveus Docs',
     type: 'website',
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Zorveus Documentation',
     description:
-      'One wallet and control layer for using AI across products and providers.',
+      'Access AI models across providers, track each user’s usage, and enforce spending limits. Fund requests through Zorveus or bring your own provider credentials.',
     images: ['/og-image.png'],
   },
 };
