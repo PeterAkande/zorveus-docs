@@ -1,6 +1,5 @@
 {
   "title": "Getting Started",
-  "root": true,
   "pages": [
     "overview",
     "integrate-your-product",

@@ -7,6 +7,7 @@ export default function RootDocsLayout({ children }: { children: ReactNode }) {
   return (
     <DocsLayout
       tree={source.pageTree}
+      tabs={false}
       nav={{
         title: (
           <div className="flex items-center gap-2.5">

@@ -1,6 +1,5 @@
 {
   "title": "Inference API",
-  "root": true,
   "pages": [
     "overview",
     "chat-completions",

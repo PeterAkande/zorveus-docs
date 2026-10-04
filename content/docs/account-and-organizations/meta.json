@@ -1,6 +1,5 @@
 {
   "title": "Accounts & Orgs",
-  "root": true,
   "pages": [
     "account-security",
     "organizations",

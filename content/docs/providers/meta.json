@@ -1,6 +1,5 @@
 {
   "title": "AI Providers",
-  "root": true,
   "pages": [
     "overview",
     "openai",

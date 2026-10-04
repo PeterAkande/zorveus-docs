@@ -1,6 +1,5 @@
 {
   "title": "OAuth Integration",
-  "root": true,
   "pages": [
     "overview",
     "register-an-app",

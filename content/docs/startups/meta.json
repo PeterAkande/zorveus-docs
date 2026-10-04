@@ -1,6 +1,5 @@
 {
   "title": "Business",
-  "root": true,
   "pages": [
     "apps",
     "api-keys",
