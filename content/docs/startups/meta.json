@@ -3,6 +3,7 @@
   "pages": [
     "apps",
     "api-keys",
+    "configure-product-user-allowances",
     "product-users",
     "check-allowance",
     "allowance-periods",

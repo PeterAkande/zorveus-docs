@@ -45,15 +45,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-zorveus-dark font-sans text-zinc-100 antialiased selection:bg-mint/20 selection:text-mint">
+      <body className="min-h-screen font-sans antialiased">
         <KeyProvider>
           <RootProvider
             theme={{
-              enabled: false,
-              defaultTheme: 'dark',
+              enabled: true,
+              defaultTheme: 'system',
+              enableSystem: true,
             }}
           >
             {children}

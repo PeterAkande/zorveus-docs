@@ -7,14 +7,6 @@ interface ApiEndpointProps {
   auth?: 'api_key' | 'inference_key' | 'service_key' | 'dashboard_session' | 'oauth_client' | 'oauth_bearer' | 'none' | string;
 }
 
-const methodColors: Record<string, { bg: string; text: string; border: string }> = {
-  GET: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-  POST: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30' },
-  PUT: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
-  PATCH: { bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/30' },
-  DELETE: { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30' },
-};
-
 const authConfig: Record<string, { label: string; icon: React.ComponentType<{ style?: React.CSSProperties }>; color: string }> = {
   api_key: {
     label: 'API Key (Bearer zrv_...)',
@@ -49,7 +41,6 @@ const authConfig: Record<string, { label: string; icon: React.ComponentType<{ st
 };
 
 export function ApiEndpoint({ method, path, auth }: ApiEndpointProps) {
-  const methodStyle = methodColors[method.toUpperCase()] || methodColors.GET;
   const authInfo = auth ? authConfig[auth] : null;
   const AuthIcon = authInfo?.icon;
 
@@ -59,18 +50,17 @@ export function ApiEndpoint({ method, path, auth }: ApiEndpointProps) {
     >
       <div className="zorveus-endpoint-path">
         <span
-          style={{ padding: '2px 8px', borderRadius: '4px' }}
-          className={`zorveus-endpoint-method font-mono font-bold uppercase tracking-wider border ${methodStyle.bg} ${methodStyle.text} ${methodStyle.border}`}
+          className="zorveus-endpoint-method"
+          data-method={method.toUpperCase()}
         >
-          {method}
+          {method.toUpperCase()}
         </span>
         <span className="font-semibold text-zinc-100">{path}</span>
       </div>
 
       {authInfo && (
         <div
-          style={{ padding: '3px 8px', borderRadius: '6px' }}
-          className={`zorveus-endpoint-auth border font-medium font-sans ${authInfo.color}`}
+          className="zorveus-endpoint-auth"
         >
           {AuthIcon && <AuthIcon style={{ width: '11px', height: '11px' }} />}
           <span>{authInfo.label}</span>

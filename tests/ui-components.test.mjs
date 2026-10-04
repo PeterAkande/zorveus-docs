@@ -82,3 +82,16 @@ test('architecture diagram labels the setup, inference, and service-key paths', 
   const css = fs.readFileSync('app/globals.css', 'utf8');
   assert.match(css, /\.zorveus-architecture-flow \{ grid-template-columns: 1fr; \}/);
 });
+
+test('endpoint methods have distinct pill styles and retain authentication labels', () => {
+  const ApiEndpoint = loadComponent('ApiEndpoint');
+  const css = fs.readFileSync('app/globals.css', 'utf8');
+  for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']) {
+    const html = renderToStaticMarkup(React.createElement(ApiEndpoint, { method: method.toLowerCase(), path: '/models', auth: 'api_key' }));
+    assert.ok(html.includes(`data-method="${method}"`));
+    assert.match(html, /API Key \(Bearer zrv_\.\.\.\)/);
+    assert.match(html, /\/models/);
+    assert.ok(css.includes(`.zorveus-endpoint-method[data-method="${method}"]`));
+  }
+  assert.match(css, /\.zorveus-endpoint-method \{[^}]*border-radius: 999px/);
+});

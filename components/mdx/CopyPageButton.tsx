@@ -32,17 +32,17 @@ export function CopyPageButton({ slug }: CopyPageButtonProps) {
   };
 
   const activeStyle: React.CSSProperties = {
-    color: '#4DFFB4',
-    backgroundColor: 'rgba(77, 255, 180, 0.15)',
-    border: '2px solid #4DFFB4',
+    color: 'var(--docs-accent)',
+    backgroundColor: 'var(--docs-accent-bg)',
+    border: '2px solid var(--docs-accent)',
     fontWeight: 700,
     boxShadow: '0 0 6px rgba(77, 255, 180, 0.12)',
   };
 
   const inactiveStyle: React.CSSProperties = {
-    color: '#D4D4D8',
-    backgroundColor: '#18181B',
-    border: '1px solid #3F3F46',
+    color: 'var(--docs-text)',
+    backgroundColor: 'var(--docs-hover)',
+    border: '1px solid var(--docs-border-strong)',
     fontWeight: 600,
     boxShadow: 'none',
   };
@@ -77,7 +77,7 @@ export function CopyPageButton({ slug }: CopyPageButtonProps) {
         </>
       ) : copied ? (
         <>
-          <Check style={{ width: '12px', height: '12px', color: '#4DFFB4' }} />
+          <Check style={{ width: '12px', height: '12px', color: 'var(--docs-accent)' }} />
           <span>Page Copied</span>
         </>
       ) : (
