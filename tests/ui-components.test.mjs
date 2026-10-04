@@ -95,3 +95,14 @@ test('endpoint methods have distinct pill styles and retain authentication label
   }
   assert.match(css, /\.zorveus-endpoint-method \{[^}]*border-radius: 999px/);
 });
+
+test('integration picker offers two routes and hides the preview initially', () => {
+  const Picker = loadComponent('IntegrationPromptPicker');
+  const html = renderToStaticMarkup(React.createElement(Picker));
+  assert.match(html, /value="business"/);
+  assert.match(html, /value="oauth"/);
+  assert.match(html, /Copy Business prompt/);
+  assert.match(html, /Download Markdown/);
+  assert.match(html, /<details><summary>Preview the full prompt/);
+  assert.doesNotMatch(html, /<details open/);
+});

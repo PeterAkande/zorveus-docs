@@ -497,6 +497,18 @@ button[aria-label="Copy Code"] {
 }
 
 /* Component spacing is separate from document paragraph spacing. */
+.zorveus-prompt-picker { margin: 20px 0; padding: 16px; border: 1px solid var(--docs-border); border-radius: 10px; background: var(--docs-surface); color: var(--docs-text); font-size: 14px; line-height: 1.6; }
+.zorveus-prompt-picker label { display: block; margin-bottom: 8px; color: var(--docs-heading); font-weight: 600; }
+.zorveus-prompt-picker select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--docs-border-strong); border-radius: 6px; color: var(--docs-text); font-size: 14px; appearance: auto !important; }
+.zorveus-prompt-picker p { margin: 12px 0; }
+.zorveus-prompt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.zorveus-prompt-actions button { padding: 8px 12px; border: 1px solid var(--docs-accent); border-radius: 6px; background: var(--docs-accent-bg); color: var(--docs-accent); font-weight: 600; cursor: pointer; }
+.zorveus-prompt-actions a { color: var(--docs-accent); text-decoration: underline; text-underline-offset: 3px; }
+.zorveus-prompt-picker [role="status"]:not(:empty) { margin-top: 10px; color: var(--docs-muted); }
+.zorveus-prompt-picker details { margin-top: 16px; }
+.zorveus-prompt-picker summary { cursor: pointer; }
+.zorveus-prompt-picker textarea { display: block; width: 100%; height: 320px; margin-top: 10px; padding: 12px; border: 1px solid var(--docs-border); border-radius: 6px; background: var(--docs-input); color: var(--docs-text); font-family: var(--font-mono); font-size: 12px; line-height: 1.6; resize: vertical; }
+.zorveus-prompt-picker :is(select, button, a, summary, textarea):focus-visible { outline: 2px solid var(--docs-accent); outline-offset: 3px; }
 .zorveus-architecture { margin: 24px 0; color: var(--docs-text); font-size: 14px; line-height: 1.6; }
 .zorveus-architecture-management, .zorveus-architecture-flow li { padding: 16px; border: 1px solid var(--docs-border-strong); border-radius: 8px; background: var(--docs-surface); }
 .zorveus-architecture strong { display: block; margin-bottom: 6px; color: var(--docs-accent); }

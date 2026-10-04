@@ -1,59 +1,23 @@
 ---
 title: Integrate with a coding agent
-description: Give an agent a task, the correct funding path, and direct access to the documentation source.
+description: Copy an integration prompt tailored to Business or Developer OAuth.
 ---
 
-Copy the instructions below into your coding agent. Specify your funding path and selected models before implementation. These instructions apply to any application, not a particular repository.
+Choose how your application uses Zorveus, then copy the full prompt into your coding agent. The prompts apply to any project.
 
-```text
-Integrate Zorveus into this project.
+- **Business**: Your product pays for customer AI usage. Includes attribution, allowances, plan-specific keys, and billing or webhook work when your product uses those features.
+- **Developer OAuth**: Users connect their own Zorveus accounts and authorize your tool to use their funding context. Includes consent, PKCE, token ownership, and revocation.
 
-Read https://docs.zorveus.com/llms.txt first. Follow its source links for complete
-Markdown and every SDK example. Start with the organization-funded integration
-guide unless I specify a user-funded OAuth app.
+<IntegrationPromptPicker />
 
-Inspect existing providers, clients, model calls, background jobs, settings,
-authentication, error handling, billing, and tests. Explain the scoped plan before
-substantial architecture changes. Reuse existing client interfaces.
+## Before you give the prompt to an agent
 
-Ask me to select models at https://www.zorveus.com/models when needed. Verify each
-model and task against the selected key. Do not silently substitute models.
+Tell the agent which AI features to integrate and any models you have selected from [the model catalog](https://www.zorveus.com/models). Keep secrets in your project's approved secret store. Do not paste keys into the prompt.
 
-Support existing Chat Completions, Responses, Anthropic Messages, TypeSafe,
-embeddings, and media paths where supported. Do not force every task through chat.
-Keep unsupported integrations working and report them.
+The Business prompt adapts the full Zorveus integration-agent prompt. The OAuth version uses a separate workflow so the agent does not apply Business credit management to user-funded connections.
 
-For organization-funded products, select inference keys from trusted server-side
-plans. Attribute customer requests using a stable external user ID. Support
-optional profile metadata. Preserve attribution through background work and avoid
-mutating shared client identity between requests.
+## Documentation for agents
 
-Use inference keys for inference. Use service keys only for supported `/product-users/by-external-id` operations. Configure apps, connections, caps, credentials, and webhooks in the dashboard. Store secrets
-server-side. Use the documented base URL for each protocol.
+Use [/llms.txt](https://docs.zorveus.com/llms.txt) for the page index and Markdown source links. The complete prompts are also available as [Business Markdown](/api/integration-prompt?route=business) and [Developer OAuth Markdown](/api/integration-prompt?route=oauth), without the picker UI.
 
-Read the allowance-checking and allowance-period guides before adding admission
-checks. Use the SDK's reported total available allowance. Do not confuse credits
-with base allowance or interpret missing allowance as proof of exhaustion.
-Handle uncapped keys, credit modes, plan changes, and request-time rejection.
-
-If this app has billing, read the payment-to-credit guide. Verify payment webhooks,
-resolve purchases from trusted data, deduplicate fulfillment, and store grant IDs.
-Do not assume remote grant idempotency or retry an unknown outcome blindly.
-
-Configure Zorveus webhooks in the dashboard. Verify signatures over raw bodies,
-check timestamp freshness, deduplicate event IDs, and scope app and user identity.
-Organization wallet top-ups are not customer payments to this app.
-
-Centralize allowance-state handling for client errors and webhooks. Return clear
-frontend failures and terminate streams. Test success, exhaustion, recovery,
-concurrency, payment retries, and duplicate webhook delivery.
-
-Give me a review guide with the request flow, changed files, tests, and remaining
-gaps. Do not claim integration is complete for paths you have not checked.
-```
-
-## Read documentation without the UI
-
-Use [/llms.txt](https://docs.zorveus.com/llms.txt) for the generated page index. Each entry links to the source document and its HTML page. Source documents retain MDX components and all language tabs. Each page also provides **View Markdown** and **Copy Page**.
-
-Use [/sitemap.xml](https://docs.zorveus.com/sitemap.xml) for published HTML URLs. The index and sitemap use the same page metadata as the website.
+Continue with [Integrate your product](/getting-started/integrate-your-product) for Business or the [OAuth app quickstart](/getting-started/oauth-app-quickstart) for Developer OAuth.

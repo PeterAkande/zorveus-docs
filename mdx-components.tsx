@@ -14,6 +14,7 @@ import { SequenceDiagram } from '@/components/mdx/SequenceDiagram';
 import { ApiRunner } from '@/components/mdx/ApiRunner';
 import { PageFeedback } from '@/components/mdx/PageFeedback';
 import { ArchitectureDiagram } from '@/components/mdx/ArchitectureDiagram';
+import { IntegrationPromptPicker } from '@/components/mdx/IntegrationPromptPicker';
 
 export function useMDXComponents(components: MDXComponents = {}): MDXComponents {
   return {
@@ -37,6 +38,7 @@ export function useMDXComponents(components: MDXComponents = {}): MDXComponents 
     ApiRunner,
     PageFeedback,
     ArchitectureDiagram,
+    IntegrationPromptPicker,
     RequestExample: ({ children }: { children: React.ReactNode }) => (
       <div className="request-example my-4">{children}</div>
     ),
