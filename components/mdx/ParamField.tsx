@@ -16,8 +16,8 @@ export function ParamField({
   children,
 }: ParamFieldProps) {
   return (
-    <div className="my-4 border-b border-zinc-800/80 pb-4 last:border-b-0">
-      <div className="flex flex-wrap items-baseline gap-2 mb-1.5 font-mono text-xs">
+    <div className="zorveus-field not-prose">
+      <div className="zorveus-field-heading">
         <span className="font-semibold text-zinc-100 bg-zinc-800/70 px-1.5 py-0.5 rounded text-xs text-mint">
           {name}
         </span>
@@ -38,7 +38,7 @@ export function ParamField({
           </span>
         )}
       </div>
-      <div className="text-xs leading-relaxed text-zinc-300 pl-1">{children}</div>
+      <div className="zorveus-rich-content">{children}</div>
     </div>
   );
 }

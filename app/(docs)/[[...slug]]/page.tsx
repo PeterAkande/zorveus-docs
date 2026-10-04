@@ -28,12 +28,18 @@ export default async function Page(props: {
         single: false,
       }}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="zorveus-page-header">
         <DocsTitle className="zorveus-page-title">
           {page.data.title}
         </DocsTitle>
-        <div className="pt-2 shrink-0">
+        <div className="zorveus-page-actions">
           <CopyPageButton slug={params.slug} />
+          <a
+            href={`/api/raw-doc?slug=${encodeURIComponent((params.slug ?? []).join('/'))}`}
+            className="zorveus-markdown-link"
+          >
+            View Markdown
+          </a>
         </div>
       </div>
       {page.data.description && (

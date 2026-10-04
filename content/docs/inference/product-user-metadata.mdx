@@ -11,6 +11,10 @@ Send product-user metadata with an OpenAI-compatible request to attribute usage,
 
 ## Supported request fields
 
+For ID-only attribution, send `X-Zorveus-External-User-ID` in the request headers. OpenAI clients accept this through `extra_headers`; clients scoped to one user can set a default header. Do not change a shared client's default identity between concurrent requests.
+
+For subscription cycles, send `X-Zorveus-Allowance-Starts-At` or `metadata.product_user.allowance_starts_at`. Follow [allowance periods and anchors](/startups/allowance-periods) before changing this timestamp.
+
 Zorveus accepts user attribution directly through the standard OpenAI request body:
 
 | Field | Type | Description |

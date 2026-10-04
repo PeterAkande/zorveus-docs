@@ -9,8 +9,10 @@ Zorveus sits between your application and model providers (OpenAI, Anthropic, Ge
 
 ## Choose your developer path
 
+For an end-to-end organization-funded integration, start with [Integrate your product](/getting-started/integrate-your-product). For agent-readable source and a copyable prompt, use [Integrate with a coding agent](/getting-started/coding-agents).
+
 <CardGroup cols={2}>
-  <Card title="Startups & AI Product Builders" icon="rocket" href="/getting-started/startup-quickstart">
+  <Card title="Businesses & AI Product Builders" icon="rocket" href="/getting-started/startup-quickstart">
     **Build AI products funded by your organization.**
     Add multi-provider inference, meter end-user consumption, set per-user credit limits, and control AI spend through one API.
   </Card>
@@ -282,7 +284,7 @@ const zorveus = createZorveus({
 
 const { textStream } = streamText({
   model: zorveus("openai/gpt-4.1-mini"),
-  prompt: "Generate 3 startup ideas."
+  prompt: "Generate 3 business ideas."
 });
 ```
 

@@ -1,11 +1,14 @@
 {
-  "title": "Startup Management",
+  "title": "Business",
   "root": true,
   "pages": [
     "apps",
     "api-keys",
     "product-users",
+    "check-allowance",
+    "allowance-periods",
     "credit-grants",
+    "billing-integration",
     "service-keys",
     "provider-credentials",
     "automatic-routing",

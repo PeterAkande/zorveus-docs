@@ -1,0 +1,51 @@
+---
+title: Grant credits after a payment
+description: Connect verified customer payments to product-user credit grants without confusing them with wallet top-ups.
+---
+
+Your payment provider owns the customer payment. Zorveus owns AI allowance enforcement. Product-user credits do not deposit money into the organization's wallet or pay upstream providers.
+
+## Configure the product
+
+1. Create an app and a capped inference key in the dashboard. Choose an enforcement mode.
+2. Create a service key with product-user write permission. Keep the key on your server.
+3. Define the AI credit amount and currency for each purchase. A payment price is not necessarily the AI allowance amount.
+4. Configure your payment provider's webhook and Zorveus [outbound webhooks](/platform/webhooks).
+
+## Process the verified payment
+
+Verify the payment provider's signature before reading the event as trusted data. For Stripe, grant credits only after the relevant payment has succeeded. Do not assume checkout completion means an asynchronous payment has settled.
+
+Resolve the app and external user from your stored purchase. Do not trust a browser-supplied user ID or amount. Claim the purchase in durable storage before granting credits. Use a unique purchase identifier to prevent repeated grants from duplicate payment events.
+
+Call the service-key endpoint:
+
+```bash
+curl https://api.zorveus.com/product-users/by-external-id/credit-grants \
+	-H "Authorization: Bearer zrv_svc_your_service_key" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"app_id": "app_123",
+		"external_user_id": "customer_42",
+		"amount": "10.00",
+		"currency": "USD",
+		"source": "service_key",
+		"reason": "Paid purchase purchase_123"
+	}'
+```
+
+Store the returned grant identifier against the purchase and mark the purchase fulfilled. Use decimal strings for monetary amounts.
+
+## Recover from uncertain results
+
+A timeout can occur after Zorveus creates the grant. A local claim alone does not make the remote call exactly once. A `reason` field is not an idempotency key.
+
+Before enabling automatic retries, verify the endpoint's documented idempotency or a reliable reconciliation mechanism. If the result is unknown, record that state and reconcile before sending another grant. Do not invent an `Idempotency-Key` guarantee.
+
+For refunds, define the policy for unused credits and already consumed allowance. Use documented credit revocation operations where appropriate. Do not assume negative grants reverse a purchase.
+
+## Update the customer experience
+
+Zorveus `wallet.payment_credited` means an organization wallet top-up. It is not proof that your customer paid your application.
+
+For `product_user.credits_granted`, identify the customer with `data.external_user_id` and verify `data.app_id`. Refresh [available allowance](/startups/check-allowance) rather than assuming any grant guarantees the next request will succeed. Deduplicate webhook event IDs and tolerate delayed delivery.

@@ -1,0 +1,67 @@
+---
+title: Integrate an organization-funded product
+description: Connect inference, customer attribution, subscription allowances, payments, and limit handling in one workflow.
+---
+
+Use this guide when your organization funds AI for your application's customers. If users pay with their own Zorveus wallets, use the [OAuth quickstart](/getting-started/oauth-app-quickstart) instead.
+
+## Set up the dashboard
+
+1. Select or create a Business organization at [app.zorveus.com](https://app.zorveus.com).
+2. Fund the wallet or configure [provider credentials](/startups/provider-credentials).
+3. Create an app. Keep the app ID for product-user management.
+4. Create an inference key for each plan policy. Configure caps, periods, enforcement, and model access on each key.
+5. Create a service key for product-user reads and credit grants if your backend needs those operations.
+6. Configure a signed outbound webhook under dashboard settings.
+
+## Choose the client and models
+
+Reuse the SDK or provider architecture your application already has. Configure credentials and the endpoint rather than adding a new hierarchy solely for Zorveus.
+
+| Request type | Integration |
+| --- | --- |
+| OpenAI Chat Completions and Responses | OpenAI-compatible client, base URL `https://api.zorveus.com/v1`. |
+| Anthropic Messages | Anthropic client, base URL `https://api.zorveus.com`. |
+| TypeSafe System One | TypeSafe client, base URL `https://api.zorveus.com/typesafe`. |
+| Embeddings, images, audio, and other supported tasks | Use the task's supported client and endpoint. Verify model capabilities before migrating. |
+
+Choose model IDs from [the model catalog](https://www.zorveus.com/models), then verify the selected key's access through [model discovery](/inference/model-discovery). Do not infer support for a task from a provider name alone.
+
+## Attribute every customer request
+
+Get the user ID and plan from authenticated server data. Preserve the same external user ID across plan changes and background jobs. Never mutate a shared client's user identity between concurrent requests.
+
+```python
+from openai import AsyncOpenAI
+
+async def complete_for_user(client: AsyncOpenAI, model_id: str, user_id: str, message: str):
+	return await client.chat.completions.create(
+		model=model_id,
+		messages=[{"role": "user", "content": message}],
+		extra_headers={"X-Zorveus-External-User-ID": user_id},
+	)
+```
+
+Create and close the client through your application's client lifecycle, using the selected plan key and `https://api.zorveus.com/v1`. The header works without sending profile data on every request. For name, email, or custom metadata, follow [product-user attribution](/inference/product-user-metadata).
+
+## Select the plan policy
+
+For example, configure Free and Pro keys with different monthly caps and model access. Your server maps the authenticated plan to the corresponding secret. Metadata such as `{"plan": "pro"}` records context; it does not select or authorize a plan key.
+
+Keep inference keys and service keys in your server's secret store. Do not expose either to customers. If your billing cycle is not a calendar month, set the subscription's [allowance anchor](/startups/allowance-periods).
+
+## Handle limits and billing
+
+Use the [total available allowance](/startups/check-allowance), not the credit-only balance, for an admission check under a known enforced cap. A positive amount permits an attempt; the gateway decides whether that request can be funded.
+
+Handle allowance errors in one shared backend service used by AI clients and webhook processing. Keep allowance database updates out of request-context objects. Decide whether your app rejects work before persistence or records a terminal failure. In either case, send an explicit failure to the frontend and end any loading or streaming state.
+
+For customer purchases, follow [Grant credits after a payment](/startups/billing-integration). For recurring plans, use the selected key and allowance period. Do not grant a second copy of a plan's base allowance unless that is your intended product policy.
+
+## Verify the integration
+
+Test attributed inference, background jobs, streaming failure, embeddings and media, exhausted allowance, a new period, credit grants, duplicate webhooks, and plan changes. Test that missing attribution cannot silently bypass your intended policy.
+
+Report any task or model that you did not migrate. Keep unsupported paths working until an equivalent supported path is verified.
+
+See the [business quickstart](/getting-started/startup-quickstart) for language-specific examples and [coding-agent instructions](/getting-started/coding-agents) for repository integration.

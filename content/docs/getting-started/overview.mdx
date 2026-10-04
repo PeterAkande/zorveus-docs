@@ -11,12 +11,12 @@ Zorveus provides three core integration models depending on who funds the AI usa
 
 | Business Goal | Integration Mode | Funding Source | Key Credential |
 | :--- | :--- | :--- | :--- |
-| **Startup funds its own product** | [Startup Quickstart](/getting-started/startup-quickstart) | Startup Organization Wallet | API Key (`zrv_...`) |
-| **Startup uses existing provider keys** | [BYOK Quickstart](/getting-started/byok-quickstart) | Upstream Provider (Direct) | API Key + Stored Provider Secret |
+| **Business funds its own product** | [Business Quickstart](/getting-started/startup-quickstart) | Business Organization Wallet | API Key (`zrv_...`) |
+| **Business uses existing provider credentials** | [BYOK Quickstart](/getting-started/byok-quickstart) | Upstream Provider (Direct) | API Key + Stored Provider Secret |
 | **End-user funds third-party app** | [OAuth App Quickstart](/getting-started/oauth-app-quickstart) | User's Personal/Company Wallet | Scoped OAuth Token (`zrv_...`) |
 
-<Callout type="info" title="Need an API key? Choose a Startup Organization">
-  If you want an API key (`zrv_...`) to call models from your code, server backend, or scripts, select or create a **Startup Organization** in the dashboard. Even if you are a solo developer building an independent project, Startup is the workspace that funds AI and mints API keys. A **Developer Organization** only registers third-party OAuth applications where end-users bring their own wallets.
+<Callout type="info" title="Need an API key? Choose a Business Organization">
+  If you want an API key (`zrv_...`) to call models from your code, server backend, or scripts, select or create a **Business Organization** in the dashboard. Even if you are a solo developer building an independent project, Business is the workspace that funds AI and mints API keys. A **Developer Organization** only registers third-party OAuth applications where end-users bring their own wallets.
 </Callout>
 
 ---
@@ -50,8 +50,10 @@ OAuth Authorize URL: https://app.zorveus.com/oauth/authorize
 
 ## Quickstart paths
 
+Use [Integrate an organization-funded product](/getting-started/integrate-your-product) for the full workflow, including attribution, plan keys, allowances, payments, and errors. Use [Integrate with a coding agent](/getting-started/coding-agents) for a copyable prompt and source links.
+
 <CardGroup cols={2}>
-  <Card title="Startup Quickstart" icon="rocket" href="/getting-started/startup-quickstart">
+  <Card title="Business Quickstart" icon="rocket" href="/getting-started/startup-quickstart">
     Send your first request with an OpenAI-compatible client or Zorveus SDK.
   </Card>
   <Card title="Product-User Metering" icon="layers" href="/getting-started/product-user-quickstart">

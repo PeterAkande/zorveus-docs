@@ -6,7 +6,7 @@
 
 # Zorveus Documentation
 
-Official developer documentation for [**Zorveus**](https://zorveus.com) — the AI wallet, billing layer, and multi-provider inference gateway for startups and application developers.
+Official developer documentation for [**Zorveus**](https://zorveus.com) — the AI wallet, billing layer, and multi-provider inference gateway for businesses and application developers.
 
 
 ---
@@ -94,6 +94,14 @@ All MDX files support rich, interactive components out of the box:
 - **`<CardGroup cols={2}>`**: Responsive navigation card grids.
 
 ---
+
+## Documentation discovery and checks
+
+The sidebar uses `content/docs/meta.json` and each section's `meta.json`. Keep existing page URLs stable when changing navigation.
+
+`/llms.txt` and `/sitemap.xml` use the Fumadocs page source. `/api/raw-doc?slug=startups/check-allowance` returns the published MDX source, including every SDK tab. The raw route rejects unknown pages and path traversal.
+
+Run `npm test`, `npm run audit:docs`, and `npm run build` before publishing. Verify product-user examples against the Python and TypeScript SDK response contracts. The coding-agent prompt is in `content/docs/getting-started/coding-agents.mdx`.
 
 ## 📝 License
 

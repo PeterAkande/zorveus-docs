@@ -55,13 +55,12 @@ export function ApiEndpoint({ method, path, auth }: ApiEndpointProps) {
 
   return (
     <div
-      style={{ padding: '12px 16px' }}
-      className="my-5 flex flex-col gap-2 rounded-xl border border-[#222226] bg-[#121214] sm:flex-row sm:items-center sm:justify-between shadow-xs"
+      className="zorveus-endpoint not-prose"
     >
-      <div className="flex items-center gap-3 font-mono text-xs overflow-x-auto">
+      <div className="zorveus-endpoint-path">
         <span
           style={{ padding: '2px 8px', borderRadius: '4px' }}
-          className={`font-mono text-[10px] font-bold uppercase tracking-wider border ${methodStyle.bg} ${methodStyle.text} ${methodStyle.border}`}
+          className={`zorveus-endpoint-method font-mono font-bold uppercase tracking-wider border ${methodStyle.bg} ${methodStyle.text} ${methodStyle.border}`}
         >
           {method}
         </span>
@@ -71,7 +70,7 @@ export function ApiEndpoint({ method, path, auth }: ApiEndpointProps) {
       {authInfo && (
         <div
           style={{ padding: '3px 8px', borderRadius: '6px' }}
-          className={`flex items-center gap-1.5 border text-[11px] font-medium font-sans ${authInfo.color}`}
+          className={`zorveus-endpoint-auth border font-medium font-sans ${authInfo.color}`}
         >
           {AuthIcon && <AuthIcon style={{ width: '11px', height: '11px' }} />}
           <span>{authInfo.label}</span>

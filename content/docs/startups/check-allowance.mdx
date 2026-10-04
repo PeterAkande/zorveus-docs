@@ -1,0 +1,111 @@
+---
+title: Check available allowance
+description: Read total spendable allowance without confusing credit grants with a user's remaining base allowance.
+---
+
+Use this guide when your backend needs to check a customer's allowance before accepting work or after an allowance rejection.
+
+## Read the product-user profile
+
+Create a [service key](/startups/service-keys) with product-user read permission. Call `GET /product-users/by-external-id` with your Zorveus `app_id` and the customer's `external_user_id`.
+
+<CodeGroup titles={["Python (async)", "TypeScript"]}>
+
+```python
+from zorveus import AsyncZorveusServiceClient
+
+async def read_allowance(service_key: str, app_id: str, user_id: str):
+	service = AsyncZorveusServiceClient(api_key=service_key)
+	try:
+		profile = await service.product_users.get_by_external_id(
+			app_id=app_id,
+			external_user_id=user_id,
+		)
+		return profile
+	finally:
+		await service.close()
+
+```
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({ apiKey: "zrv_svc_your_service_key" });
+const profile = await service.productUsers.getByExternalId({
+	appId: "app_123",
+	externalUserId: "customer_42",
+});
+
+console.log(profile.getTotalAvailableToSpend());
+// For an active user with a known enforced cap, this permits an attempt.
+const hasAllowance = profile.hasAvailableAllowance();
+```
+
+</CodeGroup>
+
+Reuse process-owned clients where your application supports that lifecycle. Do not call a synchronous network client from an async request handler.
+
+## Check whether the user has any amount to spend
+
+For an active product user with a known enforced cap, check whether total available allowance is greater than zero. This answers whether the user has any amount to spend, not whether a particular request will fit.
+
+<CodeGroup titles={["Python", "TypeScript"]}>
+
+```python
+available_to_spend = profile.get_total_available_to_spend_decimal()
+can_spend = available_to_spend > 0
+
+# The SDK shortcut returns the same boolean.
+can_spend = profile.has_available_allowance()
+```
+
+```typescript
+const availableToSpend = profile.getTotalAvailableToSpend();
+const canSpend = Number(availableToSpend) > 0;
+
+// The SDK shortcut returns the same boolean.
+const canSpendWithShortcut = profile.hasAvailableAllowance();
+```
+
+</CodeGroup>
+
+Use the shortcut when you only need a boolean. Use the amount getter when you also need to display the remaining allowance. These methods use the profile already retrieved; they do not make another API request.
+
+A zero result means no reported spendable allowance. It is not a universal access decision: check the user's status and connection policy, and apply the missing-allowance and uncapped-key rules below.
+
+## Interpret the response
+
+For a configured cap, Zorveus calculates:
+
+```text
+remaining_base_allowance = max(0, cap_amount - spent_this_period)
+available_allowance = remaining_base_allowance + available_credits
+```
+
+For example, a $20 cap with $15 spent and $10 in active credits reports $15 available. Use the returned amount. Do not rebuild the calculation from usage records in your application.
+
+| Value | Meaning |
+| --- | --- |
+| `allowance.available_allowance` | Remaining base allowance plus available credits. |
+| `allowance.period_start` and `period_end` | The current allowance window. |
+| `allowance.app_connection_id` | The connection used to resolve the reported allowance. |
+| `credits.available_credits` | Credit grants only, not total allowance. |
+| `status` | Product-user state. A positive balance does not override a blocked user. |
+
+The Python and TypeScript helpers read `allowance.available_allowance`. If that value is absent, the helpers fall back to credits. If both values are absent, the helpers return zero.
+
+<Callout type="warning" title="Zero is not always exhaustion">
+  A key without a cap has unlimited virtual allowance. A helper's zero fallback does not mean that an uncapped connection is exhausted. Apply admission checks only when you know the connection's cap and enforcement policy. `track_only` and `disabled` do not block requests for allowance.
+</Callout>
+
+## Handle exhaustion and recovery
+
+For an active user under an enforced cap, `profile.get_total_available_to_spend_decimal() > 0` or `profile.hasAvailableAllowance()` permits an inference attempt. A positive balance does not guarantee funding for that request. The gateway still checks estimated cost, reservations, and other limits.
+
+If the gateway rejects a request for allowance, record an observed exhausted state and return a clear failure to the user. Recheck the profile before rejecting later requests from that state. Credits or a new allowance period can restore access without a local billing event.
+
+A missing profile is not an exhausted profile. Inline attribution creates new users on their first inference request. Handle lookup failures separately from allowance failures.
+
+The profile uses an active direct product-user cap, or the user's last applicable connection cap. If a plan change selects a different key, do not reject the new request using an allowance from the old connection.
+
+Continue with [allowance periods](/startups/allowance-periods), [credit grants](/startups/credit-grants), and [webhook processing](/platform/webhooks).

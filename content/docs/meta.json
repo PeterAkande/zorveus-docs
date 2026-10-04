@@ -2,10 +2,10 @@
   "title": "Documentation",
   "pages": [
     "index",
-    "---Getting Started---",
+    "---Start here---",
     "getting-started",
     "concepts",
-    "---Startups & AI Products---",
+    "---Business---",
     "startups",
     "inference",
     "providers",

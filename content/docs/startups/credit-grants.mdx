@@ -5,6 +5,8 @@ description: Allocate consumable credit to one product user and configure connec
 
 Credit grants allocate spendable virtual credit to a product user in your application. They are distinct from organization wallet balances and spending caps.
 
+For admission checks, read [total available allowance](/startups/check-allowance). For purchased credits, follow [Grant credits after a payment](/startups/billing-integration).
+
 Create or resolve the user and grant credit in one service key request:
 
 <ApiEndpoint method="POST" path="/product-users/by-external-id/credit-grants" auth="service_key" />
@@ -51,4 +53,4 @@ When a product user sends an inference request on a capped key, Zorveus consumes
 
 If an inference key has no cap rule, virtual allowance is unlimited across all credit modes. The request succeeds, virtual spend is recorded, and zero product-user credits are consumed. Credits extend an existing cap; they do not enforce a quota where no cap is configured.
 
-If remaining base allowance and active credits cannot cover the estimated request, the gateway rejects the request with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient`).
+When the configured policy blocks an unfunded request, the gateway rejects the request with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient`). Overrun behavior also depends on the connection's policy.

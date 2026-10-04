@@ -3,11 +3,13 @@ title: Product Users & Credits API
 description: Product-user lookup, upsert, status, usage, caps, credit balances, grants, and revocation operations.
 ---
 
-<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_service_your_service_key" />
+<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_svc_your_service_key" />
 
 ## Get Product User by External ID
 
 Retrieve complete product user profile, spend cap, live credit balances, and token usage by your own system identifier (`external_user_id`).
+
+The response can include `allowance` with the effective connection, period boundaries, remaining base allowance, and total available allowance. See [Check available allowance](/startups/check-allowance) and [allowance periods](/startups/allowance-periods). `credits` alone does not represent the total amount available to spend.
 
 <ApiEndpoint method="GET" path="/product-users/by-external-id" auth="service_key" />
 
@@ -36,6 +38,24 @@ Retrieve complete product user profile, spend cap, live credit balances, and tok
   "status": "active",
   "metadata": {
     "plan": "pro"
+  },
+  "allowance_starts_at": null,
+  "last_app_connection_id": "conn_123",
+  "allowance": {
+    "app_connection_id": "conn_123",
+    "cap_source": "product_end_user",
+    "cap_rule_id": "cap_01j6def456",
+    "credit_mode": "enforce",
+    "overrun_policy": "limit_output",
+    "currency": "USD",
+    "period": "monthly",
+    "period_start": "2026-08-01T00:00:00Z",
+    "period_end": "2026-09-01T00:00:00Z",
+    "cap_amount": "50.000000000000",
+    "spent_this_period": "12.450000000000",
+    "remaining_base_allowance": "37.550000000000",
+    "available_credits": "25.000000000000",
+    "available_allowance": "62.550000000000"
   },
   "cap": {
     "source": "product_end_user",
@@ -119,6 +139,8 @@ A fast, lightweight endpoint for querying a product user's live credit balance w
 ---
 
 ## Upsert Product User by External ID
+
+The request accepts `allowance_starts_at` as a nullable RFC 3339 timestamp. Omit the field to preserve the stored anchor. Send `null` to restore calendar periods. A supplied timestamp cannot be in the future or older than the stored anchor. See [allowance periods](/startups/allowance-periods).
 
 <ApiEndpoint method="PUT" path="/product-users/by-external-id" auth="service_key" />
 
@@ -272,7 +294,7 @@ A fast, lightweight endpoint for querying a product user's live credit balance w
 | :--- | :--- | :--- | :--- |
 | `400 Bad Request` | `zorveus_invalid_app_id` | `app_id` query parameter is empty or missing. | Supply a valid Zorveus `app_id`. |
 | `400 Bad Request` | `zorveus_invalid_external_user_id` | `external_user_id` query parameter is empty. | Supply a non-empty `external_user_id`. |
-| `401 Unauthorized` | `zorveus_malformed_or_missing_service_key` | Missing or invalid `Authorization` header. | Provide a valid Bearer token (`zrv_service_...`). |
+| `401 Unauthorized` | `zorveus_malformed_or_missing_service_key` | Missing or invalid `Authorization` header. | Provide a valid Bearer token (`zrv_svc_...`). |
 | `403 Forbidden` | `zorveus_service_key_scope_required` | Service key lacks `product_users:read` or `product_users:write`. | Add the required scope in the Zorveus Dashboard. |
 | `403 Forbidden` | `zorveus_service_key_inactive` | Service key has expired or been revoked. | Rotate or create a new active Service Key. |
 | `404 Not Found` | `zorveus_product_user_not_found` | No user exists for that `(app_id, external_user_id)` tuple. | Call `PUT /product-users/by-external-id` to create/upsert. |

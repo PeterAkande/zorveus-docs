@@ -1,0 +1,39 @@
+---
+title: Set allowance periods and anchors
+description: Align daily or monthly product-user allowances with a subscription start date.
+---
+
+Configure the allowance amount and period on the inference key's cap. Set `allowance_starts_at` on the product user when your subscription cycle differs from UTC calendar periods.
+
+## Choose the period
+
+Without an anchor, daily caps use UTC calendar days and monthly caps use UTC calendar months. With an anchor, daily periods use consecutive 24-hour windows and monthly periods use calendar anniversaries at the anchor's UTC time. Lifetime caps have no repeating window.
+
+A monthly anchor of July 17 produces a September 17 to October 17 window on September 30. The anchor does not make all usage since July count in September. For days absent from a month, Zorveus uses that month's final day and returns to the original anchor day when possible.
+
+## Pass the subscription anchor
+
+Use a server-owned subscription timestamp in RFC 3339 format. For inference, send the header or body metadata:
+
+```python
+response = await client.chat.completions.create(
+	model=model_id,
+	messages=[{"role": "user", "content": "Hello"}],
+	extra_headers={
+		"X-Zorveus-External-User-ID": user_id,
+		"X-Zorveus-Allowance-Starts-At": "2026-07-17T09:00:00Z",
+	},
+)
+```
+
+The body alternative is `metadata.product_user.allowance_starts_at`. Body metadata takes precedence over the header. For multipart requests, use the same header or a JSON-encoded `metadata` form field.
+
+Omit the anchor to preserve the stored value. Repeating the same value is allowed. A timestamp older than the stored anchor is rejected. Future timestamps are rejected. Clear the anchor through management with an explicit `null`, not an inference request.
+
+Do not set the anchor to the current time on every request. That changes the period instead of tracking the subscription cycle.
+
+## Read the current window
+
+Read `allowance.period_start` and `allowance.period_end` in the [product-user response](/startups/check-allowance). Do not calculate a separate frontend reset date.
+
+The anchor is app-scoped for the product user, not separate for each plan key. Usage in the current window can span connections. Credit-grant expiration is independent of the allowance anchor.

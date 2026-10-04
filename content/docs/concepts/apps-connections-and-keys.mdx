@@ -10,7 +10,7 @@ A common point of confusion is the relationship between an **App**, an **App Con
 ## The resource hierarchy
 
 ```text
-Organization (e.g. Startup Acme Corp)
+Organization (e.g. Business Acme Corp)
   └── App (e.g. Acme Code Reviewer)
         └── App Connection (Binding App to Funding Org)
               ├── Policy: Allowed Models (e.g. "openai/*", "anthropic/*")
@@ -26,7 +26,7 @@ An **App** is a registered product identity. It defines the application's public
 
 ### 2. App Connection
 An **App Connection** binds an App to a specific funding Organization:
-- `org_programmatic`: Created by a startup to fund its own internal application.
+- `org_programmatic`: Created by a business to fund its own internal application.
 - `user_oauth`: Created when a user grants OAuth consent for a third-party app to draw from their wallet.
 
 The connection owns the enforceable policy: allowed model wildcards, credit enforcement mode, and periodic spending caps.

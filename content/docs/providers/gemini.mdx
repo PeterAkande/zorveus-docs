@@ -18,8 +18,8 @@ Zorveus supports Google Gemini models via native Google GenAI wire protocols (`P
 Store your Google AI Studio API key in `secret`. Create the credential via the dashboard or using your Service Key:
 
 ```bash
-curl -X POST https://api.zorveus.com/api/v1/provider-credentials \
-  -H "Authorization: Bearer zrv_service_your_service_key" \
+curl -X POST https://api.zorveus.com/provider-credentials \
+  -H "Authorization: Bearer zrv_svc_your_service_key" \
   -H "Content-Type: application/json" \
   -d '{
     "provider": "gemini",

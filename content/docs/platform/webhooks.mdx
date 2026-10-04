@@ -39,9 +39,10 @@ Zorveus categorizes webhook events by product area:
 | **Wallet** | `wallet.low_balance` | Available organization wallet balance drops below alert threshold. |
 | **Wallet** | `wallet.payment_credited` | Wallet top-up purchase or credit succeeds. |
 | **Wallet** | `wallet.payment_failed` | Wallet top-up transaction fails. |
-| **Product User** | `product_user.cap_reached` | Product user hits monthly inference spend cap. |
+| **Product User** | `product_user.cap_reached` | An attributed product user reaches a direct or connection cap for the configured period. |
 | **Product User** | `product_user.credits_granted` | Promotional or admin credits are granted to a product user. |
 | **App Connection** | `app_connection.cap_reached` | API key app connection reaches monthly spend cap. |
+| **Provider Credential** | `provider_credential.quota_exhausted` | An upstream provider credential reports exhausted quota. |
 
 ---
 
@@ -132,11 +133,23 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "timestamp": "2026-08-28T06:34:56.110229Z",
   "data": {
     "org_id": "org_7k9xq2fm",
-    "product_user_id": "puser_987",
-    "user_email": "user@clientapp.com",
-    "monthly_cap": "100.00",
-    "current_spend": "100.04",
-    "currency": "USD"
+    "app_id": "app_123",
+    "product_end_user_id": "peu_987",
+    "external_user_id": "customer_42",
+    "app_connection_id": "conn_456",
+    "target_type": "product_end_user",
+    "target_id": "peu_987",
+    "cap_target_type": "app_connection",
+    "cap_target_id": "conn_456",
+    "cap_rule_id": "cap_123",
+    "model": "openai/gpt-4.1-mini",
+    "cap_amount": "100.00",
+    "spent_this_period": "99.99",
+    "requested_amount": "0.02",
+    "projected_spend": "100.01",
+    "currency": "USD",
+    "period_start": "2026-08-01T00:00:00Z",
+    "period_end": "2026-09-01T00:00:00Z"
   }
 }
 ```
@@ -173,11 +186,18 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "timestamp": "2026-08-28T06:34:56.110229Z",
   "data": {
     "org_id": "org_7k9xq2fm",
-    "app_id": "app_conn_456",
-    "app_name": "Production Customer Portal",
-    "monthly_spend_cap": "500.00",
-    "current_spend": "500.12",
-    "currency": "USD"
+    "app_connection_id": "conn_456",
+    "target_type": "app_connection",
+    "target_id": "conn_456",
+    "cap_rule_id": "cap_456",
+    "model": "openai/gpt-4.1-mini",
+    "cap_amount": "500.00",
+    "spent_this_period": "499.99",
+    "requested_amount": "0.02",
+    "projected_spend": "500.01",
+    "currency": "USD",
+    "period_start": "2026-08-01T00:00:00Z",
+    "period_end": "2026-09-01T00:00:00Z"
   }
 }
 ```
@@ -186,10 +206,12 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
 
 ## Signature Verification
 
+Reject malformed timestamps and signatures. Reject timestamps outside a five-minute tolerance before processing the body. Compute the signature over the original body bytes, not parsed or reserialized JSON. The digest is a 64-character SHA-256 hexadecimal string.
+
 Every request includes an `X-Zorveus-Signature` header containing a UNIX timestamp (`t`) and an HMAC SHA-256 digest (`v1`):
 
 ```text
-X-Zorveus-Signature: t=1756249200,v1=5d41402abc4b2a76b9719d911017c592
+X-Zorveus-Signature: t=1756249200,v1=5d41402abc4b2a76b9719d911017c59205d41402abc4b2a76b9719d911017c5920
 ```
 
 To verify the signature:
@@ -219,8 +241,12 @@ function verifyZorveusSignature(req, secret) {
   const timestamp = parts.t;
   const signature = parts.v1;
   if (!timestamp || !signature) return false;
+  if (!/^\d{1,12}$/.test(timestamp) || !/^[a-f0-9]{64}$/i.test(signature)) return false;
+  const signedAt = Number(timestamp);
+  if (!Number.isSafeInteger(signedAt) || Math.abs(Date.now() / 1000 - signedAt) > 300) return false;
 
-  const rawBody = req.rawBody; // Raw HTTP request body buffer
+  const rawBody = req.rawBody;
+  if (!Buffer.isBuffer(rawBody)) return false;
 
   const signedPayload = Buffer.concat([
     Buffer.from(`${timestamp}.`, 'utf-8'),
@@ -232,7 +258,7 @@ function verifyZorveusSignature(req, secret) {
     .update(signedPayload)
     .digest('hex');
 
-  const sigBuf = Buffer.from(signature, 'utf-8');
+  const sigBuf = Buffer.from(signature.toLowerCase(), 'utf-8');
   const expBuf = Buffer.from(expectedSignature, 'utf-8');
 
   // Prevent length mismatch errors before timing-safe check
@@ -247,6 +273,8 @@ function verifyZorveusSignature(req, secret) {
 ```python
 import hmac
 import hashlib
+import re
+import time
 
 def verify_zorveus_signature(raw_body: bytes, sig_header: str, secret: str) -> bool:
     header_parts = {}
@@ -260,6 +288,10 @@ def verify_zorveus_signature(raw_body: bytes, sig_header: str, secret: str) -> b
 
     if not timestamp or not received_sig:
         return False
+    if not re.fullmatch(r"[0-9]{1,12}", timestamp) or not re.fullmatch(r"[a-fA-F0-9]{64}", received_sig):
+        return False
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
 
     signed_payload = f"{timestamp}.".encode("utf-8") + raw_body
     computed_sig = hmac.new(
@@ -268,7 +300,7 @@ def verify_zorveus_signature(raw_body: bytes, sig_header: str, secret: str) -> b
         hashlib.sha256
     ).hexdigest()
 
-    return hmac.compare_digest(received_sig, computed_sig)
+    return hmac.compare_digest(received_sig.lower(), computed_sig)
 ```
 
 </CodeGroup>
@@ -276,6 +308,12 @@ def verify_zorveus_signature(raw_body: bytes, sig_header: str, secret: str) -> b
 ---
 
 ## Receiver Best Practices
+
+For product-user events, resolve your customer through `data.external_user_id` and verify `data.app_id` and the envelope's organization. Do not use an internal Zorveus ID as your application's customer ID. An attributed request that reaches a connection cap can emit `product_user.cap_reached`; inspect `cap_target_type` to identify that cap.
+
+Use one allowance service for webhook events and inference errors. Recheck [available allowance](/startups/check-allowance) when access may have recovered. A credit grant alone does not guarantee the next request will fit.
+
+`provider_credential.quota_exhausted` contains `org_id`, `provider_credential_id`, `provider`, `credential_name`, and `exhausted_at` in `data`. Treat it as an upstream credential issue, not a customer allowance failure.
 
 * **Acknowledge quickly.** Return HTTP `200` or `204` within 3 seconds. Queue long-running tasks asynchronously.
 * **Prevent replay attacks.** Reject payloads with timestamps older than 5 minutes.

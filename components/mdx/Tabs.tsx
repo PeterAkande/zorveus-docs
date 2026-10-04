@@ -57,13 +57,15 @@ export function Tabs({ items, children, defaultValue, plain, label = "Platform /
   }
 
   return (
-    <div className="my-6 rounded-xl border border-zorveus-border bg-zorveus-dark overflow-hidden shadow-md">
+    <div className="zorveus-tabs my-6 rounded-xl border border-zorveus-border bg-zorveus-dark overflow-hidden shadow-md">
       <div className="flex border-b border-zorveus-border bg-zinc-950 p-2 gap-1.5 overflow-x-auto">
         {tabLabels.map((label, idx) => {
           const isSelected = idx === selectedIndex;
           return (
             <button
               key={idx}
+              type="button"
+              aria-pressed={isSelected}
               onClick={() => setSelectedIndex(idx)}
               className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none focus:outline-none ${
                 isSelected

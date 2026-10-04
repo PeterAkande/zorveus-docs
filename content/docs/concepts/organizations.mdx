@@ -3,17 +3,17 @@ title: Organizations
 description: Understand organization types, ownership boundaries, member permissions, and funding contexts.
 ---
 
-# Organizations
-
 In Zorveus, an **Organization** is the fundamental security, ownership, and funding boundary. All apps, wallets, provider credentials, product users, and members belong to an organization.
 
 ---
 
 ## Organization Types
 
+Business is the product name for an organization that funds its own AI product. The API represents this type as `startup`. Use `startup` in API requests and interpret that value as Business in your application UI.
+
 | Type | Intended Audience | Spendable Wallet? | Primary Capabilities |
 | :--- | :--- | :--- | :--- |
-| **`startup`** | AI Product Teams & Companies | Yes | Create internal apps, issue API keys, manage product users, store BYOK credentials, grant credits. |
+| **Business**, API value `startup` | AI Product Teams & Companies | Yes | Create internal apps, issue API keys, manage product users, store BYOK credentials, grant credits. |
 | **`developer`** | Third-Party Tool Creators | No (aggregate only) | Register OAuth applications, configure redirect URIs, manage test users, review OAuth consent logs. |
 | **`personal`** | Individual AI Consumers | Yes | Fund personal wallet, manage connected OAuth applications, set personal spending caps. |
 
@@ -25,8 +25,8 @@ In Zorveus, an **Organization** is the fundamental security, ownership, and fund
 
 ## Ownership and Isolation
 
-- **Isolated Wallets**: Each `startup` and `personal` organization owns a distinct ledger wallet with independent balances and currency rules. Funds cannot automatically spill over between organizations.
-- **Member Access**: Users can belong to multiple organizations (e.g. your personal wallet and your company's startup workspace) with distinct role permissions in each.
+- **Isolated Wallets**: Each Business and personal organization owns a distinct ledger wallet with independent balances and currency rules. Funds cannot automatically spill over between organizations.
+- **Member Access**: Users can belong to multiple organizations (e.g. your personal wallet and your company's business workspace) with distinct role permissions in each.
 - **Provider Credentials**: BYOK credentials added to Organization A are completely invisible and unrouteable by Organization B, even if both organizations are managed by the same team members.
 
 ---
