@@ -34,6 +34,21 @@ export const metadata: Metadata = {
     url: 'https://docs.zorveus.com',
     siteName: 'Zorveus Docs',
     type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Zorveus Documentation',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Zorveus Documentation',
+    description:
+      'One wallet and control layer for using AI across products and providers.',
+    images: ['/og-image.png'],
   },
 };
 
