@@ -3,23 +3,23 @@ title: Service keys
 description: Authenticate server-to-server management requests with organization-scoped permissions.
 ---
 
-Service keys start with `zrv_svc_`. Keep them on trusted servers and send them as a Bearer token to supported management routes at `https://api.zorveus.com`.
+Service keys start with `zrv_svc_`. Keep them on trusted servers and send them as a Bearer token to supported `/product-users/by-external-id` routes at `https://api.zorveus.com`.
 
 ```http
 Authorization: Bearer zrv_svc_your_service_key
 ```
 
-Create, list, and revoke service keys through dashboard-session routes under `/orgs/{org_id}/service-keys`. The raw value is shown only at creation.
+Create, list, and revoke service keys in the dashboard. The raw value is shown only at creation.
 
 ## Supported service-key surfaces
 
 | Scope | Routes |
 | --- | --- |
-| `product_users:read` | Product-user profile, credit summary, and grant-list reads. |
-| `product_users:write` | Product-user upsert and credit-grant creation. |
-| `provider_credentials:write` | `/provider-credentials/org-programmatic` create, list, rotate, priority, delete, and connection-grant routes. |
-| `app_connections:write` | `POST /app-connections/org-programmatic`. |
+| `product_users:read` | Profile, credit summary, allowance debt, and grant-list reads under `/product-users/by-external-id`. |
+| `product_users:write` | `PUT /product-users/by-external-id` and `POST /product-users/by-external-id/credit-grants`. |
 
-Administrative scopes such as `admin`, `admin:full`, `admin:write`, and `all` satisfy write checks. Read-oriented administrative scopes satisfy supported read checks.
+## Dashboard-only management
 
-Service keys do not create developer apps through `POST /apps`, and they do not authenticate inference. Use a dashboard session for app management and an API key (`zrv_...`) for `/v1` model requests.
+Create and manage apps, app connections, API keys, spending caps, provider credentials, and webhook settings in the dashboard. These operations are not part of the supported service-key API.
+
+Change product-user status and revoke credit grants in the dashboard. Use an API key (`zrv_...`) for inference. Service keys cannot make inference requests.

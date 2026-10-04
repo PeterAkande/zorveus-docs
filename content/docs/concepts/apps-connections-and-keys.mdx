@@ -41,12 +41,12 @@ An **API Key** (`zrv_...`) is the cryptographic secret issued under an App Conne
 | Credential | Prefix / Format | Target Endpoint | Usage Location | Privilege Level |
 | :--- | :--- | :--- | :--- | :--- |
 | **API Key** | `zrv_...` | `https://api.zorveus.com/v1` | Server backend or safe client | Scoped to connection model policy & cap |
-| **Service Key** | `zrv_svc_...` | `https://api.zorveus.com` | Backend server ONLY | High (manages product users, grants, org) |
+| **Service Key** | `zrv_svc_...` | `https://api.zorveus.com` | Backend server ONLY | Scoped product-user reads, upserts, and credit grants by external user ID |
 | **OAuth Client Secret** | `zrv_client_secret_...` | `/oauth/token` | OAuth backend ONLY | Confidential client authentication |
 | **Provider Credential** | `sk-...` / encrypted | Upstream provider | Stored securely in Zorveus | Upstream provider account secret |
 
 <Callout type="danger" title="Never Mix Service Keys and API Keys">
-  Never paste a Service Key into the OpenAI client `api_key` parameter or pass it to `/v1` endpoints. The inference gateway (`/v1/chat/completions`, `/v1/messages`) only accepts API Keys (`zrv_...`). Service keys (`zrv_svc_...`) are strictly for backend organization management against `https://api.zorveus.com`.
+  Never paste a Service Key into the OpenAI client `api_key` parameter or pass it to `/v1` endpoints. The inference gateway (`/v1/chat/completions`, `/v1/messages`) only accepts API Keys (`zrv_...`). Service keys (`zrv_svc_...`) are for supported product-user operations under `/product-users/by-external-id` against `https://api.zorveus.com`.
 </Callout>
 
 ---

@@ -13,6 +13,7 @@ import { KeyInserter } from '@/components/mdx/KeyInserter';
 import { SequenceDiagram } from '@/components/mdx/SequenceDiagram';
 import { ApiRunner } from '@/components/mdx/ApiRunner';
 import { PageFeedback } from '@/components/mdx/PageFeedback';
+import { ArchitectureDiagram } from '@/components/mdx/ArchitectureDiagram';
 
 export function useMDXComponents(components: MDXComponents = {}): MDXComponents {
   return {
@@ -35,6 +36,7 @@ export function useMDXComponents(components: MDXComponents = {}): MDXComponents 
     SequenceDiagram,
     ApiRunner,
     PageFeedback,
+    ArchitectureDiagram,
     RequestExample: ({ children }: { children: React.ReactNode }) => (
       <div className="request-example my-4">{children}</div>
     ),

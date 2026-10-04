@@ -19,7 +19,7 @@ export function PageFeedback() {
   const [feedback, setFeedback] = useState<'yes' | 'no' | null>(null);
 
   return (
-    <div className="mt-16 mb-12 border-t border-[#222226] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-400">
+    <div className="zorveus-page-feedback not-prose">
       <div className="flex items-center gap-3">
         <span>Was this page helpful?</span>
         {feedback ? (

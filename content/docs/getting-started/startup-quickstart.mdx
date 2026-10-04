@@ -294,7 +294,7 @@ Because every Zorveus API key carries its own spending limits and model access r
 2. **Pro Tier Key**: Attach a higher monthly allowance (e.g. `$20.00/month`) with access to flagship models like `openai/gpt-4o` and `anthropic/claude-3.5-sonnet`.
 3. **Enterprise Tier Key**: Attach custom high-volume caps or unlimited spending with dedicated provider routing.
 
-When a customer changes plans, have your backend select the API key for the new tier. Never expose an API key to the customer. You can also update the key's spending limit through the dashboard or the [Zorveus Service API](/startups/service-keys).
+When a customer changes plans, have your backend select the API key for the new tier. Never expose an API key to the customer. Update the key's spending limit in the dashboard, not through a service-key request.
 
 ### Select a plan tier in backend code
 

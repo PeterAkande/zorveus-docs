@@ -26,12 +26,12 @@ Zorveus provides three core integration models depending on who funds the AI usa
 Understanding credential types ensures you use the correct secret in each context:
 
 - **API Key (`zrv_...`)**: Secret token used in `Authorization: Bearer zrv_...` against the model gateway (`https://api.zorveus.com/v1` or native wire endpoints). Used to execute model inference and inspect connection spend. Shown only once upon creation.
-- **Service Key (`zrv_svc_...`)**: High-privilege management credential used server-to-server against the Product Management API (`https://api.zorveus.com`). Reserved for backend administration; never expose this key in browser code and do not pass it to inference endpoints.
+- **Service Key (`zrv_svc_...`)**: Server-to-server credential for supported `/product-users/by-external-id` operations at `https://api.zorveus.com`; never expose this key in browser code and do not pass it to inference endpoints.
 - **Client ID & Client Secret (`zrv_client_...` / `zrv_client_secret_...`)**: Credentials for registered OAuth applications to authenticate during PKCE token exchanges.
 - **Provider Credential**: Encrypted upstream API keys (e.g. OpenAI, Anthropic, Gemini) stored in Zorveus for Bring Your Own Key (BYOK) routing.
 
 <Callout type="warning" title="Security Boundary">
-  Never use a **Service Key** (`zrv_svc_...`) for model inference requests or inside frontend client bundles. Service keys are strictly for backend management (managing product users, credit grants, provider credentials, and connections). Model inference requires an **API Key** (`zrv_...`).
+  Never use a **Service Key** (`zrv_svc_...`) for model inference requests or inside frontend client bundles. Service keys support product-user reads, upserts, and credit grants by external user ID. Manage provider credentials and connections in the dashboard. Model inference requires an **API Key** (`zrv_...`).
 </Callout>
 
 ---

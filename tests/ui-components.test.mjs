@@ -56,3 +56,29 @@ test('navigation cards use one heading row and keep their destination', () => {
   assert.match(html, /<h3>Get started<\/h3>/);
   assert.doesNotMatch(html, /select-none|justify-between/);
 });
+
+test('page feedback has explicit divider spacing and a wrapping layout', () => {
+  const PageFeedback = loadComponent('PageFeedback');
+  const html = renderToStaticMarkup(React.createElement(PageFeedback));
+  assert.match(html, /zorveus-page-feedback not-prose/);
+  assert.match(html, /Was this page helpful\?/);
+  const css = fs.readFileSync('app/globals.css', 'utf8');
+  const rule = css.match(/\.zorveus-page-feedback\s*\{([^}]+)\}/)?.[1];
+  assert.ok(rule);
+  assert.match(rule, /padding-top:\s*24px/);
+  assert.match(rule, /border-top:\s*1px/);
+  assert.match(rule, /flex-wrap:\s*wrap/);
+});
+
+test('architecture diagram labels the setup, inference, and service-key paths', () => {
+  const ArchitectureDiagram = loadComponent('ArchitectureDiagram');
+  const html = renderToStaticMarkup(React.createElement(ArchitectureDiagram));
+  assert.match(html, /<figure[^>]+aria-label="Zorveus architecture"/);
+  assert.match(html, /Zorveus dashboard/);
+  assert.match(html, /Your application backend/);
+  assert.match(html, /Model provider/);
+  assert.match(html, /service key for supported product-user/);
+  assert.equal((html.match(/<li>/g) || []).length, 3);
+  const css = fs.readFileSync('app/globals.css', 'utf8');
+  assert.match(css, /\.zorveus-architecture-flow \{ grid-template-columns: 1fr; \}/);
+});

@@ -9,7 +9,7 @@ if (!schemaPath) {
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const outputDirectory = path.resolve("content/docs/api-reference");
 const methods = new Set(["get", "post", "put", "patch", "delete"]);
-const privatePrefixes = ["/admin/", "/internal/", "/payments/webhooks/"];
+const privatePrefixes = ["/admin/", "/internal/", "/payments/webhooks/", "/provider-credentials", "/app-connections/org-programmatic"];
 const backtick = String.fromCharCode(96);
 
 const pageConfig = {
@@ -32,10 +32,6 @@ const pageConfig = {
   "product-users": {
     title: "Product users and credits API",
     description: "Product-user lookup, upsert, status, usage, caps, credit balances, grants, and revocation operations.",
-  },
-  "provider-credentials": {
-    title: "Provider credentials API",
-    description: "Provider discovery, credential creation, routing priority, connection access, rotation, and deletion.",
   },
   wallet: {
     title: "Wallet and payments API",
@@ -62,7 +58,6 @@ const pageConfig = {
 function pageFor(route) {
   if (route.startsWith("/notification-settings")) return "notifications";
   if (route.startsWith("/product-users")) return "product-users";
-  if (route.startsWith("/provider-credentials")) return "provider-credentials";
   if (route.startsWith("/wallet")) return "wallet";
   if (route.startsWith("/caps")) return "caps";
   if (route.startsWith("/dashboard-api") || route.startsWith("/inference-keys")) return "usage";
@@ -78,7 +73,6 @@ function authFor(route, method) {
   if (route.startsWith("/health")) return "none";
   if (route.startsWith("/inference-keys")) return "api_key";
   if (route.startsWith("/product-users/by-external-id")) return "service_key";
-  if (route.startsWith("/provider-credentials/org-programmatic")) return "service_key";
   if (route === "/oauth/authorize") return "none";
   if (route === "/oauth/token" || route === "/oauth/revoke") return "oauth_client";
   if (route.startsWith("/oauth/authorization-requests")) return "dashboard_session";
@@ -243,6 +237,7 @@ function responseBlock(operation) {
 const grouped = Object.fromEntries(Object.keys(pageConfig).map((name) => [name, []]));
 for (const [route, pathItem] of Object.entries(schema.paths)) {
   if (privatePrefixes.some((prefix) => route.startsWith(prefix))) continue;
+  if (route.startsWith("/product-users") && !route.startsWith("/product-users/by-external-id")) continue;
   for (const [method, operation] of Object.entries(pathItem)) {
     if (!methods.has(method)) continue;
     grouped[pageFor(route)].push({ route, method: method.toUpperCase(), operation });
@@ -258,7 +253,7 @@ for (const [page, operations] of Object.entries(grouped)) {
     "description: " + config.description,
     "---",
     "",
-    "This reference mirrors the current public FastAPI schema. Dashboard operations use the browser session and CSRF contract. Programmatic operations state when they require an API key or service key.",
+    "This reference includes dashboard routes, which are not application integration endpoints. Service-key integration supports only product-user operations under /product-users/by-external-id. Configure apps, connections, caps, provider credentials, and webhooks in the dashboard.",
     "",
   ];
 

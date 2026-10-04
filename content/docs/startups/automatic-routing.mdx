@@ -47,17 +47,6 @@ Provider credentials can specify exact model matches or wildcard patterns:
 
 ---
 
-## Configuring Priority via API
+## Configure priority in the dashboard
 
-You can update provider credential priority programmatically using your Service Key (`zrv_svc_...`):
-
-<ApiEndpoint method="PATCH" path="/provider-credentials/org-programmatic/{credential_id}/routing-priority" auth="service_key" />
-
-```bash
-curl -X PATCH https://api.zorveus.com/provider-credentials/org-programmatic/cred_9921a/routing-priority \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_srv_your_service_key" \
-  -d '{
-    "routing_priority": 25,
-  }'
-```
+Open **Provider Credentials** in the dashboard and configure the credential's routing priority. Application code does not update provider credentials through an API.

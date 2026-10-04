@@ -12,8 +12,10 @@ Bedrock support depends on the provider credential catalog and the deployed mode
 - Typical provider ID: `bedrock`
 - Typical model policy: `bedrock/*`
 
-Call `GET /provider-credentials/providers` before creating the credential. Use the returned secret kinds and required configuration fields as the contract. Do not place separate AWS fields into a request unless the catalog documents that shape.
+Open **Provider Credentials** in the dashboard and check whether AWS Bedrock is available. Use the authentication options and fields shown in the form.
 
-AWS authentication can use access keys, sessions, roles, or workload identity. The public Zorveus credential request accepts only the forms listed by the runtime catalog. If `bedrock` is absent, the deployment does not currently expose a supported Bedrock credential flow.
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
+
+AWS authentication can use access keys, sessions, roles, or workload identity. Use only the forms supported by the dashboard. If AWS Bedrock is absent, you cannot configure a Bedrock credential in that deployment.
 
 Choose only models returned by `GET /v1/models` for the API key.

@@ -13,8 +13,10 @@ Use this guide to route matching requests through an OpenAI API key owned by you
 - Secret kind: `api_key`
 - Typical model policy: `openai/*`
 
-Create the credential with a unique `credential_name`, the OpenAI key in `secret`, and `default_model_policy: ["openai/*"]`. Use `auto_resolve` to make it eligible for matching connections, or `manual_grant_only` to require an explicit connection grant.
+Open **Provider Credentials** in the dashboard and select OpenAI. Enter a name and your OpenAI API key, then configure the model policy and routing mode.
+
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
 
 Zorveus validates the key before storing it. The response contains a fingerprint, not the raw secret. Test a model returned by `GET /models` in the dashboard or `GET /v1/models` with the API key before moving production traffic.
 
-If OpenAI rejects the key, rotate it with the provider, then call the Zorveus credential-rotation operation. Deleting the old Zorveus credential also revokes its connection grants.
+If OpenAI rejects the key, rotate it with the provider, then update the credential under **Provider Credentials** in the dashboard. Deleting the old Zorveus credential also revokes its connection grants.

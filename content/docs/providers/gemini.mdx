@@ -15,20 +15,9 @@ Zorveus supports Google Gemini models via native Google GenAI wire protocols (`P
 - **Secret kind**: `api_key`
 - **Default model policy**: `gemini/*`
 
-Store your Google AI Studio API key in `secret`. Create the credential via the dashboard or using your Service Key:
+Open **Provider Credentials** in the dashboard, select Google Gemini, and enter your Google AI Studio API key.
 
-```bash
-curl -X POST https://api.zorveus.com/provider-credentials \
-  -H "Authorization: Bearer zrv_svc_your_service_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider": "gemini",
-    "secret_kind": "api_key",
-    "secret": "AIzaSy...",
-    "allowed_model_wildcards": ["gemini/*"],
-    "routing_mode": "auto_resolve"
-  }'
-```
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
 
 ---
 

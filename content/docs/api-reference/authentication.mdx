@@ -3,7 +3,7 @@ title: Authentication
 description: Authentication methods for the Zorveus API.
 ---
 
-Every request to the Zorveus API must be authenticated. The API distinguishes between two distinct credential types:
+Protected routes require the authentication method documented for that route:
 
 1. **API Key (`zrv_...`)**: Used to execute LLM inference requests against `https://api.zorveus.com/v1` (and provider-native endpoints) or inspect connection spend on `/inference-keys/usage`. API keys are issued under an App Connection and enforce model access policies and spend caps.
-2. **Service Key (`zrv_svc_...`)**: Used exclusively for backend organization management against `https://api.zorveus.com`. Service keys manage apps, provider credentials, product users, and webhooks. They cannot make inference requests.
+2. **Service Key (`zrv_svc_...`)**: Used on trusted servers for supported `/product-users/by-external-id` operations. They cannot make inference requests. Configure apps, connections, caps, provider credentials, and webhooks in the dashboard.

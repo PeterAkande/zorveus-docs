@@ -79,20 +79,7 @@ You can supply your organization's Anthropic API key to pay Anthropic directly w
 - **Secret kind**: `api_key`
 - **Default wildcard policy**: `anthropic/*`
 
-Create the credential in the developer dashboard or programmatically with your Service Key:
-
-```bash
-curl -X POST https://api.zorveus.com/provider-credentials \
-  -H "Authorization: Bearer zrv_svc_your_service_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider": "anthropic",
-    "secret_kind": "api_key",
-    "secret": "sk-ant-api03-...",
-    "allowed_model_wildcards": ["anthropic/*"],
-    "routing_mode": "auto_resolve"
-  }'
-```
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
 
 ---
 

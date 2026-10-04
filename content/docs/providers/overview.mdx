@@ -3,7 +3,7 @@ title: Provider integrations
 description: Discover and configure upstream credentials for Bring Your Own Key routing.
 ---
 
-Use `GET /provider-credentials/providers` as the current credential catalog. It returns each provider ID, accepted aliases, secret kinds, and required configuration fields.
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
 
 <CardGroup cols={2}>
   <Card title="OpenAI" icon="cpu" href="/providers/openai">
@@ -16,7 +16,7 @@ Use `GET /provider-credentials/providers` as the current credential catalog. It 
     Configure an Anthropic API key for `anthropic/*` routes.
   </Card>
   <Card title="OpenRouter & Open Weights" icon="terminal" href="/providers/openrouter">
-    Use OpenRouter only when it appears in the runtime provider catalog.
+    Select OpenRouter if it is available under Provider Credentials in the dashboard.
   </Card>
 </CardGroup>
 
@@ -28,11 +28,11 @@ If `auto_fallback_to_wallet` is enabled and the wallet can fund the request, the
 
 ## Verify a provider
 
-1. Read the runtime provider catalog.
-2. Create and validate the credential.
-3. Confirm its model policy and routing mode.
-4. Grant it to the app connection when the mode requires a grant.
-5. List models with the API key.
-6. Send a controlled inference request and inspect the usage event.
+1. Open **Provider Credentials** in the dashboard.
+2. Select the provider and save the required credentials.
+3. Confirm the model policy and routing mode in the dashboard.
+4. Configure app-connection access when the mode requires a grant.
+5. Select an available model from [the model catalog](https://www.zorveus.com/models).
+6. Send an inference request with your Zorveus API key and inspect usage in the dashboard.
 
 A provider route or wildcard alone is not evidence that every upstream model is available.

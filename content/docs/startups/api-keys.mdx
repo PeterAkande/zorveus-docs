@@ -6,7 +6,7 @@ description: Create, rotate, scope, and revoke gateway API keys.
 API keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`) and provider-native wire endpoints.
 
 <Callout type="warning" title="Distinct from service keys">
-  API keys (`zrv_...`) execute model inference and inspect connection spend. They cannot perform organization management. Programmatic organization administration requires a Service Key (`zrv_svc_...`). Never supply a Service Key to model inference endpoints.
+  API keys (`zrv_...`) execute model inference and inspect connection spend. They cannot perform organization management. Manage organizations in the dashboard. Service keys support product-user operations under `/product-users/by-external-id`. Never supply a Service Key to model inference endpoints.
 </Callout>
 
 <KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />

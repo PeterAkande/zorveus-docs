@@ -14,20 +14,8 @@ Azure credentials require both a secret and deployment configuration.
 - Required `provider_config` fields: `api_base` and `api_version`
 - Typical model policy: `azure/*`
 
-Put the key or Azure AD token in `secret`. Put the endpoint and API version in `provider_config`:
+Open **Provider Credentials** in the dashboard and select Azure OpenAI. Enter the key or Azure AD token, endpoint, and API version requested by the form.
 
-```json
-{
-  "provider": "azure",
-  "credential_name": "Azure production",
-  "secret": "synthetic-secret",
-  "secret_kind": "api_key",
-  "provider_config": {
-    "api_base": "https://example-resource.openai.azure.com",
-    "api_version": "2025-01-01-preview"
-  },
-  "default_model_policy": ["azure/*"]
-}
-```
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
 
 The configured Azure deployment names must match the model routing configuration. Confirm them with a controlled request instead of assuming that an OpenAI public model name maps to the deployment.

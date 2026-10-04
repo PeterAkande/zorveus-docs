@@ -458,6 +458,20 @@ button[aria-label="Copy Code"] {
 }
 
 /* Component spacing is separate from document paragraph spacing. */
+.zorveus-architecture { margin: 24px 0; color: #c4c4cd; font-size: 14px; line-height: 1.6; }
+.zorveus-architecture-management, .zorveus-architecture-flow li { padding: 16px; border: 1px solid #35353d; border-radius: 8px; background: #121214; }
+.zorveus-architecture strong { display: block; margin-bottom: 6px; color: #8de9bf; }
+.zorveus-architecture-connector { padding: 10px 0; text-align: center; color: #a1a1aa; }
+.zorveus-architecture-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 0; padding: 0; list-style: none; }
+.zorveus-architecture-flow li { position: relative; min-width: 0; }
+.zorveus-architecture-flow li:not(:last-child)::after { content: "→"; position: absolute; right: -23px; top: 50%; color: #8de9bf; }
+.zorveus-architecture figcaption { margin-top: 14px; color: #a1a1aa; font-size: 13px; }
+@media (max-width: 640px) {
+  .zorveus-architecture-flow { grid-template-columns: 1fr; }
+  .zorveus-architecture-flow li:not(:last-child)::after { content: "↓"; right: 50%; top: auto; bottom: -27px; }
+}
+.zorveus-page-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 48px 0 32px; padding-top: 24px; border-top: 1px solid #222226; color: #a1a1aa; font-size: 13px; line-height: 1.5; }
+.zorveus-page-feedback > div { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .zorveus-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .zorveus-page-header .zorveus-page-title { min-width: 0; overflow-wrap: anywhere; }
 .zorveus-page-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; flex-shrink: 0; padding-top: 6px; }
