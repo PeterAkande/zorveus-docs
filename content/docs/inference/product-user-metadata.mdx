@@ -130,3 +130,5 @@ Zorveus returns tracking headers in every inference response:
 | :--- | :--- |
 | `x-zorveus-request-id` | Unique request identifier (`zreq_...`) for audit tracing and debugging. |
 | `x-zorveus-reservation-id` | Unique reservation identifier (`resv_...`) held for the request. |
+
+Keep `X-Zorveus-Allowance-Change-Policy: prorate_increase` on requests while a customer stays on a plan or upgrades. See [prorated plan changes](/startups/prorated-plan-changes) for first-use, same-connection, upgrade, and downgrade behavior
