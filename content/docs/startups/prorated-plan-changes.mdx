@@ -1,0 +1,158 @@
+---
+title: Prorate AI allowances on plan upgrades
+description: Set the plan-change policy once and prorate AI allowance increases when customers upgrade.
+---
+
+Proration adjusts the extra AI allowance based on how much of the current cycle is left. Half a cycle left means half the allowance increase
+
+[Configure both plan connections](/startups/configure-product-user-allowances) with active daily or monthly caps. Use the same period and currency
+
+## 1. Send the policy
+
+Send the policy on the first request and on later requests while the customer stays on a plan or upgrades. For a downgrade, omit the policy from the switching request; Zorveus does not prorate decreases. Use your app's [inference API key](/startups/api-keys)
+
+<Tabs items={["Header", "Request body"]}>
+<Tab title="Header">
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+	-H "Authorization: Bearer $PLAN_API_KEY" \
+	-H "Content-Type: application/json" \
+	-H "X-Zorveus-External-User-ID: customer_123" \
+	-H "X-Zorveus-Allowance-Change-Policy: prorate_increase" \
+	-d '{"model":"YOUR_ALLOWED_MODEL","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+</Tab>
+<Tab title="Request body">
+
+```json
+{
+	"model": "YOUR_ALLOWED_MODEL",
+	"messages": [{"role": "user", "content": "Hello"}],
+	"metadata": {
+		"external_user_id": "customer_123",
+		"product_user": {"allowance_change": "prorate_increase"}
+	}
+}
+```
+
+</Tab>
+</Tabs>
+
+The body value takes precedence over the header. Zorveus records the initial connection without proration
+
+## 2. Switch the plan's API key
+
+When the customer upgrades, use the API key for the new plan's connection. Keep the same user ID and [allowance anchor](/startups/allowance-periods)
+
+A $10 to $50 upgrade increases the allowance by $40. Halfway through the cycle, the customer gets $20 extra:
+
+```text
+Current-cycle allowance = $10 + ($50 - $10) × 0.5 = $30
+Remaining after $8 used = $30 - $8 = $22
+```
+
+Requests with the same connection reuse the saved allowance. At renewal, the full configured $50 allowance applies
+
+## 3. Read the remaining allowance
+
+Fetch the [product user](/api-reference/product-users#get-product-user-by-external-id) with your service key:
+
+```bash
+curl --get https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $SERVICE_API_KEY" \
+	--data-urlencode "app_id=$APP_ID" \
+	--data-urlencode "external_user_id=customer_123"
+```
+
+Display `allowance.available_allowance` as the remaining balance. Use `allowance.period_end` for the renewal date
+
+<details>
+<summary>Complete response for the $10 to $50 upgrade example</summary>
+
+The fictional user upgrades on June 16 in a June 1 to July 1 cycle. There are no active reservations or promotional credits
+
+```json
+{
+	"product_end_user_id": "peu_example",
+	"org_id": "org_example",
+	"app_id": "app_example",
+	"external_user_id": "customer_123",
+	"display_name": "Example user",
+	"email_hash": null,
+	"status": "active",
+	"metadata": {
+		"plan": "business"
+	},
+	"allowance_starts_at": "2026-06-01T00:00:00Z",
+	"last_app_connection_id": "connection_business",
+	"usage": {
+		"this_period": {
+			"sell_cost": "8.000000000000",
+			"input_tokens": 1000,
+			"output_tokens": 500,
+			"total_tokens": 1500,
+			"request_count": 1
+		},
+		"period_start": "2026-06-01T00:00:00Z",
+		"period_end": "2026-07-01T00:00:00Z",
+		"total": {
+			"sell_cost": "8.000000000000",
+			"input_tokens": 1000,
+			"output_tokens": 500,
+			"total_tokens": 1500,
+			"request_count": 1
+		}
+	},
+	"cap": {
+		"source": "app_connection",
+		"cap_rule_id": "cap_business",
+		"amount": "50.000000000000",
+		"currency": "USD",
+		"period": "monthly",
+		"spent_this_period": "8.000000000000",
+		"period_start": "2026-06-01T00:00:00Z",
+		"period_end": "2026-07-01T00:00:00Z",
+		"reset_at": "2026-07-01T00:00:00Z",
+		"status": "active",
+		"updated_at": "2026-06-01T00:00:00Z"
+	},
+	"direct_cap": null,
+	"credits": {
+		"currency": "USD",
+		"available_credits": "0.000000000000",
+		"active_grant_count": 0,
+		"expiring_soon_amount": "0.000000000000",
+		"spent_this_month": "0.000000000000",
+		"spent_total": "0.000000000000",
+		"last_grant_at": null,
+		"last_used_at": null
+	},
+	"allowance": {
+		"app_connection_id": "connection_business",
+		"cap_source": "app_connection",
+		"cap_rule_id": "cap_business",
+		"credit_mode": "enforce_if_present",
+		"overrun_policy": "limit_output",
+		"currency": "USD",
+		"period": "monthly",
+		"period_start": "2026-06-01T00:00:00Z",
+		"period_end": "2026-07-01T00:00:00Z",
+		"cap_amount": "30.000000000000",
+		"spent_this_period": "8.000000000000",
+		"remaining_base_allowance": "22.000000000000",
+		"available_credits": "0.000000000000",
+		"available_allowance": "22.000000000000",
+		"adjustment": {
+			"type": "prorate_increase",
+			"configured_cap_amount": "50.000000000000",
+			"effective_at": "2026-06-16T00:00:00Z"
+		}
+	}
+}
+```
+
+</details>
+
+Your app still handles subscription payments. See the [proration reference](/api-reference/product-users#prorated-allowance) for supported changes, response fields, and audit history

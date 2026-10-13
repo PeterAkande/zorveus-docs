@@ -183,3 +183,32 @@ Use **Product Users** in the dashboard to change a user's status or revoke a cre
   }
 }
 ```
+
+## Prorated allowance
+
+`X-Zorveus-Allowance-Change-Policy: prorate_increase` prorates allowance increases when a product user switches to a higher-cap connection. The equivalent body field is `metadata.product_user.allowance_change`. The body takes precedence
+
+First-use and same-connection requests create no proration event. Upgrades require active caps on both plan connections with the same period and currency. Daily and monthly periods are supported
+
+A decrease, an uncapped plan, a lifetime cap, or an active direct product-user cap returns `zorveus_invalid_allowance_change` on a transition. OAuth user connections reject the policy
+
+Detail responses and list items include `allowance`. Only detail responses include `cap`
+
+| Field | Meaning |
+| :--- | :--- |
+| `cap.amount` | Configured cap amount |
+| `allowance.cap_amount` | Effective allowance for the current cycle |
+| `allowance.available_allowance` | Remaining base allowance plus available credit grants |
+| `allowance.period_start` | Start of the allowance window |
+| `allowance.period_end` | End of the window, exclusive, and start of the next window |
+| `allowance.adjustment` | Current proration, or null when no matching adjustment applies |
+| `allowance.adjustment.configured_cap_amount` | Configured cap amount saved at the transition |
+| `allowance.adjustment.effective_at` | Time of the request that accepted the transition |
+
+Later upgrades add the prorated increase to the current effective allowance. For example, a $50 to $100 upgrade with one quarter remaining adds $12.50
+
+The adjustment survives a failed inference request or omission of the policy on later requests. Edits to the configured amount leave the current effective allowance unchanged. The edited amount applies at renewal
+
+Each accepted transition appends `product_user.allowance_prorated` to the audit log. The response contains the current adjustment, and the audit log preserves earlier transitions. Actual usage and wallet transactions remain separate
+
+The [plan upgrade guide](/startups/prorated-plan-changes) includes request examples and a complete product-user response
