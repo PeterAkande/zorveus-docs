@@ -1,0 +1,51 @@
+---
+title: One key for multiple plans
+description: Configure a routing key in the dashboard, then select a plan with a request header.
+---
+
+A routing key lets your backend use one secret for several plans. Send `X-Zorveus-Key-Alias: pro` to use your Pro key's models and spending limit
+
+For example, your Free key can allow $1/day and your Pro key $10/day. The routing key selects the right key for each customer
+
+## Set up in the dashboard
+
+1. Open **API keys** in your Business organization
+2. Choose **Group existing keys** and select the app whose keys you want to group. To create the keys and routing key together, choose **Create keys together**
+3. Assign each key a selector, such as `free` or `pro`. Configure each key's allowed models and spending limit in the dashboard
+4. Choose a default key if you want requests without a selector to use it
+5. Create the routing key and copy its `zrv_route_...` secret. Store it in your backend, as you would an inference key
+
+## Use it for inference
+
+Set the routing secret as your API key. Choose the selector from the customer's plan in your backend
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+	api_key=os.environ["ZORVEUS_ROUTING_KEY"],
+	base_url="https://api.zorveus.com/v1",
+)
+
+response = client.chat.completions.create(
+	model="YOUR_ALLOWED_MODEL",
+	messages=[{"role": "user", "content": "Hello"}],
+	extra_headers={
+		"X-Zorveus-Key-Alias": "pro",
+		"X-Zorveus-External-User-ID": "customer_123",
+	},
+)
+```
+
+This request uses Pro's settings. Keep the same external user ID when the customer's plan changes
+
+Omit `X-Zorveus-Key-Alias` to use the default. An unknown or blank selector fails, as does an expired or revoked selected key. Without a default, you must send a selector
+
+Choose the plan in your backend. Do not let customers select a more generous plan themselves
+
+## Change the customer's plan
+
+Change the selector on their next request, for example from `free` to `pro`. To prorate an allowance increase, also send `X-Zorveus-Allowance-Change-Policy: prorate_increase`. See [prorated plan changes](/startups/prorated-plan-changes)
+
+Manage the routes, default, spending limits, and key rotation in the dashboard

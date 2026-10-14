@@ -36,6 +36,12 @@ An **API Key** (`zrv_...`) is the cryptographic secret issued under an App Conne
 
 ---
 
+## Routing keys
+
+A [routing key](/startups/routing-keys) uses the `zrv_route_` prefix and belongs to one app and organization. Configure its routes and default in the dashboard. Each route selects an existing inference key. Each selected key retains its existing app connection and policy
+
+The request selects a member through `X-Zorveus-Key-Alias`, or uses the configured default when the header is absent. The routing key and its member keys have independent secrets and lifecycles
+
 ## Comparison of Zorveus credentials
 
 | Credential | Prefix / Format | Target Endpoint | Usage Location | Privilege Level |
