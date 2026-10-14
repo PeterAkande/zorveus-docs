@@ -57,8 +57,8 @@ export function Tabs({ items, children, defaultValue, plain, label = "Platform /
   }
 
   return (
-    <div className="zorveus-tabs my-6 rounded-xl border border-zorveus-border bg-zorveus-dark overflow-hidden shadow-md">
-      <div className="flex border-b border-zorveus-border bg-zinc-950 p-2 gap-1.5 overflow-x-auto">
+    <div className="zorveus-tabs">
+      <div className="zorveus-tabs-list not-prose">
         {tabLabels.map((label, idx) => {
           const isSelected = idx === selectedIndex;
           return (
@@ -67,18 +67,14 @@ export function Tabs({ items, children, defaultValue, plain, label = "Platform /
               type="button"
               aria-pressed={isSelected}
               onClick={() => setSelectedIndex(idx)}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none focus:outline-none ${
-                isSelected
-                  ? 'bg-mint/15 text-mint border border-mint/40 shadow-[0_0_6px_rgba(77,255,180,0.12)]'
-                  : 'bg-zinc-900/60 text-zinc-300 hover:text-mint hover:bg-zinc-800/60 border border-zinc-800/60'
-              }`}
+              className="zorveus-tabs-trigger"
             >
               {label}
             </button>
           );
         })}
       </div>
-      <div className="p-4 text-sm text-zinc-300">
+      <div className="zorveus-tabs-content">
         {rawChildren[selectedIndex]}
       </div>
     </div>

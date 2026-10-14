@@ -237,6 +237,7 @@ function responseBlock(operation) {
 const grouped = Object.fromEntries(Object.keys(pageConfig).map((name) => [name, []]));
 for (const [route, pathItem] of Object.entries(schema.paths)) {
   if (privatePrefixes.some((prefix) => route.startsWith(prefix))) continue;
+  if (route.split("/").includes("routing-keys")) continue;
   if (route.startsWith("/product-users") && !route.startsWith("/product-users/by-external-id")) continue;
   for (const [method, operation] of Object.entries(pathItem)) {
     if (!methods.has(method)) continue;
