@@ -6,7 +6,7 @@
 
 # Zorveus Documentation
 
-Official developer documentation for [**Zorveus**](https://zorveus.com) — the AI wallet, billing layer, and multi-provider inference gateway for businesses and application developers.
+Official developer documentation for [**Zorveus**](https://zorveus.com), an AI infrastructure platform for model access, routing, customer allowances, usage tracking, spending controls, and billing
 
 
 ---

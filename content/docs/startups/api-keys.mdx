@@ -5,7 +5,7 @@ description: Create, rotate, scope, and revoke gateway API keys.
 
 API keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`) and provider-native wire endpoints.
 
-For multiple plan keys, use a [routing key](/startups/routing-keys) to store one backend secret. Send `X-Zorveus-Key-Alias: pro` to select a member, or omit the header to use its configured default
+For multiple plan keys, use a [routing key](/startups/routing-keys) to store one backend secret. Send `X-Zorveus-Key-Alias: pro` or `metadata.key_alias: "pro"` to select a member. Omit both to use the configured default
 
 Before serving customers, read [Configure product-user allowances](/startups/configure-product-user-allowances) to choose caps, credit mode, and overrun policy.
 

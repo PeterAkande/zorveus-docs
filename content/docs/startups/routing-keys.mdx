@@ -1,6 +1,6 @@
 ---
 title: One key for multiple plans
-description: Configure a routing key in the dashboard, then select a plan with a request header.
+description: Configure a routing key in the dashboard, then select a plan with a header or request metadata.
 ---
 
 A routing key lets your backend use one secret for several plans. Send `X-Zorveus-Key-Alias: pro` to use your Pro key's models and spending limit
@@ -40,7 +40,21 @@ response = client.chat.completions.create(
 
 This request uses Pro's settings. Keep the same external user ID when the customer's plan changes
 
-Omit `X-Zorveus-Key-Alias` to use the default. An unknown or blank selector fails, as does an expired or revoked selected key. Without a default, you must send a selector
+You can instead put the selector in the JSON body:
+
+```json
+{
+	"model": "YOUR_ALLOWED_MODEL",
+	"messages": [{"role": "user", "content": "Hello"}],
+	"metadata": {"key_alias": "pro"}
+}
+```
+
+With the OpenAI client, add the body selector through `extra_body={"metadata": {"key_alias": "pro"}}`
+
+If you send both, `metadata.key_alias` takes precedence over `X-Zorveus-Key-Alias`. Model discovery and usage reads use the header
+
+Omit both selectors to use the default. A blank, null, malformed, or unknown body selector fails without falling back to the header or default. An expired or revoked selected key also fails. Without a default, you must send a selector
 
 Choose the plan in your backend. Do not let customers select a more generous plan themselves
 
