@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: '%s | Zorveus Docs',
   },
   description:
-    'Zorveus is an AI wallet, billing layer, and multi-provider inference gateway providing OpenAI-compatible routing, BYOK credentials, product-user metering, and spending controls.',
+    'Zorveus is an AI infrastructure platform for model access, routing, customer allowances, usage tracking, spending controls, and billing',
   icons: {
     icon: '/zorveus-mark.svg',
     shortcut: '/zorveus-mark.svg',
