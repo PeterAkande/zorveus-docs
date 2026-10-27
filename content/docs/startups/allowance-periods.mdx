@@ -39,3 +39,27 @@ Read `allowance.period_start` and `allowance.period_end` in the [product-user re
 The anchor is app-scoped for the product user, not separate for each plan key. Usage in the current window can span connections. Credit-grant expiration is independent of the allowance anchor.
 
 For a plan upgrade that keeps the current cycle, use [prorated plan changes](/startups/prorated-plan-changes)
+
+## Set the anchor with a service client
+
+Use a [service client](/startups/service-keys#create-the-client) with `product_users:write`. Set the timestamp from your subscription record
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+await service.productUsers.createOrUpdate({
+	appId: "app_123", externalUserId: "customer_42",
+	allowanceStartsAt: "2026-07-17T09:00:00Z",
+});
+```
+
+```python
+service.product_users.create_or_update(
+	app_id="app_123", external_user_id="customer_42",
+	allowance_starts_at="2026-07-17T09:00:00Z",
+)
+```
+
+</CodeGroup>
+
+Omit the field on later profile updates to keep the stored anchor. To return to calendar periods, pass `allowanceStartsAt: null` in TypeScript or `allowance_starts_at=None` in Python. Explicit null clears the anchor. Omission preserves it

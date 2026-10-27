@@ -1,14 +1,8 @@
 ---
-title: Account Security
-description: Manage passwords, active browser sessions, and security settings.
+title: Account security
+description: Protect dashboard access and application credentials.
 ---
 
-Zorveus protects accounts with secure hashed credentials, HTTP-only secure session cookies, and active session invalidation.
+Use the [dashboard](https://app.zorveus.com) to manage your account and credentials. Keep inference keys, routing keys, service keys, and confidential OAuth secrets in your server's secret store
 
----
-
-## Best Practices
-
-- Enable multi-factor authentication where supported.
-- Rotate service keys and API keys periodically.
-- Invalidate stale dashboard browser sessions from **Settings** -> **Security**.
+Rotate exposed credentials and replace them in your application. Never include live keys or tokens in support requests. See [Security](/platform/security) for OAuth and webhook guidance

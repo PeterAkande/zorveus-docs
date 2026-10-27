@@ -1,52 +1,24 @@
 ---
-title: Automatic Routing
-description: Understand exact and wildcard routing policies, priority ordering, and provider fallback resolution.
+title: Automatic provider routing
+description: Understand credential priority, BYOK selection, and optional wallet fallback.
 ---
 
-Zorveus dynamically evaluates attached provider credentials to route each inference request to the most cost-effective and reliable upstream provider.
+Zorveus selects an eligible credential for the model you request. It does not choose a cheaper model or change your model ID automatically
 
-Instead of writing provider-specific fallback code or managing multiple API keys in your application, Zorveus handles model routing automatically.
+## Configure eligible credentials
 
----
+Add [provider credentials](/startups/provider-credentials) in the dashboard. A credential must be active, match the model's provider and allowed model policy, and be available to the app connection. `auto_resolve` credentials can be selected automatically. `manual_grant_only` credentials need an explicit connection grant
 
-## How Provider Resolution Works
+Explicit connection grants are considered before organization credentials available through automatic resolution. Within each group, lower `routing_priority` numbers come first. For example, `10` precedes `30`. Do not rely on equal-priority credentials receiving equal traffic
 
-When an inference request arrives at `https://api.zorveus.com/v1/chat/completions`, Zorveus evaluates the requested model identifier against your organization's attached provider credentials.
+Credentials in quota cooldown are placed after healthy candidates. Cooldown does not mean the credential is permanently disabled or that every failing credential is excluded
 
-```text
-Request Model: "openai/gpt-4.1-mini"
-  │
-  ├─► 1. Check Active BYOK Credentials matching "openai/*" or "openai/gpt-4.1-mini"
-  ├─► 2. Sort by Priority (Higher numeric priority selected first)
-  ├─► 3. Health Check Verification (Exclude failing or rate-limited credentials)
-  └─► 4. Fallback to Zorveus Managed Gateway (If balance is available)
-```
+## Understand wallet fallback
 
----
+If no eligible BYOK credential resolves, the request uses the configured Zorveus-managed route and checks wallet funding
 
-## Model Matching Patterns
+If a BYOK credential resolves, backup credentials can be attempted for eligible provider failures. Wallet fallback from that BYOK request requires `auto_fallback_to_wallet`, an available managed route, and enough wallet funds for the reservation. Disabling fallback does not create a BYOK-only model policy for requests that match no credential
 
-Provider credentials can specify exact model matches or wildcard patterns:
+Wallet fallback can change who pays for a request. A successful fallback is recorded as `billing_mode: "wallet"`. Successful BYOK usage is `byok_external`, with applicable platform fees. Check usage after testing both paths
 
-| Scope Pattern | Description | Example Matches |
-| :--- | :--- | :--- |
-| `*` | Global match across all providers and models. | `openai/gpt-4.1-mini`, `anthropic/claude-3-7-sonnet` |
-| `openai/*` | Matches all models under the OpenAI namespace. | `openai/gpt-4.1-mini`, `openai/o3-mini` |
-| `anthropic/*` | Matches all models under the Anthropic namespace. | `anthropic/claude-3-7-sonnet`, `anthropic/claude-3-5-haiku` |
-| `openai/gpt-4.1-mini` | Restricts key usage strictly to a single model. | `openai/gpt-4.1-mini` |
-
----
-
-## Priority and Resolution Rules
-
-1. **Active Status Check.** Credentials toggled off or flagged with consecutive upstream API errors are excluded from routing.
-2. **Priority Score.** If multiple credentials match the requested model, Zorveus selects the credential with the highest priority integer (`priority: 30` takes precedence over `priority: 10`).
-3. **Round-Robin Equal Priority.** When credentials share identical priority values, Zorveus balances traffic evenly between them.
-4. **Key Cooldown.** If a credential is rate-limited or fails health checks, Zorveus temporarily excludes it from routing until it recovers. In that scenario, the next highest priority credential is selected.
-5. **Zorveus Managed Fallback.** If no custom provider credential matches or if all BYOK routes fail, Zorveus routes the request through the Zorveus Managed Gateway, charging your organization wallet balance directly.
-
----
-
-## Configure priority in the dashboard
-
-Open **Provider Credentials** in the dashboard and configure the credential's routing priority. Application code does not update provider credentials through an API.
+Model-policy and customer-allowance failures are not a reason to bypass the selected plan. See [BYOK costs](/wallet-and-billing/byok-costs) and [Error handling](/platform/errors)

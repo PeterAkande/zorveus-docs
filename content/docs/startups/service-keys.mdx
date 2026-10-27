@@ -1,25 +1,92 @@
 ---
-title: Service keys
-description: Authenticate server-to-server management requests with organization-scoped permissions.
+title: Use a service client
+description: Set up Python or TypeScript server clients for customer, credit, and allowance operations.
 ---
 
-Service keys start with `zrv_svc_`. Keep them on trusted servers and send them as a Bearer token to supported `/product-users/by-external-id` routes at `https://api.zorveus.com`.
+Service keys start with `zrv_svc_`. Create a key in the dashboard with the scopes your backend needs, then store it as `ZORVEUS_SERVICE_KEY`. Keep it on your server. A service key cannot make inference requests
 
-```http
-Authorization: Bearer zrv_svc_your_service_key
+## Choose scopes
+
+| Scope | Actions |
+| --- | --- |
+| `product_users:read` | Read a profile, credits, allowance debt, and credit grants |
+| `product_users:write` | Create or update a product user and grant credits. Also permits product-user reads |
+
+Create organizations, register apps, configure connections and caps, manage BYOK credentials and team access, and configure webhooks in the dashboard. Product-user status changes and credit-grant revocation are also dashboard operations
+
+## Create the client
+
+Install `@zorveus/sdk` for TypeScript or `zorveus` for Python
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+	apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+});
 ```
 
-Create, list, and revoke service keys in the dashboard. The raw value is shown only at creation.
+```python
+import os
+from zorveus import ZorveusServiceClient
 
-## Supported service-key surfaces
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+```
 
-| Scope | Routes |
+</CodeGroup>
+
+The action examples linked below assume this server-owned `service` client. The SDK supplies `Authorization: Bearer ...` and uses `https://api.zorveus.com` without `/v1`. Set `baseURL` in TypeScript or `base_url` in Python only when you need another environment
+
+Reuse clients through your backend's lifecycle. Call `service.close()` when a Python sync client shuts down. In an async Python handler, use `AsyncZorveusServiceClient`, await its methods, and call `await service.close()` on shutdown
+
+## Call the action you need
+
+| Task | Example |
 | --- | --- |
-| `product_users:read` | Profile, credit summary, allowance debt, and grant-list reads under `/product-users/by-external-id`. |
-| `product_users:write` | `PUT /product-users/by-external-id` and `POST /product-users/by-external-id/credit-grants`. |
+| Create or update a customer | [Manage product users](/startups/product-users#update-a-product-user) |
+| Read spendable allowance | [Check available allowance](/startups/check-allowance) |
+| Set or clear a subscription anchor | [Allowance periods](/startups/allowance-periods#set-the-anchor-with-a-service-client) |
+| Grant credits after a payment | [Credit grants](/startups/credit-grants#grant-with-a-service-client) |
+| Read carried allowance debt | [Allowance debt](/startups/credit-grants#read-carried-allowance-debt) |
 
-## Dashboard-only management
+For example, upsert returns a response envelope, while a profile read returns the profile directly:
 
-Create and manage apps, app connections, API keys, spending caps, provider credentials, and webhook settings in the dashboard. These operations are not part of the supported service-key API.
+<CodeGroup titles={["TypeScript", "Python"]}>
 
-Change product-user status and revoke credit grants in the dashboard. Use an API key (`zrv_...`) for inference. Service keys cannot make inference requests.
+```typescript
+const result = await service.productUsers.createOrUpdate({
+	appId: "app_123",
+	externalUserId: "customer_42",
+	displayName: "Example user",
+});
+console.log(result.created, result.product_user.external_user_id);
+
+const profile = await service.productUsers.getByExternalId({
+	appId: "app_123",
+	externalUserId: "customer_42",
+});
+console.log(profile.getTotalAvailableToSpend());
+```
+
+```python
+result = service.product_users.create_or_update(
+	app_id="app_123",
+	external_user_id="customer_42",
+	display_name="Example user",
+)
+print(result.created, result.product_user.external_user_id)
+
+profile = service.product_users.get_by_external_id(
+	app_id="app_123",
+	external_user_id="customer_42",
+)
+print(profile.get_total_available_to_spend())
+```
+
+</CodeGroup>
+
+Replace `app_123` with the app used for inference and `customer_42` with your authenticated customer's ID. A missing profile returns `404` by default. Add `X-Zorveus-Upsert-Product-User: true` to opt into creation during a read. See [the header contract](/api-reference/product-users#create-a-missing-user-during-a-read) for supported endpoints and SDK examples
+
+Credit grants have side effects. Do not automatically repeat them after an uncertain network result. See [Idempotency](/platform/idempotency)

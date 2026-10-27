@@ -50,7 +50,7 @@ You can instead put the selector in the JSON body:
 }
 ```
 
-With the OpenAI client, add the body selector through `extra_body={"metadata": {"key_alias": "pro"}}`
+With the OpenAI Python client, add the body selector through `extra_body={"metadata": {"key_alias": "pro"}}`
 
 If you send both, `metadata.key_alias` takes precedence over `X-Zorveus-Key-Alias`. Model discovery and usage reads use the header
 
@@ -63,3 +63,44 @@ Choose the plan in your backend. Do not let customers select a more generous pla
 Change the selector on their next request, for example from `free` to `pro`. To prorate an allowance increase, also send `X-Zorveus-Allowance-Change-Policy: prorate_increase`. See [prorated plan changes](/startups/prorated-plan-changes)
 
 Manage the routes, default, spending limits, and key rotation in the dashboard
+
+The OpenAI TypeScript client sends `metadata` directly in the request body. Its request options use `headers`, while the Python client uses `extra_headers`
+
+## Use native SDK request options
+
+The SDK does not create routing groups. Configure the group in the dashboard and set its secret as the inference API key. Your backend chooses the plan alias and customer ID
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({ apiKey: process.env.ZORVEUS_ROUTING_KEY! });
+const response = await client.chat.completions.create({
+	model: selectedModelId,
+	messages: [{ role: "user", content: "Hello" }],
+	zorveusMetadata: { externalUserId: authenticatedUserId, keyAlias: "pro" },
+});
+```
+
+```python
+import os
+from zorveus import Zorveus
+
+client = Zorveus(api_key=os.environ["ZORVEUS_ROUTING_KEY"])
+try:
+	response = client.chat.completions.create(
+		model=selected_model_id,
+		messages=[{"role": "user", "content": "Hello"}],
+		extra_headers={
+			"X-Zorveus-External-User-ID": authenticated_user_id,
+			"X-Zorveus-Key-Alias": "pro",
+		},
+	)
+finally:
+	client.close()
+```
+
+</CodeGroup>
+
+For key-scoped discovery and usage, pass `headers: { "X-Zorveus-Key-Alias": "pro" }` in TypeScript request options, or `extra_headers={"X-Zorveus-Key-Alias": "pro"}` in Python. Do not change a shared client's customer identity between concurrent requests

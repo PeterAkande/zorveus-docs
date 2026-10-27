@@ -8,10 +8,10 @@ After Zorveus validates the authorization request, the user signs in and reviews
 1. Selects an organization they are allowed to spend from.
 2. Reviews the requested scopes and model access.
 3. Chooses a limited cap that satisfies the app policy, or chooses unlimited when the app allows it.
-4. Approves or denies the request.
+4. Approves or denies the request
 
-The app registration, not authorization URL query parameters, defines `default_cap_amount`, `minimum_cap_amount`, `maximum_cap_amount`, `allow_unlimited_cap`, currency, and period. Periods can be `daily`, `monthly`, or `lifetime`.
+The app registration, not authorization URL query parameters, defines `default_cap_amount`, `minimum_cap_amount`, `maximum_cap_amount`, `allow_unlimited_cap`, currency, and period. Periods can be `daily`, `monthly`, or `lifetime`
 
-An app-connection cap covers aggregate spend through the connection. It is not a separate cap for every product user. Product-user caps and credit grants are configured independently.
+An app-connection cap covers aggregate spend through the connection. User OAuth connections do not use Business product-user credit grants or allowance anchors
 
-Users can later change or revoke their connection from the dashboard. A revoked token fails authentication on subsequent inference calls.
+Users can later change or revoke their connection from the dashboard. A revoked token fails authentication on subsequent inference calls

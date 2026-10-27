@@ -5,7 +5,7 @@ description: Check inputs and outputs against safety and content moderation mode
 
 <ApiEndpoint method="POST" path="/v1/moderations" auth="api_key" />
 
-Screen text inputs against safety policies using moderation endpoints.
+Screen text inputs against safety policies using moderation endpoints
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -24,7 +24,7 @@ client = OpenAI(
 )
 
 response = client.moderations.create(
-    model="openai/text-moderation-latest",
+    model="openai/omni-moderation-latest",
     input="Sample text content for automated compliance screening.",
 )
 
@@ -43,7 +43,7 @@ const client = new OpenAI({
 
 async function main() {
   const response = await client.moderations.create({
-    model: "openai/text-moderation-latest",
+    model: "openai/omni-moderation-latest",
     input: "Sample text content for automated compliance screening.",
   });
 
@@ -57,8 +57,8 @@ main();
 
 ## Use the result
 
-Read `results[0].flagged` for the provider's overall decision and inspect category fields when your policy needs them. Category names and scores can change between moderation models, so store the model ID with any audit decision.
+Read `results[0].flagged` for the provider's overall decision and inspect category fields when your policy needs them. Category names and scores can change between moderation models, so store the model ID with any audit decision
 
-Moderation is a model call. The request still passes through API-key, model-policy, wallet, cap, and credit checks.
+Moderation is a model call. The request still passes through API-key, model-policy, wallet, cap, and credit checks
 
-Use `GET /v1/models` to verify that the moderation model is routable. Do not present a moderation result as a legal or compliance determination.
+Use `GET /v1/models` to verify that the moderation model is routable. Do not present a moderation result as a legal or compliance determination

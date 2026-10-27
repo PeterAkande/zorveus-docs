@@ -3,7 +3,7 @@ title: Google Gemini provider setup
 description: Configure Google AI Studio Gemini API keys, native wire protocol, and multimodal routing.
 ---
 
-Zorveus supports Google Gemini models via native Google GenAI wire protocols (`POST /v1beta/models/*`, `POST /vertex_ai/live`) as well as standard OpenAI-compatible `/v1/chat/completions`.
+Zorveus supports Google Gemini models via native Google GenAI wire protocols (`POST /v1beta/models/*`, `POST /vertex_ai/live`) as well as standard OpenAI-compatible `/v1/chat/completions`
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -15,9 +15,9 @@ Zorveus supports Google Gemini models via native Google GenAI wire protocols (`P
 - **Secret kind**: `api_key`
 - **Default model policy**: `gemini/*`
 
-Open **Provider Credentials** in the dashboard, select Google Gemini, and enter your Google AI Studio API key.
+Open **Provider Credentials** in the dashboard, select Google Gemini, and enter your Google AI Studio API key
 
-Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Use a Zorveus API key for inference, not the upstream provider secret
 
 ---
 
@@ -33,7 +33,7 @@ from zorveus import Zorveus
 client = Zorveus(api_key="zrv_your_api_key")
 
 response = client.chat.completions.create(
-    model="google/gemini-2.0-flash",
+    model="gemini/gemini-3.8-flash",
     messages=[{"role": "user", "content": "Explain quantum computing in one sentence."}],
 )
 print(response.choices[0].message.content)
@@ -47,7 +47,7 @@ const client = new Zorveus({
 });
 
 const response = await client.chat.completions.create({
-  model: "google/gemini-2.0-flash",
+  model: "gemini/gemini-3.8-flash",
   messages: [{ role: "user", content: "Explain quantum computing in one sentence." }],
 });
 
@@ -59,7 +59,7 @@ curl https://api.zorveus.com/v1/chat/completions \
   -H "Authorization: Bearer zrv_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "google/gemini-2.0-flash",
+    "model": "gemini/gemini-3.8-flash",
     "messages": [{"role": "user", "content": "Explain quantum computing in one sentence."}]
   }'
 ```
@@ -70,4 +70,4 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ## Vertex AI integration
 
-For enterprise Google Cloud Vertex AI deployments, use the separate `vertex_ai` provider contract. It takes `service_account_json` with required `project` and `location` configuration fields.
+For enterprise Google Cloud Vertex AI deployments, use the separate `vertex_ai` provider contract. It takes `service_account_json` with required `project` and `location` configuration fields

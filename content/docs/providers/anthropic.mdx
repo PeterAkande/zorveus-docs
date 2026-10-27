@@ -3,7 +3,7 @@ title: Anthropic provider setup
 description: Configure Anthropic Claude API keys, native wire protocol, and model routing.
 ---
 
-Zorveus natively supports the Anthropic wire protocol (`POST /v1/messages`, `POST /v1/messages/count_tokens`), allowing you to use official Anthropic SDKs directly or route Claude models through standard OpenAI-compatible endpoints.
+Zorveus natively supports the Anthropic wire protocol (`POST /v1/messages`, `POST /v1/messages/count_tokens`), allowing you to use official Anthropic SDKs directly or route Claude models through standard OpenAI-compatible endpoints
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -25,7 +25,7 @@ client = anthropic.Anthropic(
 )
 
 response = client.messages.create(
-    model="claude-3-7-sonnet-20250219",
+    model="anthropic/claude-sonnet-5",
     max_tokens=1024,
     messages=[
         {"role": "user", "content": "Explain quantum computing in one sentence."}
@@ -45,7 +45,7 @@ const anthropic = new Anthropic({
 });
 
 const message = await anthropic.messages.create({
-  model: "claude-3-7-sonnet-20250219",
+  model: "anthropic/claude-sonnet-5",
   max_tokens: 1024,
   messages: [
     { role: "user", content: "Explain quantum computing in one sentence." }
@@ -61,7 +61,7 @@ curl https://api.zorveus.com/v1/messages \
   -H "anthropic-version: 2023-06-01" \
   -H "content-type: application/json" \
   -d '{
-    "model": "claude-3-7-sonnet-20250219",
+    "model": "anthropic/claude-sonnet-5",
     "max_tokens": 1024,
     "messages": [{"role": "user", "content": "Hello via Zorveus!"}]
   }'
@@ -73,18 +73,18 @@ curl https://api.zorveus.com/v1/messages \
 
 ## Bring Your Own Key (BYOK) setup
 
-You can supply your organization's Anthropic API key to pay Anthropic directly while Zorveus manages user allowances and attribution.
+You can supply your organization's Anthropic API key to pay Anthropic directly while Zorveus manages user allowances and attribution
 
 - **Provider ID**: `anthropic`
 - **Secret kind**: `api_key`
 - **Default wildcard policy**: `anthropic/*`
 
-Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Use a Zorveus API key for inference, not the upstream provider secret
 
 ---
 
 ## How Zorveus processes Anthropic calls
 
 1. **Authentication and limits**: Validates the API key (`x-api-key: zrv_...` or `Authorization: Bearer zrv_...`) and confirms user allowances.
-2. **Credential injection**: When BYOK is configured, Zorveus securely decrypts and injects your Anthropic key. If a key encounters rate limits or quota exhaustion, Zorveus automatically fails over across backup credentials or system routes.
-3. **Usage settlement**: The gateway calculates input/output tokens and settles cost against the organization or connected user wallet.
+2. **Credential injection**: When BYOK is configured, Zorveus securely decrypts and injects your Anthropic key. If a key encounters rate limits or quota exhaustion, backup credentials or managed fallback may be attempted when the routing policy and available funding permit it
+3. **Usage settlement**: The gateway calculates input/output tokens and settles cost against the organization or connected user wallet

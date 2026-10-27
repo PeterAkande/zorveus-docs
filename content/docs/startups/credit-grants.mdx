@@ -18,6 +18,7 @@ curl -X POST https://api.zorveus.com/product-users/by-external-id/credit-grants 
   -d '{
     "app_id": "app_123",
     "external_user_id": "customer_42",
+    "external_reference": "welcome:customer_42",
     "amount": "10.00",
     "currency": "USD",
     "source": "promotion",
@@ -54,3 +55,67 @@ When a product user sends an inference request on a capped key, Zorveus consumes
 If an inference key has no cap rule, virtual allowance is unlimited across all credit modes. The request succeeds, virtual spend is recorded, and zero product-user credits are consumed. Credits extend an existing cap; they do not enforce a quota where no cap is configured.
 
 When the configured policy blocks an unfunded request, the gateway rejects the request with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient`). Overrun behavior also depends on the connection's policy.
+
+## Grant with a service client
+
+Create the [service client](/startups/service-keys#create-the-client) with `product_users:write`. After verifying the purchase in your payment provider, grant the amount your product assigns to it
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+const result = await service.productUsers.grantCreditByExternalId({
+	appId: "app_123", externalUserId: "customer_42",
+	amount: "10.00", currency: "USD", source: "purchase",
+	reason: "Paid purchase purchase_123",
+	externalReference: "purchase:purchase_123",
+	metadata: { purchase_id: "purchase_123" },
+});
+console.log(result.credit_grant.credit_grant_id);
+console.log(result.product_user.getTotalAvailableToSpend());
+```
+
+```python
+result = service.product_users.grant_credit_by_external_id(
+	app_id="app_123", external_user_id="customer_42",
+	amount="10.00", currency="USD", source="purchase",
+	reason="Paid purchase purchase_123",
+	external_reference="purchase:purchase_123",
+	metadata={"purchase_id": "purchase_123"},
+)
+print(result.credit_grant.credit_grant_id)
+print(result.product_user.get_total_available_to_spend())
+```
+
+</CodeGroup>
+
+Store the returned grant ID against your purchase. With backend migration `20261027_0062`, `external_reference` makes retries safe for the same grant parameters. Metadata alone does not deduplicate. Changed parameters return HTTP 409 with `zorveus_product_user_credit_reference_conflict`
+
+Recover a grant with `service.productUsers.getCreditGrantByExternalReference({ appId, externalUserId, externalReference })` or `service.product_users.get_credit_grant_by_external_reference(app_id=app_id, external_user_id=user_id, external_reference=reference)`. The lookup returns the grant directly, including its current balance and status. Python also supports the asynchronous method with `await`
+
+The lookup requires `product_users:read` or a scope that includes it. A 404 can race an unfinished creation. Repeat the original POST with the same reference and parameters if the outcome remains uncertain. See [Billing integration](/startups/billing-integration) and [retry rules](/platform/idempotency) before enabling retries
+
+To inspect existing grants, call `service.productUsers.listCreditGrantsByExternalId({ appId, externalUserId, limit: 100 })` or `service.product_users.list_credit_grants_by_external_id(app_id=app_id, external_user_id=user_id, limit=100)`. The result contains `credit_grants`. It has no cursor
+
+## Read carried allowance debt
+
+With `product_users:read`, retrieve debt created by `carry_overrun_forward`. This is customer allowance debt, separate from wallet funding
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+const debt = await service.productUsers.getAllowanceDebtByExternalId({
+	appId: "app_123", externalUserId: "customer_42", currency: "USD",
+});
+console.log(debt.outstanding_amount, debt.repaid_by_credits_total);
+```
+
+```python
+debt = service.product_users.get_allowance_debt_by_external_id(
+	app_id="app_123", external_user_id="customer_42", currency="USD",
+)
+print(debt.outstanding_amount, debt.repaid_by_credits_total)
+```
+
+</CodeGroup>
+
+Use decimal strings when displaying the values, or an exact decimal library for arithmetic. Credits can repay carried debt before adding spendable allowance

@@ -1,34 +1,30 @@
 ---
 title: Authentication and credentials
-description: Choose the credential and headers required by each Zorveus API surface.
+description: Choose the credential for inference, product-user management, or OAuth.
 ---
 
-Zorveus uses distinct authentication schemes depending on the caller and security context.
+Use the credential issued for the operation you are calling
 
----
+| Credential | Where to send it | Use |
+| --- | --- | --- |
+| Inference key, `zrv_...` | `Authorization: Bearer zrv_...` | Model requests, key-scoped model discovery, and key usage |
+| Routing key, `zrv_route_...` | The same Bearer header, with an optional `X-Zorveus-Key-Alias` selector | Select a plan's inference key. See [routing keys](/startups/routing-keys) |
+| OAuth access token, `zrv_...` | The same Bearer header | Inference funded by the user's authorized connection |
+| Service key, `zrv_svc_...` | `Authorization: Bearer zrv_svc_...` | [Product-user profiles, credits, and allowance](/api-reference/product-users) from your server |
+| OAuth client ID and secret | Form body at `/oauth/token` and `/oauth/revoke` | Authenticate a confidential OAuth app. Public clients omit the secret |
 
-## Authentication matrix
+Native Anthropic SDKs can send the inference key in `x-api-key`. OpenAI-compatible clients use `Authorization: Bearer ...`
 
-| Credential Type | Header / Location | Target Surface | Permitted Caller |
-| :--- | :--- | :--- | :--- |
-| **API Key** (`zrv_...`) | `Authorization: Bearer zrv_...` | `api.zorveus.com/v1` | Server backends & authorized clients |
-| **Service Key** (`zrv_svc_...`) | `Authorization: Bearer zrv_svc_...` | `api.zorveus.com` | Backend server automation only |
-| **OAuth Client Secret** | Form-encoded POST body | `/oauth/token` | Confidential OAuth backends ONLY |
-| **Dashboard Session** | Cookie (`session=...`) + `X-CSRF-Token` | `app.zorveus.com` | Authenticated browser sessions |
+Keep Business inference keys, routing keys, service keys, provider secrets, and confidential client secrets on your server. For a browser OAuth app, use a public client with PKCE and the user's scoped token. CORS support does not make a shared Business key safe to publish
 
----
+## Attribute customer requests
 
-## Supported HTTP Headers
+Send `X-Zorveus-External-User-ID` with your authenticated customer's ID. For subscription cycles, use `X-Zorveus-Allowance-Starts-At`. For plan selection through a routing key, use `X-Zorveus-Key-Alias`. See [Product-user metadata](/inference/product-user-metadata) for body alternatives and precedence
 
-Zorveus uses explicit headers for authentication, tracking, and outbound webhook signatures:
+The key or selected connection identifies your app and funding organization. Do not invent headers to override the app or organization
 
-| Header Name | Context | Type | Description |
-| :--- | :--- | :--- | :--- |
-| **`Authorization`** | Request | `Bearer zrv_...` or `Bearer zrv_svc_...` | Authenticates model inference (API key) or supported Management API requests (service key). |
-| **`X-Zorveus-Signature`** | Outbound Webhook | String (`t=...,v1=...`) | HMAC SHA-256 signature for verifying outbound webhook payloads. |
-| **`x-zorveus-request-id`** | Response | String (`zreq_...`) | Unique gateway request tracking identifier. |
-| **`x-zorveus-reservation-id`** | Response | String (`resv_...`) | Spend reservation tracking identifier. |
+## Track responses and events
 
-<Callout type="note" title="Request Parameters vs Headers">
-  Product-user identifiers are passed in request metadata, for example `extra_body={"metadata": {"external_user_id": "...", "product_user": {"display_name": "..."}}}`. Application identity is bound to the key or connection, not supplied in a custom request header.
-</Callout>
+Successful gateway responses can include `x-zorveus-request-id` and, when a reservation exists, `x-zorveus-reservation-id`. Save these with your own request ID for support. Not every rejected request creates a reservation
+
+Outbound webhooks include `X-Zorveus-Signature`. Verify it against the raw request bytes before processing the event. See [Webhooks](/platform/webhooks)

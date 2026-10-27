@@ -1,376 +1,100 @@
 ---
-title: Business Quickstart
-description: Control AI inference spending, attach plan-based spend caps, and send your first request through Zorveus.
+title: Business quickstart
+description: Send your first customer-attributed request from your backend.
 ---
 
-If your organization pays for users' AI inference, Zorveus lets you set and enforce a spending limit for each product user.
+Build a backend that sends a model request and records the usage against one of your customers. Your organization pays through its Zorveus wallet or a connected provider account
 
-Map subscription plans to per-user spending caps, issue credits, and track usage. When enforced allowance cannot fund a request, Zorveus rejects the request. A new period, a higher cap, or available credits can restore access.
+## Create your credentials
 
----
+In the [dashboard](https://app.zorveus.com), select or create a **Business** organization. Use Business even for a solo project. A Developer organization is for registering OAuth apps where users bring their own funding
 
-## 1. Create a business organization and API key
+Fund the wallet, or follow the [BYOK quickstart](/getting-started/byok-quickstart). Create an app, then create an inference API key in its connection settings. Save the app ID and store the `zrv_...` key on your server. The full secret is shown only when created or rotated
 
-<Callout type="warning" title="Select a Business Organization">
-  To get an API key for your backend, you must create or select a **Business Organization** in the dashboard. Do not select a Developer Organization. In Zorveus, Developer Organizations are reserved for third-party OAuth apps where end-users bring their own wallets. Even if you are a solo developer building a personal tool or backend, choose **Business** to generate an API key.
-</Callout>
+For a customer allowance, configure a daily or monthly connection cap and use `enforce`. For example, a $10 monthly cap gives each attributed product user a $10 base allowance. Your server must still attach a customer ID on every customer request. See [Configure product-user allowances](/startups/configure-product-user-allowances)
 
-Follow these steps in the [Zorveus Dashboard](https://app.zorveus.com):
+## Find a model your key can use
 
-<Steps>
-  <Step title="Select or create a Business Organization">
-    Log in to [app.zorveus.com](https://app.zorveus.com). In the top-left organization dropdown, select or create a **Business** workspace.
-  </Step>
-  <Step title="Fund your wallet or configure BYOK">
-    Add funds under **Wallet**, or connect your upstream provider credentials under **Provider Credentials** for Bring Your Own Key routing.
-  </Step>
-  <Step title="Create an app and generate your API key">
-    Navigate to **Apps**, click **Create App**, and open your newly created application. Under the connection settings, click **Create API Key** and copy the generated `zrv_...` token.
-  </Step>
-  <Step title="Choose a credit mode">
-    Keep `enforce_if_present` to enforce a configured base allowance plus credits for attributed users. Use `track_only` to record usage without rejecting requests for product-user allowance. Configure a cap to establish a finite allowance.
-  </Step>
-</Steps>
-
-<Callout type="note" title="One-Time Secret Display">
-  API keys (`zrv_...`) appear in plaintext only when you create or rotate them. Store the key in your backend secret manager.
-</Callout>
-
----
-
-## Common gotchas to avoid
-
-For configuration choices and worked scenarios, see [Configure product-user allowances](/startups/configure-product-user-allowances).
-
-<CardGroup cols={2}>
-  <Card title="Business vs Developer Org" icon="alert-triangle">
-    Only Business Organizations issue direct API keys (`zrv_...`). Developer Organizations only manage OAuth applications (`zrv_client_...`).
-  </Card>
-  <Card title="Base URL Trailing Path" icon="terminal">
-    OpenAI SDK clients require `https://api.zorveus.com/v1`. Anthropic SDK clients require `https://api.zorveus.com` without `/v1`.
-  </Card>
-  <Card title="API Key vs Service Key" icon="key">
-    Send your API key (`zrv_...`) to model routes. Never send your organization Service key (`zrv_svc_...`) to inference endpoints.
-  </Card>
-  <Card title="Automatic User Provisioning" icon="users">
-    You do not need to pre-register product users. Send `X-Zorveus-External-User-ID` in the headers or `metadata.external_user_id` in the body. Either creates the product user on their first request and attributes subsequent requests to that user. Include the same identifier on every request.
-  </Card>
-</CardGroup>
-
----
-
-## 2. Send an attributed inference request
-
-Pass `external_user_id` at `metadata.external_user_id`. Put the optional name, email, and custom fields inside `metadata.product_user`.
-
-<KeyInserter type="api" label="Test Key Inserter" placeholder="zrv_your_api_key" />
-
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "Vercel AI SDK", "cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
-
-
-```typescript
-// npm install @zorveus/sdk
-import { Zorveus } from "@zorveus/sdk";
-
-// Initialize Zorveus client with API key and product user attribution
-const client = new Zorveus({
-  apiKey: "zrv_your_api_key",
-  externalUserId: "usr_sara_101", // Your internal user ID
-  displayName: "Sara Connor",     // Optional user name for dashboard
-  email: "sara@example.com",       // Optional user email
-  userMetadata: { plan: "pro" },   // Optional custom metadata
-});
-
-async function main() {
-  // Send completion request — usage is attributed and capped per user
-  const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
-    messages: [
-      { role: "system", content: "You are a helpful coding assistant." },
-      { role: "user", content: "Write a Python function to check for prime numbers." },
-    ],
-        temperature: 0.7,
-    zorveusMetadata: {
-      externalUserId: "usr_sara_101",
-      displayName: "Sara Connor",
-      userEmail: "sara@example.com",
-      metadata: { plan: "pro" },
-    },
-  });
-
-  console.log(completion.choices[0].message.content);
-}
-
-main();
-```
-
-```python
-# pip install zorveus
-from zorveus import Zorveus
-
-# Initialize Zorveus client with API key and product user attribution
-client = Zorveus(
-    api_key="zrv_your_api_key",
-    external_user_id="usr_sara_101", # Your internal user ID
-    display_name="Sara Connor",     # Optional user name for dashboard
-    email="sara@example.com",       # Optional user email
-    user_metadata={"plan": "pro"},   # Optional custom metadata
-)
-
-# Send completion request — usage is attributed and capped per user
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "system", "content": "You are a helpful coding assistant."},
-        {"role": "user", "content": "Write a Python function to check for prime numbers."}
-    ],
-    temperature=0.7
-)
-
-print(response.choices[0].message.content)
-```
-
-```python
-# pip install zorveus[openai]
-from zorveus.openai import ZorveusOpenAI
-
-# Initialize OpenAI adapter with API key and product user attribution
-client = ZorveusOpenAI(
-    api_key="zrv_your_api_key",
-    external_user_id="usr_sara_101", # Your internal user ID
-    display_name="Sara Connor",     # Optional user name for dashboard
-    email="sara@example.com",       # Optional user email
-    user_metadata={"plan": "pro"},   # Optional custom metadata
-)
-
-# Send completion request using standard OpenAI methods
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "system", "content": "You are a helpful coding assistant."},
-        {"role": "user", "content": "Write a Python function to check for prime numbers."}
-    ],
-    temperature=0.7
-)
-
-print(response.choices[0].message.content)
-```
-
-```typescript
-// npm install @zorveus/sdk ai @ai-sdk/openai
-import { createZorveus } from "@zorveus/sdk/vercel";
-import { generateText } from "ai";
-
-// Initialize Zorveus provider for Vercel AI SDK with product user attribution
-const zorveus = createZorveus({
-  apiKey: "zrv_your_api_key",
-  externalUserId: "usr_sara_101", // Your internal user ID
-});
-
-async function main() {
-  const { text } = await generateText({
-    model: zorveus("openai/gpt-4.1-mini"),
-    prompt: "Write a Python function to check for prime numbers.",
-  });
-
-  console.log(text);
-}
-
-main();
-```
+Set your key in a local shell or your application's secret store:
 
 ```bash
-# Pass Authorization header and product user metadata in request body
-curl https://api.zorveus.com/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_api_key" \
-  -d '{
-    "model": "openai/gpt-4.1-mini",
-    "messages": [
-      {"role": "system", "content": "You are a helpful coding assistant."},
-      {"role": "user", "content": "Write a Python function to check for prime numbers."}
-    ],
-    "metadata": {
-      "external_user_id": "usr_sara_101",
-      "product_user": {
-        "display_name": "Sara Connor",
-        "email": "sara@example.com",
-        "metadata": {"plan": "pro"}
-      }
-    },
-    "temperature": 0.7
-  }'
+export ZORVEUS_API_KEY='zrv_your_api_key'
+
+curl --fail-with-body https://api.zorveus.com/v1/models \
+	-H "Authorization: Bearer $ZORVEUS_API_KEY"
 ```
 
-```python
-# pip install openai
-from openai import OpenAI
+The response contains `data`, an array of model objects. Copy a chat model's `id` into `ZORVEUS_MODEL`. Use [the model catalog](https://www.zorveus.com/models) to check its task support. An embedding or audio model cannot serve a chat request just because it appears in the list
 
-# Initialize standard OpenAI client pointing to Zorveus gateway
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_api_key",
-)
-
-# Pass product user attribution metadata inside extra_body
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "system", "content": "You are a helpful coding assistant."},
-        {"role": "user", "content": "Write a Python function to check for prime numbers."},
-    ],
-    extra_body={
-        "metadata": {
-            "external_user_id": "usr_sara_101",
-            "product_user": {
-                "display_name": "Sara Connor",
-                "email": "sara@example.com",
-                "metadata": {"plan": "pro"}
-            }
-        }
-    },
-    temperature=0.7,
-)
-
-print(response.choices[0].message.content)
+```bash
+export ZORVEUS_MODEL='YOUR_CHAT_MODEL_ID'
 ```
 
-```typescript
-// npm install openai
-import OpenAI from "openai";
+If the list is empty, check the key's allowed models in the dashboard. A wildcard such as `openai/*` is a policy, not a model ID
 
-// Initialize standard OpenAI client pointing to Zorveus gateway
-const client = new OpenAI({
-  baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_api_key",
-});
+## Send the first request
 
-async function main() {
-  // Pass product user attribution metadata inside extra_body
-  const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
-    messages: [
-      { role: "system", content: "You are a helpful coding assistant." },
-      { role: "user", content: "Write a Python function to check for prime numbers." },
-    ],
-    extra_body: {
-      metadata: {
-        external_user_id: "usr_sara_101",
-        product_user: {
-          display_name: "Sara Connor",
-          email: "sara@example.com",
-          metadata: { plan: "pro" }
-        }
-      },
-    },
-    temperature: 0.7,
-  } as any);
+These examples run on your server. Install the package for the tab you use with `pip install openai` or `npm install openai`
 
-  console.log(completion.choices[0].message.content);
-}
+<CodeGroup titles={["cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
-main();
-```
-
-</CodeGroup>
-
-<ApiRunner
-  method="POST"
-  path="/v1/chat/completions"
-  defaultBody='{\n  "model": "openai/gpt-4.1-mini",\n  "messages": [\n    {"role": "user", "content": "Write a Python function to check for prime numbers."}\n  ],\n  "metadata": {\n    "external_user_id": "usr_sara_101",\n    "product_user": {\n      "display_name": "Sara Connor",\n      "email": "sara@example.com"\n    }\n  }\n}'
-/>
-
-<Callout type="success" title="Expected result">
-  A successful request returns `200 OK` and a completion. In the dashboard, Zorveus creates or updates the product user `usr_sara_101` and records the request's usage against that user.
-</Callout>
-
----
-
-## 3. Map subscription plans to spending limits
-
-Businesses structure pricing around tiered subscription plans (such as Free, Starter, Pro, and Enterprise).
-
-Because every Zorveus API key carries its own spending limits and model access rules, managing multi-tier pricing plans requires no custom gateway logic:
-
-1. **Free Tier Key**: Attach a low monthly spend limit (e.g. `$1.00/month`) restricted to budget models like `openai/gpt-4.1-mini`.
-2. **Pro Tier Key**: Attach a higher monthly allowance (e.g. `$20.00/month`) with access to flagship models like `openai/gpt-4o` and `anthropic/claude-3.5-sonnet`.
-3. **Enterprise Tier Key**: Attach custom high-volume caps or unlimited spending with dedicated provider routing.
-
-When a customer changes plans, have your backend select the API key for the new tier. Never expose an API key to the customer. Update the key's spending limit in the dashboard, not through a service-key request.
-
-### Select a plan tier in backend code
-
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
-
-```typescript
-import { Zorveus } from "@zorveus/sdk";
-
-// Map your app subscription plans to tier-specific Zorveus keys
-const PLAN_KEYS: Record<string, string> = {
-  free: process.env.ZORVEUS_FREE_TIER_KEY!,    // $1.00/mo cap, budget models
-  pro: process.env.ZORVEUS_PRO_TIER_KEY!,      // $20.00/mo cap, flagship models
-  enterprise: process.env.ZORVEUS_ENTERPRISE_KEY!,
-};
-
-export async function handleUserInference(user: { id: string; name: string; plan: "free" | "pro" }) {
-  // Select key bound to user's plan tier
-  const apiKey = PLAN_KEYS[user.plan] || PLAN_KEYS.free;
-
-  const client = new Zorveus({
-    apiKey,
-    externalUserId: user.id,
-    displayName: user.name,
-    userMetadata: { plan: user.plan },
-  });
-
-  return await client.chat.completions.create({
-    model: user.plan === "pro" ? "openai/gpt-4o" : "openai/gpt-4.1-mini",
-    messages: [{ role: "user", content: "Analyze market trends." }],
-  });
-}
+```bash
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+	-H "Authorization: Bearer $ZORVEUS_API_KEY" \
+	-H "Content-Type: application/json" \
+	-H "X-Zorveus-External-User-ID: customer_42" \
+	-d "$(jq -n --arg model "$ZORVEUS_MODEL" '{model: $model, messages: [{role: "user", content: "Write a one-sentence welcome message."}]}')"
 ```
 
 ```python
 import os
-from zorveus import Zorveus
+from openai import OpenAI
 
-# Map your app subscription plans to tier-specific Zorveus keys
-PLAN_KEYS = {
-    "free": os.environ["ZORVEUS_FREE_TIER_KEY"],      # $1.00/mo cap, budget models
-    "pro": os.environ["ZORVEUS_PRO_TIER_KEY"],        # $20.00/mo cap, flagship models
-    "enterprise": os.environ["ZORVEUS_ENTERPRISE_KEY"],
-}
+with OpenAI(
+	api_key=os.environ["ZORVEUS_API_KEY"],
+	base_url="https://api.zorveus.com/v1",
+) as client:
+	response = client.chat.completions.create(
+		model=os.environ["ZORVEUS_MODEL"],
+		messages=[{"role": "user", "content": "Write a one-sentence welcome message."}],
+		extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
+	)
+	print(response.choices[0].message.content)
+```
 
-def handle_user_inference(user_id: str, display_name: str, plan: str):
-    # Select key bound to user's plan tier
-    api_key = PLAN_KEYS.get(plan, PLAN_KEYS["free"])
+```typescript
+import OpenAI from "openai";
 
-    client = Zorveus(
-        api_key=api_key,
-        external_user_id=user_id,
-        display_name=display_name,
-        user_metadata={"plan": plan}
-    )
+const client = new OpenAI({
+	apiKey: process.env.ZORVEUS_API_KEY,
+	baseURL: "https://api.zorveus.com/v1",
+});
 
-    model = "openai/gpt-4o" if plan == "pro" else "openai/gpt-4.1-mini"
+const response = await client.chat.completions.create(
+	{
+		model: process.env.ZORVEUS_MODEL!,
+		messages: [{ role: "user", content: "Write a one-sentence welcome message." }],
+	},
+	{ headers: { "X-Zorveus-External-User-ID": "customer_42" } },
+);
 
-    return client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": "Analyze market trends."}]
-    )
+console.log(response.choices[0].message.content);
 ```
 
 </CodeGroup>
 
----
+The cURL example uses `jq` to build JSON. Replace `customer_42` with the ID from your authenticated application user when integrating this into your backend
 
-## Next Steps
+A successful request returns HTTP `200` with generated text in `choices[0].message.content`. In the dashboard, the app's product users include `customer_42` and its usage. You do not need to create a product user before the first request
 
-<CardGroup cols={2}>
-  <Card title="Product-User Metering" icon="layers" href="/getting-started/product-user-quickstart">
-    Attribute inference requests to individual end-users using `external_user_id`.
-  </Card>
-  <Card title="Connect User Wallet" icon="wallet" href="/getting-started/oauth-app-quickstart">
-    Let users connect their own Zorveus wallet when their included credits run out.
-  </Card>
-</CardGroup>
+## Check the result and handle a rejection
+
+A `401` means the inference key needs attention. A wallet shortfall returns `402`. An enforced allowance or model-policy rejection returns `403`. Read the structured Zorveus code as described in [Error handling](/platform/errors). Do not label every `403` as exhausted customer credits
+
+To read this customer's allowance from your backend, create a [service key](/startups/service-keys) with `product_users:read` and follow the [product-user quickstart](/getting-started/product-user-quickstart). The inference key and service key have different jobs
+
+## Add your product's policies
+
+For multiple subscription plans, configure separate plan connections and group their keys under [one routing key](/startups/routing-keys). Select the plan from trusted backend data and keep the same external user ID when a customer changes plans
+
+Continue with [Integrate your product](/getting-started/integrate-your-product) for the production workflow, [credit grants](/startups/credit-grants) for extra allowance, or [OAuth](/getting-started/oauth-app-quickstart) when users should fund requests from their own accounts

@@ -5,7 +5,7 @@ description: Stream completion events over Server-Sent Events through the Zorveu
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
 
-Setting `"stream": true` streams tokens incrementally as Server-Sent Events (SSE) chunks, allowing your UI to display characters as they are generated.
+Setting `"stream": true` streams tokens incrementally as Server-Sent Events (SSE) chunks, allowing your UI to display characters as they are generated
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -24,7 +24,7 @@ client = OpenAI(
 )
 
 stream = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
+    model="openai/gpt-6-sol",
     messages=[
         {"role": "user", "content": "Write a haiku about distributed systems."}
     ],
@@ -32,8 +32,8 @@ stream = client.chat.completions.create(
 )
 
 for chunk in stream:
-    content = chunk.choices[0].delta.content or ""
-    print(content, end="", flush=True)
+    content = chunk.choices[0].delta.content if chunk.choices else None
+    print(content or "", end="", flush=True)
 
 print()
 ```
@@ -48,7 +48,7 @@ const client = new OpenAI({
 
 async function main() {
   const stream = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
+    model: "openai/gpt-6-sol",
     messages: [
       { role: "user", content: "Write a haiku about distributed systems." },
     ],
@@ -70,7 +70,7 @@ curl https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
-    "model": "openai/gpt-4.1-mini",
+    "model": "openai/gpt-6-sol",
     "messages": [
       {"role": "user", "content": "Write a haiku about distributed systems."}
     ],
@@ -84,6 +84,8 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ## Usage accounting for streams
 
-Zorveus records the final provider outcome and available token usage after the stream completes or disconnects. A client disconnect does not guarantee that the upstream provider stopped before producing more billable output.
+Zorveus records the final provider outcome and available token usage after the stream completes or disconnects. A client disconnect does not guarantee that the upstream provider stopped before producing more billable output
 
-Preserve incomplete SSE lines between network chunks. Treat a stream as complete only after `data: [DONE]` or a documented terminal event. If you retry after a disconnect, the provider can bill both requests.
+Preserve incomplete SSE lines between network chunks. Treat a stream as complete only after `data: [DONE]` or a documented terminal event. If you retry after a disconnect, the provider can bill both requests
+
+Set customer attribution on the streaming request too. Catch errors while opening and consuming the stream, then end the frontend loading state on either completion or failure

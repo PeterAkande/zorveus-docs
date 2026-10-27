@@ -5,7 +5,7 @@ description: Execute structured function calls and JSON schema tools across supp
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
 
-Zorveus passes OpenAI-compatible tool definitions and returned tool-call arguments through supported model routes. Your application executes the tool and sends the tool result in a later request.
+Zorveus passes OpenAI-compatible tool definitions and returned tool-call arguments through supported model routes. Your application executes the tool and sends the tool result in a later request
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -42,7 +42,7 @@ tools = [
 ]
 
 response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
+    model="openai/gpt-6-sol",
     messages=[{"role": "user", "content": "What is the stock price of NVDA?"}],
     tools=tools,
     tool_choice="auto",
@@ -65,7 +65,7 @@ const client = new OpenAI({
 
 async function main() {
   const response = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
+    model: "openai/gpt-6-sol",
     messages: [{ role: "user", content: "What is the stock price of NVDA?" }],
     tools: [
       {
@@ -99,8 +99,8 @@ main();
 2. Validate the returned function name and JSON arguments.
 3. Execute only an allowlisted function with validated inputs.
 4. Append the assistant tool call and your `tool` result to the messages.
-5. Send another completion request to obtain the final answer.
+5. Send another completion request to obtain the final answer
 
-Do not execute a function name or argument solely because a model returned it. Apply the same authorization checks that you use for any other application input.
+Do not execute a function name or argument solely because a model returned it. Apply the same authorization checks that you use for any other application input
 
-Tool support varies by model. Check `GET /v1/models`, then run a small tool-call test before enabling a model in production.
+Tool support varies by model. Check `GET /v1/models`, then run a small tool-call test before enabling a model in production

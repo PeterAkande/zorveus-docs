@@ -1,41 +1,37 @@
 ---
-title: Models Catalog API
-description: Routable model discovery 
+title: Model catalog and discovery
+description: Inspect model capabilities and find IDs available to an inference key.
 ---
 
+## Public catalog
 
-<ApiEndpoint method="GET" path="/models" auth="api_key" />
-Use the API key to list models supported for that API key based on its model policies.
-### Parameters
+<ApiEndpoint method="GET" path="/models" />
 
-<ParamField name="provider" type="string">
-  Filters or selects the request by provider.
-</ParamField>
+`GET https://api.zorveus.com/models` requires no key. The response is an object with an `items` array. Each item includes `model_name`, `provider`, `route_status`, task `mode`, input and output modalities, capabilities, limits, and available price fields
 
-<ParamField name="route_status" type="string">
-  Whether Zorveus can safely route and bill a model. Allowed values: `available`, `pricing_only`, `blocked`.
-</ParamField>
+```bash
+curl --fail-with-body --get https://api.zorveus.com/models \
+	--data-urlencode 'mode=chat' \
+	--data-urlencode 'limit=10'
+```
 
-<ParamField name="q" type="string">
-  Filters or selects the request by q.
-</ParamField>
+| Query field | Meaning |
+| --- | --- |
+| `provider` | Filter by provider |
+| `route_status` | `available`, `pricing_only`, or `blocked`. Default is `available` |
+| `q` | Search model names |
+| `mode` | Filter by task mode |
+| `input_type`, `output_type` | Filter by input or output modality |
+| `capability` | Filter by a supported capability |
+| `min_context` | Minimum input context size, at least 1 |
+| `limit` | Maximum returned items, from 1 to 1000 |
 
-<ParamField name="limit" type="integer">
-  Filters or selects the request by limit.
-</ParamField>
+`pricing_only` means pricing information exists without an available route. Catalog inclusion does not grant your key permission to use a model
 
-### Responses
+## Key-scoped discovery
 
-#### 200 Successful Response
+<ApiEndpoint method="GET" path="/v1/models" auth="api_key" />
 
-<ResponseField name="items" type="array<object>" required>
-  Returns the items value.
-</ResponseField>
+Use an inference key or scoped OAuth token to retrieve concrete IDs permitted by the key's model policy. The OpenAI-compatible response uses `data`, and each model has an `id`. With a routing key, send `X-Zorveus-Key-Alias` to choose the member
 
-#### 422 Validation Error
-
-<ResponseField name="detail" type="array<object>">
-  Returns the detail value.
-</ResponseField>
-
----
+See [Model discovery](/inference/model-discovery) for SDK examples. Use the catalog to check task support, then verify the ID with the key that will make the request

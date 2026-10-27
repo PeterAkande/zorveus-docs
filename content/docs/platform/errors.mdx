@@ -3,7 +3,7 @@ title: Error handling
 description: Handle product API and OpenAI-compatible gateway errors without relying on message text.
 ---
 
-Product and management routes return a structured Zorveus error with a stable `code` and human-readable `message`. Gateway routes return an OpenAI-compatible `error` object. Always branch on error `code` and HTTP status rather than parsing message strings.
+Product and management routes return a structured Zorveus error with a stable `code` and human-readable `message`. Gateway routes return an OpenAI-compatible `error` object. Branch on the structured Zorveus code and HTTP status. The gateway can place that code inside `error.provider_specific_fields.error`, while its outer `error.code` can contain a status such as `"403"`
 
 ---
 
@@ -13,15 +13,17 @@ Product and management routes return a structured Zorveus error with a stable `c
 | :--- | :--- | :--- | :--- |
 | `zorveus_malformed_or_missing_key` | 401 | Missing or malformed Bearer key. | Check API key header configuration. |
 | `zorveus_unknown_key` | 401 | Key does not exist in this environment. | Verify workspace environment and key hash. |
-| `zorveus_key_inactive` | 401 | API key has been revoked or deactivated. | Generate a replacement API key. |
+| `zorveus_key_inactive` | 403 | API key has been revoked or deactivated. | Generate a replacement API key. |
 | `zorveus_unsupported_model` | 400 | Model string is not recognized by Zorveus. | Discover available models with `GET /v1/models`. |
-| `zorveus_product_user_credits_required` | 400 | Connection enforces user credits but no product user was supplied. | Supply `user` or `metadata.external_user_id`. |
 | `zorveus_reservation_insufficient_balance` | 402 | Organization wallet lacks funds to cover estimated wallet charge or BYOK fee. | Prompt organization admin to top up the wallet balance. |
 | `zorveus_product_user_allowance_insufficient` | 403 | Request estimate exceeds product user remaining base cap and credits. | Reduce request output, increase cap, or grant credits. |
 | `zorveus_cap_exceeded` | 403 | Key or member cap has been reached and no credits are available. | Increase spending cap or wait for cap period reset. |
 | `zorveus_model_not_allowed` | 403 | Model is blocked by the connection allowed models policy. | Adjust model access policies on the app connection. |
 | `zorveus_app_connection_not_found` | 403 | Inference key or connection is invalid or revoked. | Verify app connection configuration. |
-| `zorveus_reservation_conflict` | 409 | Idempotency key was reused with conflicting parameters. | Ensure idempotency keys are uniquely generated per request. |
+| `zorveus_key_selector_required` | 400 | Routing key has no default and no selector was sent. | Supply `X-Zorveus-Key-Alias`. |
+| `zorveus_invalid_key_selector` | 400 | The supplied selector is blank or malformed. | Use a configured selector. |
+| `zorveus_key_selection_not_allowed` | 403 | The selected routing member is unavailable or not permitted. | Check routing members in the dashboard. |
+| `zorveus_org_billing_frozen` | 402 | Organization billing is frozen or wallet debt remains. | Resolve the funding account status. |
 | `rate_limit_exceeded` | 429 | Upstream model provider rate limit reached. | Retry with exponential backoff. |
 
 ---
@@ -52,10 +54,21 @@ When a request is blocked because an attributed product user has insufficient al
 }
 ```
 
-The OpenAI-compatible gateway surfaces this payload at `error.provider_specific_fields.error`.
+The object above shows the underlying Zorveus error. On the OpenAI-compatible gateway, its `error` member can appear at `error.provider_specific_fields.error`. Prefer that nested `code` and `params`, then fall back to the outer `error` object when needed
 
-All monetary amounts in `params` are decimal strings with 12 fractional digits. Parse them with an exact decimal type instead of binary floating point.
+All monetary amounts in `params` are decimal strings with 12 fractional digits. Parse them with an exact decimal type instead of binary floating point
 
-During migration, clients should also accept the legacy code `zorveus_product_user_credits_insufficient`. New user interfaces should display the allowance error parameters, because available allowance reflects both base cap and promotional credits.
+During migration, clients should also accept the legacy code `zorveus_product_user_credits_insufficient`. New user interfaces should display the allowance error parameters, because available allowance reflects both base cap and promotional credits
 
-See [Troubleshooting](/resources/troubleshooting) for diagnosis by symptom.
+See [Troubleshooting](/resources/troubleshooting) for diagnosis by symptom
+
+
+## Request validation
+
+Missing required query or body fields and schema type errors can return HTTP `422` with a `detail` array. This is distinct from an application error with `error.code`
+
+## Handle the failure in your product
+
+For an allowance failure, show the available amount or reset date and end any loading state. For a funding failure, ask the funding account's operator to resolve the wallet. A model-policy rejection needs a permitted model, not more credits
+
+A positive profile allowance is only a snapshot. In-flight reservations, request cost, other applicable caps, and funding can still reject the next request. Retry policy or funding failures only after their cause changes

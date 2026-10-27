@@ -1,6 +1,10 @@
 ---
-title: Usage filters and time series
-description: Filter usage by application, connection, product user, model, provider, billing mode, member, and time.
+title: Find a request in usage
+description: Use identifiers and filters to inspect an inference request in the dashboard.
 ---
 
-Filter usage events by application, connection, product user, model, provider, billing mode, member, and time. Usage events are recorded for every request that consumes a Zorveus resourc on the organization workspace. The usage event includes the request's metadata, model, provider, and billing mode.
+Open **Usage** in the [dashboard](https://app.zorveus.com). Narrow the time range, app, connection, model, provider, or product user to find the request. Keep its Zorveus request and reservation IDs in your server logs when available
+
+Use the billing mode to distinguish wallet-funded calls from BYOK calls. Compare virtual spend with wallet charges rather than assuming the two amounts are equal
+
+For application reads, use [key usage](/api-reference/usage) or the [product-user profile](/api-reference/product-users). Organization usage analytics are inspected in the dashboard

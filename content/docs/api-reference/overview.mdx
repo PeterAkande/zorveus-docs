@@ -1,59 +1,22 @@
 ---
-title: API reference overview
-description: Complete REST API Reference for the Zorveus Management and Product API on api.zorveus.com.
+title: API reference
+description: Application endpoints for inference, product users, OAuth, and usage.
 ---
 
-The supported service-key API manages product users by external user ID. Configure organizations, apps, connections, API keys, spending caps, provider credentials, and webhooks in the dashboard. Dashboard routes in this reference are not application integration endpoints.
+Use this reference for calls your application makes to Zorveus. Use the [dashboard](https://app.zorveus.com) for organizations, apps, connections, keys, caps, provider credentials, and webhooks. The service operations below support backend customer and allowance management
 
----
+| Task | Endpoint or guide | Credential |
+| --- | --- | --- |
+| Generate text, embeddings, images, or audio | [Inference API](/inference/overview) under `https://api.zorveus.com/v1` | Inference key or scoped OAuth token |
+| Read or update a customer and grant credits | [Product users](/api-reference/product-users) under `/product-users/by-external-id` | Server-only service key |
+| Connect a user's funding account | [OAuth](/api-reference/oauth) | Client ID and PKCE, plus client secret for confidential clients |
+| Inspect the selected key's spend | [Key usage](/api-reference/usage) at `/inference-keys/usage` | Inference key or scoped OAuth token |
+| Find model IDs and capabilities | [Models](/api-reference/models) | Public catalog, or inference key for key-scoped discovery |
 
-## OpenAPI Specification
+OpenAI-compatible clients use `https://api.zorveus.com/v1`. Product-user and OAuth requests use `https://api.zorveus.com` without `/v1`. Native Anthropic clients use `https://api.zorveus.com` because the SDK adds `/v1/messages`
 
-The OpenAPI schema is available at the following URL. The schema can include dashboard routes. Inclusion does not make a route a supported service-key endpoint.
+See [Authentication](/platform/authentication), [errors](/platform/errors), and [idempotency](/platform/idempotency) for shared behavior
 
-```text
-https://api.zorveus.com/openapi.json
-```
+## OpenAPI schema
 
-You can import this URL directly into **Postman**, **Insomnia**, **Swagger UI**, or code generation tools (e.g. `openapi-typescript`, `datamodel-code-generator`).
-
-```bash
-# Download the public OpenAPI spec
-curl -O https://api.zorveus.com/openapi.json
-```
-
----
-
-## Production Servers
-
-| Base URL | Purpose | Authentication |
-| :--- | :--- | :--- |
-| `https://api.zorveus.com/product-users/by-external-id` | Supported product-user management | `Authorization: Bearer zrv_svc_...` |
-| `https://api.zorveus.com/v1` | OpenAI-compatible Inference Gateway | `Authorization: Bearer zrv_...` |
-
----
-
-## Authentication Credentials
-
-- **API Key (`zrv_...`)**: High-performance bearer token used in `Authorization: Bearer zrv_...` for AI completions on `https://api.zorveus.com/v1` (and native provider wire endpoints) or checking spend on `/inference-keys/usage`.
-- **Service Key (`zrv_svc_...`)**: Server-to-server secret for supported `/product-users/by-external-id` operations. Service keys cannot make model inference calls.
-- **Dashboard Session**: Browser session cookie with CSRF protection for web dashboard operations.
-
----
-
-## API Groups
-
-<CardGroup cols={2}>
-  <Card title="Product Users & Credits" icon="layers" href="/api-reference/product-users">
-    Read product-user allowance, update customer details, and issue credit grants by external user ID.
-  </Card>
-  <Card title="Provider Credentials" icon="key" href="/api-reference/provider-credentials">
-    Manage BYOK provider credentials in the dashboard. There is no application API workflow.
-  </Card>
-  <Card title="Apps & Connections" icon="terminal" href="/api-reference/apps">
-    Create and manage apps and connections in the dashboard.
-  </Card>
-  <Card title="Usage & Analytics" icon="activity" href="/api-reference/usage">
-    Inspect key usage summaries, raw ledger events, and spending analytics.
-  </Card>
-</CardGroup>
+The backend schema is available at `https://api.zorveus.com/openapi.json`. It also includes dashboard operations that require browser sessions. Use the application endpoints documented here when building an integration. An endpoint's presence in the schema does not make it a service-key endpoint

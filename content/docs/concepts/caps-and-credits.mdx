@@ -3,7 +3,7 @@ title: Caps and credits
 description: Compare base spending allowances with consumable product-user credit grants.
 ---
 
-Zorveus provides two distinct controls to govern AI expenditures: spending caps and credit grants.
+Zorveus provides two distinct controls to govern AI expenditures: spending caps and credit grants
 
 ---
 
@@ -12,7 +12,7 @@ Zorveus provides two distinct controls to govern AI expenditures: spending caps 
 | Feature | Spending cap | Credit grant |
 | :--- | :--- | :--- |
 | Purpose | Base virtual allowance for a period | Consumable credits owned by one product user |
-| Reset behavior | Resets periodically (daily, monthly, or lifetime) | Non-replenishing, expires at set date or consumed to zero |
+| Reset behavior | Daily or monthly windows reset. Lifetime caps do not reset | Non-replenishing, expires at set date or consumed to zero |
 | Applied to | Organization, app connection, product user | Product user in one application |
 | Enforcement | Rejects when base allowance plus credits are exhausted | Extends base allowance before requests are rejected |
 | Funding source | Organization wallet or BYOK | Granted by your application, extends virtual allowance |
@@ -28,10 +28,10 @@ A spending cap sets the base virtual allowance over a period:
 - Rejection returns `403 Forbidden` with error code `zorveus_cap_exceeded` or `zorveus_product_user_allowance_insufficient`.
 - Caps apply at three distinct levels:
   1. Organization cap: overall organization spend limit.
-  2. Connection or key cap: specific limit for an app connection or API key.
-  3. Product-user cap: per-user base allowance on that key.
+  2. Connection cap: supplies each attributed Business product user with a base allowance. Unattributed traffic is evaluated separately
+  3. Direct product-user cap: explicit allowance for one customer in the app
 
-If an inference key has no cap rule, virtual allowance is unlimited across all credit modes. Requests pass through, virtual spend is recorded, and zero product-user credits are consumed. Credits extend a configured cap, but they do not create a cap where none exists.
+If an inference key has no cap rule, virtual allowance is unlimited across all credit modes. Requests pass through, virtual spend is recorded, and zero product-user credits are consumed. Credits extend a configured cap, but they do not create a cap where none exists
 
 ---
 
@@ -42,7 +42,7 @@ A credit grant assigns spendable credit to one product user:
 - Multiple grants stack additively.
 - Eligible grants are consumed by earliest expiry first.
 - Grants are not organization wallet funds. Granting credits does not deposit money into the organization wallet, and consuming credits does not pay an upstream model provider.
-- Read remaining balances through the service-key API by external user ID. Revoke credit grants in the dashboard.
+- Read remaining balances through the service-key API by external user ID. Revoke credit grants in the dashboard
 
 ---
 
@@ -66,9 +66,9 @@ Usage consumes allowance in this order:
 
 1. Remaining base allowance on the key.
 2. Available product-user credits (oldest expiring first).
-3. Uncovered virtual spend (in non-blocking track-only mode or request overruns).
+3. Uncovered virtual spend (in non-blocking track-only mode or request overruns)
 
-For example, on a $10 monthly cap with $8 spent so far, the user has $2 base allowance remaining. If the user holds $5 in credits and sends a request estimated at $3, Zorveus reserves the first $2 from the base cap and only $1 from credits.
+For example, on a $10 monthly cap with $8 spent so far, the user has $2 base allowance remaining. If the user holds $5 in credits and sends a request estimated at $3, Zorveus reserves the first $2 from the base cap and only $1 from credits
 
 ---
 

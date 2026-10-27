@@ -3,19 +3,19 @@ title: Manage product users
 description: Look up and update your customers, then read their usage, credits, and allowance.
 ---
 
-Product Users are your customers. You can create or update them automatically inline during inference or manage them explicitly using your Organization Service Key (`zrv_svc_...`).
+Product Users are your customers. You can create or update them automatically inline during inference or manage them explicitly using your Organization Service Key (`zrv_svc_...`)
 
 <KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_svc_your_service_key" />
 
 <Callout type="tip" title="Automatic Inline User Provisioning">
-  You do not need to create product users through the Management API before inference. Send `X-Zorveus-External-User-ID` in the headers or `metadata.external_user_id` in the body. Either creates the product user on their first request and attributes subsequent requests to that user. Include the same identifier on every request.
+  You do not need to create product users through the Management API before inference. Send `X-Zorveus-External-User-ID` in the headers or `metadata.external_user_id` in the body. Either creates the product user on their first request and attributes subsequent requests to that user. Include the same identifier on every request
 </Callout>
 
 ---
 
 ## Look up a product user
 
-Read a product user's live profile, configured spending cap, available credits, and monthly token usage without accidental creations or mutations.
+Read a product user's live profile, configured spending cap, available credits, and monthly token usage. Reads return HTTP 404 for missing users by default. To create a missing user during a read, send `X-Zorveus-Upsert-Product-User: true`. See [the header contract](/api-reference/product-users#create-a-missing-user-during-a-read) for SDK and raw HTTP examples
 
 <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
@@ -63,13 +63,13 @@ curl -X GET "https://api.zorveus.com/product-users/by-external-id?app_id=app_sup
 
 ## Check whether a user has money to spend
 
-For an active user under a known enforced cap, use `user.has_available_allowance()` in Python or `user.hasAvailableAllowance()` in TypeScript. Both check whether total available allowance is greater than zero without another API call.
+For an active user under a known enforced cap, use `user.has_available_allowance()` in Python or `user.hasAvailableAllowance()` in TypeScript. Both check whether total available allowance is greater than zero without another API call
 
-To get the amount as well, use `user.get_total_available_to_spend_decimal()` in Python or `user.getTotalAvailableToSpend()` in TypeScript. See [the amount check and SDK shortcuts](/startups/check-allowance#check-whether-the-user-has-any-amount-to-spend) for examples and the uncapped-key rules.
+To get the amount as well, use `user.get_total_available_to_spend_decimal()` in Python or `user.getTotalAvailableToSpend()` in TypeScript. See [the amount check and SDK shortcuts](/startups/check-allowance#check-whether-the-user-has-any-amount-to-spend) for examples and the uncapped-key rules
 
 ## Read credits separately
 
-The credit summary contains credit grants only. It does not include remaining base allowance. To decide whether a capped user can attempt inference, follow [Check available allowance](/startups/check-allowance).
+The credit summary contains credit grants only. It does not include remaining base allowance. To decide whether a capped user can attempt inference, follow [Check available allowance](/startups/check-allowance)
 
 <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
@@ -124,7 +124,7 @@ const service = new ZorveusServiceClient({
   apiKey: "zrv_svc_your_service_key",
 });
 
-const user = await service.productUsers.createOrUpdate({
+const result = await service.productUsers.createOrUpdate({
   appId: "app_support_123",
   externalUserId: "usr_sara_101",
   displayName: "Sara Connor",
@@ -137,7 +137,7 @@ from zorveus import ZorveusServiceClient
 
 service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
 
-user = service.product_users.create_or_update(
+result = service.product_users.create_or_update(
     app_id="app_support_123",
     external_user_id="usr_sara_101",
     display_name="Sara Connor",
@@ -159,3 +159,5 @@ curl -X PUT https://api.zorveus.com/product-users/by-external-id \
 ```
 
 </CodeGroup>
+
+Upsert returns an envelope. Read `result.product_user` for the profile and `result.created` to tell whether the user was new

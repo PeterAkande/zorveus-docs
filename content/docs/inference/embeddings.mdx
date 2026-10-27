@@ -71,3 +71,9 @@ curl https://api.zorveus.com/v1/embeddings \
 Use `GET /v1/models` to find a routable embedding model. A model policy such as `openai/*` permits matching names, but it does not guarantee that a matching deployment is available.
 
 Batch limits, token limits, dimensions, and optional encoding formats come from the selected provider and model.
+
+## Attach indexing activity
+
+Embeddings accept the same [usage metadata](/inference/product-user-metadata#attach-business-context-to-usage-events) as chat. Use `metadata.usage_metadata` in raw JSON, `usage_metadata` in the native Python SDK, or `zorveusMetadata.usageMetadata` in the native TypeScript SDK. `X-Zorveus-Usage-Metadata` can supply the context through a header
+
+For example, attach `{"activity_id":"index_123","activity_label":"Indexed document","document_id":"doc_123"}` to connect the usage event to your indexing job

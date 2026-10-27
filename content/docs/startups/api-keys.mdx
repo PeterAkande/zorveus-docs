@@ -1,150 +1,33 @@
 ---
-title: API keys
-description: Create, rotate, scope, and revoke gateway API keys.
+title: Inference API keys
+description: Create, inspect, and rotate keys for server-side model requests.
 ---
 
-API keys (`zrv_...`) authenticate requests against the OpenAI-compatible gateway (`https://api.zorveus.com/v1`) and provider-native wire endpoints.
+An inference key, `zrv_...`, authenticates model requests under an app connection. The connection supplies model access, spending policy, credit mode, and overrun policy
 
-For multiple plan keys, use a [routing key](/startups/routing-keys) to store one backend secret. Send `X-Zorveus-Key-Alias: pro` or `metadata.key_alias: "pro"` to select a member. Omit both to use the configured default
+## Create a key
 
-Before serving customers, read [Configure product-user allowances](/startups/configure-product-user-allowances) to choose caps, credit mode, and overrun policy.
+Select a Business organization in the [dashboard](https://app.zorveus.com). Create an app and generate an API key in its connection settings. Copy the full secret when it is shown and keep it in your backend's secret store
 
-<Callout type="warning" title="Distinct from service keys">
-  API keys (`zrv_...`) execute model inference and inspect connection spend. They cannot perform organization management. Manage organizations in the dashboard. Service keys support product-user operations under `/product-users/by-external-id`. Never supply a Service Key to model inference endpoints.
-</Callout>
+Complete the [Business quickstart](/getting-started/startup-quickstart) for a first request. Configure [product-user allowances](/startups/configure-product-user-allowances) before serving customers. Send your trusted external customer ID on every customer request
 
-<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
+For multiple plan policies, use [one routing key](/startups/routing-keys) to select among member inference keys with `X-Zorveus-Key-Alias`
 
----
-
-## 1. Create an API key in the dashboard
-
-To generate an API key, your account must have an active **Business Organization**.
-
-<Steps>
-  <Step title="Select a Business Organization">
-    Log in to [app.zorveus.com](https://app.zorveus.com). In the top-left organization dropdown, select or create a **Business** organization. Do not select a Developer Organization; Developer Organizations only register third-party OAuth applications.
-  </Step>
-  <Step title="Create an app">
-    Open **Apps** in the sidebar, click **Create App**, enter an application name, and save.
-  </Step>
-  <Step title="Generate the key">
-    Inside your app, open the connection settings and click **Create API Key**. Copy the plaintext secret (`zrv_...`) immediately.
-  </Step>
-</Steps>
-
-<Callout type="note" title="One-time plaintext display">
-  When you generate or rotate an API key, the plaintext secret is displayed only once:
-  ```text
-  zrv_live_9a8f7c2b4d1e6f0a5c3e7d9b2a4f6c8e
-  ```
-  Zorveus stores only irreversible SHA-256 hashes of keys. If a key is lost, rotate or generate a new key.
-</Callout>
-
----
-
-## 2. Check live usage and spend cap
-
-You can query the current spending cap, spent amount this period, remaining balance, and reset date directly using the API key itself. 
-
-<Callout type="tip" title="Public CORS Enabled">
-  `GET /inference-keys/usage` allows public CORS requests, making it safe to call directly from browser applications, IDE extensions, and client-side frontends.
-</Callout>
-
-<CodeGroup titles={["cURL", "Browser / Frontend", "TypeScript SDK", "Python SDK"]}>
+## Inspect key usage
 
 ```bash
-curl -X GET "https://api.zorveus.com/inference-keys/usage" \
-  -H "Authorization: Bearer zrv_your_api_key"
+curl --fail-with-body https://api.zorveus.com/inference-keys/usage \
+	-H "Authorization: Bearer $ZORVEUS_API_KEY"
 ```
 
-```javascript
-// Safe to execute directly in browser applications
-async function checkUsage() {
-  const res = await fetch("https://api.zorveus.com/inference-keys/usage", {
-    headers: {
-      Authorization: "Bearer zrv_your_api_key",
-    },
-  });
+The response includes `spend_cap`, `spent_this_period`, `remaining_balance`, and `reset_at`. Nullable values are described in [Key usage](/api-reference/usage). The TypeScript SDK calls this `client.getUsage()`, and the Python SDK calls it `client.get_usage()`
 
-  const data = await res.json();
-  console.log("Remaining Balance ($):", data.remaining_balance);
-  console.log("Spent this Month ($):", data.spent_this_period);
-  console.log("Monthly Spend Cap ($):", data.spend_cap);
-}
-```
+This is a key-level summary, not a customer's available allowance. Use [Check available allowance](/startups/check-allowance) for a product user
 
-```typescript
-import { Zorveus } from "@zorveus/sdk";
+CORS support permits browser requests but does not protect an embedded key. Keep shared Business keys on your server. Browser OAuth apps use the user's scoped token
 
-const client = new Zorveus({
-  apiKey: "zrv_your_api_key",
-});
+## Rotate a key
 
-const usage = await client.apiKeys.getUsage();
-console.log("Remaining Balance:", usage.remaining_balance);
-console.log("Reset Date:", usage.reset_at);
-```
+Create a replacement key for the same connection, deploy it to your backend, and verify a request before revoking the previous key in the dashboard. Connection policy stays with the connection
 
-```python
-import requests
-
-response = requests.get(
-    "https://api.zorveus.com/inference-keys/usage",
-    headers={"Authorization": "Bearer zrv_your_api_key"},
-)
-
-usage = response.json()
-print(f"Spent This Period: ${usage['spent_this_period']}")
-print(f"Remaining Balance: {f'${usage[\"remaining_balance\"]}' if usage['remaining_balance'] else 'Uncapped'}")
-```
-
-</CodeGroup>
-
-### Response Shape
-
-#### Capped Connection
-```json
-{
-  "status": "active",
-  "app_id": "app_mindspire_123",
-  "app_connection_id": "appcon_01j...",
-  "currency": "USD",
-  "period": "monthly",
-  "spend_cap": "50.000000000000",
-  "spent_this_period": "12.500000000000",
-  "remaining_balance": "37.500000000000",
-  "reset_at": "2026-09-01T00:00:00Z"
-}
-```
-
-#### Uncapped Connection
-```json
-{
-  "status": "active",
-  "app_id": "app_mindspire_123",
-  "app_connection_id": "appcon_01j...",
-  "currency": "USD",
-  "period": "monthly",
-  "spend_cap": null,
-  "spent_this_period": "12.500000000000",
-  "remaining_balance": null,
-  "reset_at": null
-}
-```
-
----
-
-## 3. Key rotation without downtime
-
-<Steps>
-  <Step title="Create new key">
-    Under your App Connection, click **Create Secondary Key**.
-  </Step>
-  <Step title="Deploy to production">
-    Update your backend environment variables (`ZORVEUS_API_KEY`) with the new secret and deploy.
-  </Step>
-  <Step title="Revoke old key">
-    Once traffic shifts, click **Revoke** on the previous key. Revocation is instantaneous across all edge gateway instances.
-  </Step>
-</Steps>
+Use a [service key](/startups/service-keys) for supported product-user management. An inference key does not grant access to those endpoints

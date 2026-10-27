@@ -1,55 +1,10 @@
 ---
 title: Wallet ledger
-description: Inspect the transaction audit feed and ledger entries in the Zorveus dashboard.
+description: Distinguish wallet movements from customer allowance and credit history.
 ---
 
-The Zorveus ledger provides an immutable, transparent audit trail of every financial transaction in your organization.
+Inspect wallet activity in the [dashboard](https://app.zorveus.com). The ledger records funding, holds for in-flight requests, usage charges, released funds, and applicable adjustments
 
-You can inspect all ledger activity in the [Zorveus Dashboard](https://app.zorveus.com) under **Billing & Wallets** -> **Ledger**.
+A reservation temporarily moves funds out of the available balance. Settlement charges actual usage and releases unused funds. A slow or interrupted request can leave a hold pending until it is reconciled
 
----
-
-## Viewing the ledger in the dashboard
-
-The ledger view displays a chronological transaction log with filters for date range, transaction type, and application.
-
-For each entry, the dashboard shows:
-
-- **Timestamp**: Exact UTC date and time the transaction finalized.
-- **Entry type**: The category of financial movement (such as a top-up or inference settlement).
-- **Amount**: The debit or credit amount.
-- **Resulting balance**: Your available and reserved balance following the entry.
-- **Reference ID**: The associated request identifier (`zreq_...`), invoice ID, or reservation ID (`resv_...`).
-
-You can export the filtered ledger to CSV at any time for accounting reconciliation.
-
----
-
-## Wallet transaction types
-
-Wallet ledger entries explain every change to your prepaid cash balance:
-
-| Entry type | Dashboard label | Description |
-| :--- | :--- | :--- |
-| `top_up` | Top up | Inbound card or bank payment credited to your available balance. |
-| `reservation_hold` | Reservation hold | Temporary hold placed on available funds while an inference call streams. |
-| `reservation_release` | Reservation release | Unused reservation funds returned to available balance after call completion. |
-| `usage_debit` | Inference charge | Final token charge debited for completed wallet-funded inference. |
-| `byok_platform_fee` | BYOK platform fee | Platform fee charged for BYOK volume exceeding your free monthly threshold. |
-| `refund` | Refund | Credit adjustment or payment reversal. |
-| `chargeback` | Dispute | Payment dispute deduction. |
-| `administrative_adjustment` | Adjustment | Manual correction applied by support or billing operations. |
-
----
-
-## Product-user credit history
-
-Virtual credits granted to end users have their own audit trail separate from organization cash balances.
-
-To view an individual customer's credit history:
-
-1. In the [Zorveus Dashboard](https://app.zorveus.com), go to **Product Users**.
-2. Select a customer and click **Credit history**.
-3. Inspect active grants, expired balances, and deductions applied against completed requests.
-
-Credit ledger entries track grant creation, reservation holds, completed usage deductions, and expirations.
+Customer credit grants have separate allowance history. They do not change wallet cash. Use the [product-user API](/api-reference/product-users) to inspect current allowance, credits, and grants. Use the dashboard for wallet transaction details

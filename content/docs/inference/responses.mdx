@@ -5,7 +5,7 @@ description: Generate a response through the OpenAI-compatible Responses API.
 
 <ApiEndpoint method="POST" path="/v1/responses" auth="api_key" />
 
-Use the Responses API when your OpenAI client or application already uses `responses.create`. Zorveus forwards supported request fields to the selected provider route and records the resulting usage.
+Use the Responses API when your OpenAI client or application already uses `responses.create`. Zorveus forwards supported request fields to the selected provider route and records the resulting usage
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -24,7 +24,7 @@ client = OpenAI(
 )
 
 response = client.responses.create(
-    model="openai/gpt-4.1-mini",
+    model="openai/gpt-6-sol",
     input="What are three core benefits of edge computing?",
 )
 
@@ -36,7 +36,7 @@ curl https://api.zorveus.com/v1/responses \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
-    "model": "openai/gpt-4.1-mini",
+    "model": "openai/gpt-6-sol",
     "input": "What are three core benefits of edge computing?"
   }'
 ```
@@ -45,12 +45,12 @@ curl https://api.zorveus.com/v1/responses \
 
 ## Expected result
 
-A successful response contains output items and, when the SDK can derive it, `output_text`. The exact item types depend on the model and requested tools.
+A successful response contains output items and, when the SDK can derive it, `output_text`. The exact item types depend on the model and requested tools
 
-Use `GET /v1/models` before selecting a model. Route availability does not prove that every model supports every Responses API feature.
+Use `GET /v1/models` before selecting a model. Route availability does not prove that every model supports every Responses API feature
 
 ## Common failures
 
 - `zorveus_model_not_allowed` means the API key policy excludes the model.
 - `zorveus_unsupported_model` means no current route can serve it.
-- Wallet, cap, or product-credit errors occur before provider spend.
+- Wallet, cap, or product-credit errors occur before provider spend

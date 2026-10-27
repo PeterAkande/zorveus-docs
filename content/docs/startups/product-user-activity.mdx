@@ -1,0 +1,128 @@
+---
+title: Product-user activity
+description: List a customer's AI usage and credit movements with saved activity metadata and charge breakdowns.
+---
+
+<ApiEndpoint method="GET" path="/product-users/by-external-id/activity" auth="service_key" />
+
+The service API returns AI usage and permanent credit movements in one paginated feed. Businesses can use it for a customer-facing activity screen. Organization-wide dashboard analytics keep their existing authentication requirements
+
+## Request activity
+
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id/activity \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
+	--data-urlencode 'external_user_id=user_123' \
+	--data-urlencode 'limit=20'
+```
+
+Call this from the business backend with a service key that has `product_users:read` or a scope that includes it. Derive the external user ID from authenticated application state. Do not expose the service key in browser code or allow a customer to choose another customer's ID
+
+| Query field | Contract |
+| --- | --- |
+| `app_id`, `external_user_id` | Required, scoped to the service key's organization and owned app |
+| `type` | Optional `usage`, `credit_added`, `credit_revoked`, `credit_expired`, `credit_refunded`, `credit_adjusted`, or `allowance_debt_repayment` |
+| `from` | Inclusive timestamp with a timezone offset |
+| `to` | Exclusive timestamp with a timezone offset |
+| `currency` | Optional uppercase three-letter currency code |
+| `limit` | Default 20, minimum 1, maximum 100 |
+| `cursor` | Opaque `next_cursor` from the previous response |
+
+Rows sort newest first, with stable ID and type ordering for equal timestamps. Reuse the same app, user, and filters with a cursor. Changing those values requires starting a new pagination sequence. A missing user returns HTTP 404 with `zorveus_product_user_not_found` by default. Add `X-Zorveus-Upsert-Product-User: true` to create one in an owned, non-deleted app and return an empty feed. Omit the header or use `false` for lookup-only behavior. Other values return HTTP 422. Existing profiles and statuses are preserved
+
+## Response and UI mapping
+
+```json
+{
+	"product_end_user_id": "peu_123",
+	"items": [
+		{
+			"id": "ue_123",
+			"type": "usage",
+			"label": "WhatsApp agent replied",
+			"amount": "-4.000000000000",
+			"currency": "USD",
+			"status": "succeeded",
+			"created_at": "2026-10-26T12:00:00Z",
+			"model": "example-model",
+			"usage_metadata": {
+				"category": "customer_support",
+				"activity_id": "reply_123",
+				"activity_label": "WhatsApp agent replied"
+			},
+			"base_allowance_charge_amount": "1.000000000000",
+			"credit_charge_amount": "3.000000000000",
+			"uncovered_charge_amount": "0.000000000000",
+			"credit_allocations": [
+				{
+					"credit_grant_id": "grant_123",
+					"amount": "3.000000000000",
+					"currency": "USD",
+					"metadata": {"credits_per_usd": "1500"}
+				}
+			]
+		},
+		{
+			"id": "credit_entry_123",
+			"type": "credit_added",
+			"label": "Credit purchase",
+			"amount": "10.000000000000",
+			"currency": "USD",
+			"status": "completed",
+			"created_at": "2026-10-25T09:00:00Z",
+			"credit_grant_id": "grant_123",
+			"metadata": {"credits_per_usd": "1500"}
+		}
+	],
+	"next_cursor": null,
+	"has_more": false,
+	"limit": 20
+}
+```
+
+Display `label`, the signed `amount`, `currency`, `status`, and `created_at` in each row. Use `(type, id)` as the row identity. A non-empty string `usage_metadata.activity_label` becomes the usage label, otherwise the label is `AI usage`. Credit additions use the grant reason when present, otherwise a source-specific default. Other credit movements use their own labels
+
+The usage amount is the negative product-user charge after the configured multiplier, not the organization wallet charge. Credit movements retain their recorded signs. Breakdown fields and allocation amounts are positive magnitudes. A request that consumes multiple grants appears once, with one allocation per grant
+
+`base_allowance_charge_amount` records usage covered by the configured base allowance, or uncapped allowance. `credit_charge_amount` sums the settled grant deductions. `uncovered_charge_amount` is the remaining product-user charge after those two portions. It does not describe organization wallet debt or other organization cap overruns
+
+Older events without a saved base snapshot return `null` for base and uncovered portions. Their recorded credit deductions remain available. Older events without `product_user_charge_amount` use their saved reference usage and multiplier, defaulting the multiplier to 1. Do not replace unknown breakdown values with zero
+
+The feed includes recorded revocations, refunds, adjustments, expiration entries, and credit-funded allowance debt repayments. It excludes temporary reservation and release entries. It does not repeat credit settlement ledger entries as separate deductions alongside usage events. An expiration appears only if an expiration ledger movement was recorded
+
+Use decimal arithmetic. Zorveus returns accounting currency amounts and the grant's saved metadata. To display purchased credit units, multiply each allocation amount by that grant's saved conversion factor and sum the results. A request can use grants with different factors. Plan allowance display follows the business's own unit policy. This endpoint does not perform FX lookups or infer business units
+
+Render labels and metadata as plain text. Categories and activity IDs remain optional custom metadata fields. No category aggregation, activity grouping, total count, page numbers, or running balance is returned. Use `has_more` and `next_cursor` for Next or Load more, and retain prior cursors for Previous. Keep balance cards on the existing summary/profile endpoints
+
+## SDK methods
+
+```python
+page = service.product_users.list_activity_by_external_id(
+	app_id=app_id,
+	external_user_id=authenticated_user_id,
+	limit=20,
+)
+next_page = service.product_users.list_activity_by_external_id(
+	app_id=app_id,
+	external_user_id=authenticated_user_id,
+	limit=20,
+	cursor=page.next_cursor,
+) if page.has_more else None
+```
+
+The async Python service client exposes the same method with `await`. Optional Python filters are `activity_type`, `from_date`, `to_date`, and `currency`
+
+```typescript
+const page = await service.productUsers.listActivityByExternalId({
+	appId,
+	externalUserId: authenticatedUserId,
+	limit: 20,
+});
+```
+
+Optional TypeScript filters are `type`, `from`, `to`, and `currency`. For opt-in creation, pass `upsert_if_missing=True` in Python or `upsertIfMissing: true` in the TypeScript request parameters. Both SDKs send the header automatically. An explicit `False` or `false` disables creation even if a conflicting raw header was supplied. Both SDKs preserve metadata, decimal strings, nullable historical breakdowns, and pagination fields
+
+## Errors
+
+Malformed or mismatched cursors return HTTP 400 with `zorveus_invalid_product_user_activity_cursor`. A reversed or empty time window returns HTTP 400 with `zorveus_invalid_product_user_activity_filter`. Invalid enum values, limits, currencies, or timestamps return HTTP 422. Authentication and scope errors use the existing service-key contracts. An inaccessible or deleted app returns HTTP 404 without creating a user

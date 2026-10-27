@@ -1,11 +1,11 @@
 ---
 title: Image generation
-description: Generate images and visual assets through OpenAI DALL-E and compatible models.
+description: Generate images through compatible model routes and handle returned image data.
 ---
 
 <ApiEndpoint method="POST" path="/v1/images/generations" auth="api_key" />
 
-Generate images using models like `openai/dall-e-3`.
+Choose an image-generation model from discovery. The example uses a configurable model ID and requests base64 output
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -16,6 +16,7 @@ Generate images using models like `openai/dall-e-3`.
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
 
 ```python
+import os
 from openai import OpenAI
 
 client = OpenAI(
@@ -24,14 +25,14 @@ client = OpenAI(
 )
 
 response = client.images.generate(
-    model="openai/dall-e-3",
+    model=os.environ["ZORVEUS_IMAGE_MODEL"],
     prompt="A modern minimalist geometric workspace with emerald mint lighting",
     size="1024x1024",
-    quality="standard",
+    response_format="b64_json",
     n=1,
 )
 
-print(response.data[0].url)
+print("Received image:", bool(response.data and response.data[0].b64_json))
 ```
 
 ```typescript
@@ -44,13 +45,14 @@ const client = new OpenAI({
 
 async function main() {
   const image = await client.images.generate({
-    model: "openai/dall-e-3",
+    model: process.env.ZORVEUS_IMAGE_MODEL!,
     prompt: "A modern minimalist geometric workspace with emerald mint lighting",
     size: "1024x1024",
+    response_format: "b64_json",
     n: 1,
   });
 
-  console.log(image.data[0].url);
+  console.log("Received image:", Boolean(image.data?.[0]?.b64_json));
 }
 
 main();
@@ -60,8 +62,10 @@ main();
 
 ## Handle image data
 
-Providers can return a temporary URL, base64 data, or another provider-specific result. The maintained Zorveus smoke test requests `b64_json` and verifies that the decoded file is non-empty.
+Providers can return a temporary URL, base64 data, or another provider-specific result. Decode `b64_json` to save an image when the selected model supports that response format
 
-Check `GET /v1/models` before using the example model. Image size, quality, count, response format, and content-policy behavior depend on the selected model.
+Check `GET /v1/models` before using the example model. Image size, quality, count, response format, and content-policy behavior depend on the selected model
 
-Do not log base64 image output or place provider URLs in long-lived records unless your data policy permits it.
+Do not log base64 image output or place provider URLs in long-lived records unless your data policy permits it
+
+Set `ZORVEUS_IMAGE_MODEL` to a returned model ID that supports image generation. Supported sizes and response-format options depend on that model

@@ -3,20 +3,20 @@ title: Grant credits after a payment
 description: Connect verified customer payments to product-user credit grants without confusing them with wallet top-ups.
 ---
 
-Your payment provider owns the customer payment. Zorveus owns AI allowance enforcement. Product-user credits do not deposit money into the organization's wallet or pay upstream providers.
+Your payment provider owns the customer payment. Zorveus owns AI allowance enforcement. Product-user credits do not deposit money into the organization's wallet or pay upstream providers
 
 ## Configure the product
 
 1. Create an app and a capped inference key in the dashboard. Choose an enforcement mode.
 2. Create a service key with product-user write permission. Keep the key on your server.
 3. Define the AI credit amount and currency for each purchase. A payment price is not necessarily the AI allowance amount.
-4. Configure your payment provider's webhook and Zorveus [outbound webhooks](/platform/webhooks).
+4. Configure your payment provider's webhook. Zorveus [outbound webhooks](/platform/webhooks) are optional for this grant flow
 
 ## Process the verified payment
 
-Verify the payment provider's signature before reading the event as trusted data. For Stripe, grant credits only after the relevant payment has succeeded. Do not assume checkout completion means an asynchronous payment has settled.
+Verify the payment provider's signature before reading the event as trusted data. For Stripe, grant credits only after the relevant payment has succeeded. Do not assume checkout completion means an asynchronous payment has settled
 
-Resolve the app and external user from your stored purchase. Do not trust a browser-supplied user ID or amount. Claim the purchase in durable storage before granting credits. Use a unique purchase identifier to prevent repeated grants from duplicate payment events.
+Resolve the app and external user from your stored purchase. Do not trust a browser-supplied user ID or amount. Keep a durable purchase record and use its stable identifier as the grant's `external_reference`. Use one reference per authorized award, even when several payment events report the same purchase
 
 Call the service-key endpoint:
 
@@ -27,25 +27,38 @@ curl https://api.zorveus.com/product-users/by-external-id/credit-grants \
 	-d '{
 		"app_id": "app_123",
 		"external_user_id": "customer_42",
+		"external_reference": "purchase:purchase_123",
 		"amount": "10.00",
 		"currency": "USD",
-		"source": "service_key",
+		"source": "purchase",
 		"reason": "Paid purchase purchase_123"
 	}'
 ```
 
-Store the returned grant identifier against the purchase and mark the purchase fulfilled. Use decimal strings for monetary amounts.
+Store the returned grant identifier against the purchase and mark the purchase fulfilled. Use decimal strings for monetary amounts
 
 ## Recover from uncertain results
 
-A timeout can occur after Zorveus creates the grant. A local claim alone does not make the remote call exactly once. A `reason` field is not an idempotency key.
+A timeout can occur after Zorveus creates the grant. On a backend with migration `20261027_0062`, repeat the POST with the same `external_reference` and grant parameters to recover the original grant. This does not repeat credit issuance, debt repayment, or the grant webhook
 
-Before enabling automatic retries, verify the endpoint's documented idempotency or a reliable reconciliation mechanism. If the result is unknown, record that state and reconcile before sending another grant. Do not invent an `Idempotency-Key` guarantee.
+To retrieve the current grant without posting again:
 
-For refunds, define the policy for unused credits and already consumed allowance. Use documented credit revocation operations where appropriate. Do not assume negative grants reverse a purchase.
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id/credit-grants/by-reference \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	--data-urlencode 'app_id=app_123' \
+	--data-urlencode 'external_user_id=customer_42' \
+	--data-urlencode 'external_reference=purchase:purchase_123'
+```
+
+The lookup returns the grant directly. A 404 can race an unfinished creation and does not authorize a new reference. Repeat the original referenced POST if the outcome remains uncertain. HTTP 409 with `zorveus_product_user_credit_reference_conflict` means the reference was reused with different grant parameters. Investigate that conflict instead of issuing another award
+
+Keep the purchase's accepted amount, currency, source, expiry, and metadata stable on retries. References survive key rotation and grant expiry, exhaustion, or revocation. Calls without a reference remain independent creations. See [Idempotency and retries](/platform/idempotency) for normalization and retention rules
+
+For refunds, define the policy for unused credits and already consumed allowance. Revoke unused grants in the dashboard when appropriate. Service keys do not expose a grant-revocation endpoint. Do not assume negative grants reverse a purchase
 
 ## Update the customer experience
 
-Zorveus `wallet.payment_credited` means an organization wallet top-up. It is not proof that your customer paid your application.
+Zorveus `wallet.payment_credited` means an organization wallet top-up. It is not proof that your customer paid your application
 
-For `product_user.credits_granted`, identify the customer with `data.external_user_id` and verify `data.app_id`. Refresh [available allowance](/startups/check-allowance) rather than assuming any grant guarantees the next request will succeed. Deduplicate webhook event IDs and tolerate delayed delivery.
+For `product_user.credits_granted`, identify the customer with `data.external_user_id` and verify `data.app_id`. Refresh [available allowance](/startups/check-allowance) rather than assuming any grant guarantees the next request will succeed. Deduplicate webhook event IDs and tolerate delayed delivery

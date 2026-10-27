@@ -42,6 +42,48 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 The body value takes precedence over the header. Zorveus records the initial connection without proration
 
+## Use a native SDK
+
+These calls run on your server. Configure the Pro plan key, select an allowed model, and get the customer ID from your authenticated session
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({ apiKey: process.env.ZORVEUS_PRO_KEY! });
+const response = await client.chat.completions.create({
+    model: selectedModelId,
+    messages: [{ role: "user", content: "Hello" }],
+    zorveusMetadata: {
+        externalUserId: authenticatedUserId,
+        allowanceChange: "prorate_increase",
+    },
+});
+```
+
+```python
+import os
+from zorveus import Zorveus
+
+client = Zorveus(api_key=os.environ["ZORVEUS_PRO_KEY"])
+try:
+    response = client.chat.completions.create(
+        model=selected_model_id,
+        messages=[{"role": "user", "content": "Hello"}],
+        extra_headers={
+            "X-Zorveus-External-User-ID": authenticated_user_id,
+            "X-Zorveus-Allowance-Change-Policy": "prorate_increase",
+        },
+    )
+finally:
+    client.close()
+```
+
+</CodeGroup>
+
+With a routing key, use the plan alias on the same request as shown in [routing keys](/startups/routing-keys#use-native-sdk-request-options). Proration is requested by inference metadata or headers, not by a service-client profile upsert
+
 ## 2. Switch the plan's API key
 
 When the customer upgrades, use the API key for the new plan's connection. Keep the same user ID and [allowance anchor](/startups/allowance-periods)

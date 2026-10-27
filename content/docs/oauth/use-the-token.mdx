@@ -3,7 +3,7 @@ title: Use the scoped OAuth token
 description: Execute inference calls using the user-provided OAuth access token.
 ---
 
-The `access_token` returned by `/oauth/token` is a standard Zorveus API key (`zrv_...`). Pass it directly in the `Authorization: Bearer zrv_...` header, the official Zorveus SDK constructors, or OpenAI SDK `apiKey` parameters.
+The `access_token` returned by `/oauth/token` is a standard Zorveus API key (`zrv_...`). Pass it directly in the `Authorization: Bearer zrv_...` header, the official Zorveus SDK constructors, or OpenAI SDK `apiKey` parameters
 
 ---
 
@@ -20,7 +20,7 @@ const client = new Zorveus({
 });
 
 const completion = await client.chat.completions.create({
-  model: "openai/gpt-4.1-mini",
+  model: "openai/gpt-6-sol",
   messages: [{ role: "user", content: "Hello Zorveus!" }],
 });
 
@@ -34,7 +34,7 @@ from zorveus import Zorveus
 client = Zorveus(api_key=user_access_token)
 
 response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
+    model="openai/gpt-6-sol",
     messages=[{"role": "user", "content": "Hello Zorveus!"}]
 )
 
@@ -49,7 +49,7 @@ from zorveus.openai import ZorveusOpenAI
 client = ZorveusOpenAI(api_key=user_access_token)
 
 response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
+    model="openai/gpt-6-sol",
     messages=[{"role": "user", "content": "Hello Zorveus!"}]
 )
 
@@ -65,7 +65,7 @@ const openai = new ZorveusOpenAI({
 });
 
 const completion = await openai.chat.completions.create({
-  model: "openai/gpt-4.1-mini",
+  model: "openai/gpt-6-sol",
   messages: [{ role: "user", content: "Hello Zorveus!" }],
 });
 
@@ -82,7 +82,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
+    model="openai/gpt-6-sol",
     messages=[{"role": "user", "content": "Hello Zorveus!"}],
 )
 
@@ -99,7 +99,7 @@ const client = new OpenAI({
 
 async function main() {
   const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
+    model: "openai/gpt-6-sol",
     messages: [{ role: "user", content: "Hello Zorveus!" }],
   });
 

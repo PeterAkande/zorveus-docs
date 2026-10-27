@@ -1,8 +1,10 @@
 ---
-title: Top-Up Return Flow
-description: Understand post-payment return flows, session polling, and webhook confirmations.
+title: Confirm a wallet top-up
+description: Treat a checkout return as a status page rather than payment proof.
 ---
 
-After completing payment at the payment gateway checkout, the browser is redirected back to the Zorveus return URL (`https://app.zorveus.com/wallet/top-up/callback`).
+After checkout, the dashboard displays the top-up status. Zorveus verifies provider payment information before crediting wallet funds. A browser redirect alone does not prove payment or create customer credits
 
-Zorveus polls the checkout session and validates the upstream payment provider signature before crediting the ledger wallet.
+Wait for the credited balance or the signed `wallet.payment_credited` webhook before treating the top-up as available. Handle pending and failed payments explicitly. The webhook identifies a Zorveus organization wallet purchase, not a payment made to your own application
+
+See [Webhooks](/platform/webhooks) for verification and [Billing integration](/startups/billing-integration) for customer purchases

@@ -5,7 +5,7 @@ description: Rerank document search results for optimized retrieval accuracy in 
 
 <ApiEndpoint method="POST" path="/v1/rerank" auth="api_key" />
 
-Reorder candidate documents by their relevance to a query through a supported reranking model.
+Reorder candidate documents by their relevance to a query through a supported reranking model
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -20,7 +20,7 @@ curl https://api.zorveus.com/v1/rerank \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
-    "model": "cohere/rerank-v3.5",
+    "model": "cohere/rerank-v4.0-fast",
     "query": "What is write-ahead logging?",
     "documents": [
       "Write-ahead logging records transactions sequentially before disk writes.",
@@ -41,7 +41,7 @@ response = requests.post(
         "Authorization": "Bearer zrv_your_api_key",
     },
     json={
-        "model": "cohere/rerank-v3.5",
+        "model": "cohere/rerank-v4.0-fast",
         "query": "What is write-ahead logging?",
         "documents": [
             "Write-ahead logging records transactions sequentially before disk writes.",
@@ -59,8 +59,8 @@ print(response.json())
 
 ## Request and result
 
-Send `query`, `documents`, and a routable `model`. Use `top_n` to limit returned results when the provider supports it. Each result identifies the original document position and includes a relevance score or provider-equivalent ranking value.
+Send `query`, `documents`, and a routable `model`. Use `top_n` to limit returned results when the provider supports it. Each result identifies the original document position and includes a relevance score or provider-equivalent ranking value
 
-Reranking does not retrieve documents. Retrieve a candidate set first, then rerank only the number of documents that fits the model's limits and your latency budget.
+Reranking does not retrieve documents. Retrieve a candidate set first, then rerank only the number of documents that fits the model's limits and your latency budget
 
-Check `GET /v1/models` before using the example model. Provider model IDs and response fields can differ.
+Check `GET /v1/models` before using the example model. Provider model IDs and response fields can differ

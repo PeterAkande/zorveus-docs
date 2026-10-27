@@ -5,7 +5,7 @@ description: Query the models endpoint to discover live available models permitt
 
 <ApiEndpoint method="GET" path="/v1/models" auth="api_key" />
 
-The `/v1/models` endpoint returns the dynamic list of concrete model IDs your API key is currently authorized to route.
+The `/v1/models` endpoint returns the dynamic list of concrete model IDs your API key is currently authorized to route
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -13,9 +13,9 @@ The `/v1/models` endpoint returns the dynamic list of concrete model IDs your AP
 
 ## Policy expansion
 
-When your App Connection defines wildcard policies like `*` or `openai/*`, the `/v1/models` endpoint **expands those wildcards into concrete routable model IDs** (e.g. `openai/gpt-4.1-mini`, `openai/gpt-4.1`, `anthropic/claude-3-7-sonnet`).
+When your App Connection defines wildcard policies like `*` or `openai/*`, the `/v1/models` endpoint **expands those wildcards into concrete routable model IDs** (e.g. `openai/gpt-6-sol`, `openai/gpt-6-sol`, `anthropic/claude-sonnet-5`)
 
-Wildcard strings are policy configurations—not valid target model identifiers in chat completion requests.
+Wildcard strings are policy configurations. They are not valid target model identifiers in chat completion requests
 
 ---
 
@@ -65,36 +65,10 @@ curl https://api.zorveus.com/v1/models \
 
 ---
 
-## Expected response
+## Read the response
 
-```json
-{
-  "object": "list",
-  "data": [
-    {
-      "id": "openai/gpt-4.1-mini",
-      "object": "model",
-      "created": 1723580000,
-      "owned_by": "openai"
-    },
-    {
-      "id": "openai/gpt-4.1",
-      "object": "model",
-      "created": 1723580000,
-      "owned_by": "openai"
-    },
-    {
-      "id": "anthropic/claude-3-7-sonnet",
-      "object": "model",
-      "created": 1723580000,
-      "owned_by": "anthropic"
-    },
-    {
-      "id": "gemini/gemini-2.5-flash",
-      "object": "model",
-      "created": 1723580000,
-      "owned_by": "google"
-    }
-  ]
-}
-```
+A successful response has `object: "list"` and a `data` array. Each item contains a concrete `id`, `object: "model"`, and ownership metadata. Use the returned `id` unchanged in inference requests
+
+With a routing key, send `X-Zorveus-Key-Alias` to discover the chosen member's allowed models. If no alias is sent, a configured default member is required
+
+Use the [public catalog](/api-reference/models) for task capabilities and pricing fields. A key-scoped list is an access check, not proof that every endpoint or optional parameter works with every listed model
