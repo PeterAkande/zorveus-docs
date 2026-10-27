@@ -3,9 +3,9 @@ title: Usage analytics
 description: Monitor inference volume, inspect cache-aware token breakdowns, and track financial metrics in the Zorveus dashboard.
 ---
 
-The [Zorveus Dashboard](https://app.zorveus.com) provides real-time visibility into every inference request processed across your organization.
+The [Zorveus Dashboard](https://app.zorveus.com) provides real-time visibility into every inference request processed across your organization
 
-Navigate to **Usage** in the dashboard to analyze token volume, prompt cache savings, and cost metrics.
+Navigate to **Usage** in the dashboard to analyze token volume, prompt cache savings, and cost metrics
 
 ---
 
@@ -17,7 +17,7 @@ At the top of the **Usage** page, you can slice and filter metrics using:
 - **Application**: Filter by specific app connections or view aggregate organization traffic.
 - **Model and provider**: Group by provider (OpenAI, Anthropic, Google) or isolate specific models.
 - **Billing mode**: Filter between `wallet` and `byok` traffic.
-- **Product user**: Search by `external_user_id` or customer name to review one customer's consumption.
+- **Product user**: Search by `external_user_id` or customer name to review one customer's consumption
 
 ---
 
@@ -28,7 +28,7 @@ Below the aggregate summary charts, the **Usage events** table logs individual c
 | Column | Description |
 | :--- | :--- |
 | **Timestamp** | UTC completion time. |
-| **Model** | Resolved model identifier (such as `anthropic/claude-sonnet-4-5`). |
+| **Model** | Resolved model identifier (such as `anthropic/claude-sonnet-5`). |
 | **Input tokens** | Total input tokens. If prompt caching occurred, cache reads appear as a badge under the count. |
 | **Output tokens** | Generated completion tokens. |
 | **Usage cost** | Reference-priced virtual spend consumed by the call. |
@@ -40,7 +40,7 @@ Below the aggregate summary charts, the **Usage events** table logs individual c
 
 ## Inspecting prompt cache savings
 
-When an upstream model provider reports prompt caching, Zorveus highlights the savings in the dashboard.
+When an upstream model provider reports prompt caching, Zorveus highlights the savings in the dashboard
 
 In the usage table, cache reads appear directly under total input:
 
@@ -68,7 +68,7 @@ AI allowance saved                 $0.0105
 - **Normal input**: Uncached prompt tokens calculated as total input minus cache reads and cache creations.
 - **Cache read**: Tokens reused from an active prompt cache at discounted provider rates.
 - **Cache creation**: New tokens written to cache for subsequent calls.
-- **AI allowance saved**: Reference-priced allowance saved by prompt caching compared to standard input rates. On BYOK requests, this represents virtual allowance saved rather than discounts on your provider invoice.
+- **AI allowance saved**: Reference-priced allowance saved by prompt caching compared to standard input rates. On BYOK requests, this represents virtual allowance saved rather than discounts on your provider invoice
 
 ---
 
@@ -78,9 +78,16 @@ The event detail drawer separates three distinct financial values:
 
 1. **Virtual spend ("Usage cost")**: The reference-priced value of AI usage evaluated against spending caps and user credits. Wallet and BYOK calls compute this value identically.
 2. **Sell cost ("Billed to wallet")**: The actual amount deducted from your organization wallet balance.
-3. **Provider cost**: The raw wholesale amount billed by the model provider.
+3. **Provider cost**: The raw wholesale amount billed by the model provider
 
 If a call exceeded its allowance under an overrun policy, the drawer also displays:
 
 - **Uncovered virtual spend**: The portion of spend exceeding base cap and credits.
-- **Overrun policy**: The policy active for the request (`limit_output`, `allow_overrun`, or `carry_overrun_forward`).
+- **Overrun policy**: The policy active for the request (`limit_output`, `allow_overrun`, or `carry_overrun_forward`)
+
+
+## Business activity metadata
+
+Requests can attach [usage metadata](/inference/product-user-metadata#attach-business-context-to-usage-events), including an activity ID, label, or conversation ID. Authorized usage-event responses expose the captured object as `usage_metadata`. Events without metadata return `null`, and diagnostic access without usage-detail permission redacts it
+
+This preserves context for reporting. Business backends can list combined credit movements and AI usage through [Product-user activity](/startups/product-user-activity). Category aggregation and activity grouping remain separate features

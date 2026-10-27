@@ -1,123 +1,32 @@
 ---
-title: Bring your own key (BYOK) quickstart
-description: Connect an upstream provider credential and route eligible inference through it.
+title: Bring your own key quickstart
+description: Connect a provider account, make a request, and verify who paid.
 ---
 
-**Bring Your Own Key (BYOK)** allows your organization to store encrypted provider credentials in Zorveus. Requests matching your provider policy route directly through your upstream account.
+Route a model request through a provider account your organization already owns. Your application still authenticates with a Zorveus inference key. The upstream provider secret stays in Zorveus
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+## Connect the provider
 
-<Callout type="important" title="Billing Transparency">
-  BYOK is **not free AI**. When using BYOK credentials, Zorveus does not debit your Zorveus wallet for model usage ($0 Zorveus sell cost), but **the upstream model provider bills your credit card or billing account directly**. Zorveus continues to meter token volume and provider cost for visibility.
-</Callout>
+Select your Business organization in the [dashboard](https://app.zorveus.com), then open **Provider Credentials**. Choose the provider, enter the required secret and configuration, and save it. Check its validation status
 
----
+Set a matching model policy such as `openai/*` and choose `auto_resolve` for automatic eligibility. For `manual_grant_only`, grant the credential to the app connection explicitly. See [Provider credentials](/startups/provider-credentials) for routing modes and rotation
 
-## 1. Add a provider credential
+The app connection must also allow the model. Adding a provider credential does not bypass model access rules
 
-Add provider credentials under **Provider Credentials** in the dashboard. Credential management is not a supported service-key operation.
+## Send a request
 
-<Steps>
-  <Step title="Navigate to Provider Credentials">
-    In [app.zorveus.com](https://app.zorveus.com), go to **Settings** -> **Provider Credentials**.
-  </Step>
-  <Step title="Select Provider and Enter Key">
-    Choose your provider (e.g. `openai`, `anthropic`, `gemini`, `openrouter`) and paste your raw API secret (e.g. `sk-...`).
-  </Step>
-  <Step title="Configure Model Policy">
-    Set the model policy to determine which models resolve to this key:
-    - `*`: Matches all models allowed for the credential
-    - `openai/*`: Resolves all OpenAI models
-    - `openai/gpt-4.1-mini`: Resolves only this specific model
-  </Step>
-</Steps>
+Use the inference key for that app connection and choose an available model from [model discovery](/inference/model-discovery). Follow the [Business quickstart](/getting-started/startup-quickstart) to send an attributed request. No upstream secret or provider override is needed in application code
 
----
+For example, an `openai/*` credential is eligible for matching OpenAI requests. It is not eligible for an Anthropic request, even when the credential's policy is `*`
 
-## 2. Route a request
+## Verify the funding path
 
-After saving the credential, create or update an app connection whose model policy permits the route. Credentials in `auto_resolve` mode can be selected automatically. Credentials in `manual_grant_only` mode also need an explicit grant to the connection.
+Open **Usage** in the dashboard and inspect the completed request. Successful BYOK usage records `billing_mode: "byok_external"`. The upstream provider bills your provider account. `sell_cost` is the Zorveus wallet charge, which can include a configured platform fee
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+BYOK still consumes reference-priced customer allowance under the connection's policy. A product user with credits does not supply provider funds
 
-```python
-from openai import OpenAI
+## Choose fallback deliberately
 
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_api_key",
-)
+Check `auto_fallback_to_wallet` before using the credential in production. Eligible provider failures can use a managed wallet-funded route when fallback is enabled, a route is available, and wallet funds can be reserved. That request is billed to your Zorveus wallet
 
-# The route uses BYOK when an eligible OpenAI credential resolves.
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "user", "content": "Explain the advantages of vector databases."}
-    ],
-)
-
-print(response.choices[0].message.content)
-```
-
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_api_key",
-});
-
-async function main() {
-  const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
-    messages: [
-      { role: "user", content: "Explain the advantages of vector databases." },
-    ],
-  });
-
-  console.log(completion.choices[0].message.content);
-}
-
-main();
-```
-
-```bash
-curl https://api.zorveus.com/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_api_key" \
-  -d '{
-    "model": "openai/gpt-4.1-mini",
-    "messages": [
-      {"role": "user", "content": "Explain the advantages of vector databases."}
-    ]
-  }'
-```
-
-</CodeGroup>
-
----
-
-## 3. Verify BYOK usage accounting
-
-In your Zorveus Dashboard under **Usage Analytics**:
-- **Billing mode**: Tagged as `byok`.
-- **Sell cost**: The platform fee charged by Zorveus. **$0.00 for the first $25,000/month** in BYOK traffic. Volume above $25k incurs a configured platform routing fee.
-- **Provider cost**: The estimated upstream model cost (e.g. OpenAI or Anthropic rates) recorded for analytics.
-- **Tokens**: Token counts measured by the gateway or returned by upstream providers.
-
-<Callout type="tip" title="BYOK Pricing & Free Tier">
-  All organizations receive up to **$25,000/month in free BYOK traffic**. See [BYOK Pricing & Cost Accounting](/wallet-and-billing/byok-costs) for complete details on volume tiers and wallet settlement.
-</Callout>
-
----
-
-## Next steps
-
-<CardGroup cols={2}>
-  <Card title="Provider Credentials Deep Dive" icon="key" href="/startups/provider-credentials">
-    Learn about priority ordering, key rotation, and connection-specific overrides.
-  </Card>
-  <Card title="Supported Providers" icon="cpu" href="/providers/overview">
-    Explore provider-specific setups for Anthropic, Gemini, Azure OpenAI, and NVIDIA NIM.
-  </Card>
-</CardGroup>
+A request that matches no eligible BYOK credential can use managed routing independently of fallback. Confirm the funding mode in usage. See [Automatic provider routing](/startups/automatic-routing) and [BYOK costs](/wallet-and-billing/byok-costs)

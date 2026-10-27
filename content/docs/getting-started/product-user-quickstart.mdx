@@ -1,318 +1,66 @@
 ---
 title: Product-user quickstart
-description: Attribute AI inference requests to your own customers using inline external user metadata.
+description: Attribute a request, read the customer profile, and inspect available allowance.
 ---
 
-Product users represent your application's customers. Pass your customer ID in each inference request so Zorveus can attribute usage and apply product-user credits or caps.
+Send an attributed model request, then retrieve that customer's allowance with a service key. Complete the [Business quickstart](/getting-started/startup-quickstart) first so you have an app, a funded route, and an inference key
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+## Attribute a request
 
----
+Send `X-Zorveus-External-User-ID: customer_42` with inference. Get the real value from your authenticated user or trusted worker state. The first request creates the product user for that app. Later requests with the same app and external ID use the same user
 
-## What you will build
-
-This tutorial has two steps:
-
-1. Send an inference request with `external_user_id` using an API key (`zrv_...`). Zorveus creates or updates the product user.
-2. Query the product user and credit summary with a service key (`zrv_svc_...`).
-
----
-
-## Step 1: Send product-user metadata
-
-When Zorveus processes a request for an `external_user_id` it has not seen before, it **automatically creates the product user** in your business workspace.
-
-Subsequent requests with the same app and `external_user_id` resolve the same product user. Supplied profile fields can update that user, and settled requests contribute to usage totals.
-
-<CodeGroup titles={["Python (ZorveusOpenAI)", "TypeScript (@zorveus/sdk)", "TypeScript (ZorveusOpenAI)", "TypeScript (Vercel AI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+<CodeGroup titles={["Python", "TypeScript (@zorveus/sdk)"]}>
 
 ```python
-# pip install zorveus[openai]
-from zorveus.openai import ZorveusOpenAI
-
-# User is created automatically on their first inference call
-client = ZorveusOpenAI(
-    api_key="zrv_your_api_key",
-    external_user_id="usr_sara_101",
-    display_name="Sara Connor",
-    email="sara@example.com",
-    user_metadata={"plan": "pro"}
-)
-
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-
-print(response.choices[0].message.content)
-```
-
-```typescript
-// npm install @zorveus/sdk
-import { Zorveus } from "@zorveus/sdk";
-
-const client = new Zorveus({
-  apiKey: "zrv_your_api_key",
-});
-
-async function main() {
-  const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
-    messages: [
-      { role: "user", content: "Summarize the latest trends in renewable energy." },
-    ],
-    zorveusMetadata: {
-      externalUserId: "usr_sara_101",
-      displayName: "Sara Connor",
-      userEmail: "sara@example.com",
-      metadata: { plan: "pro" },
-    },
-  });
-
-  console.log(completion.choices[0].message.content);
-}
-
-main();
-```
-
-```typescript
-// npm install @zorveus/sdk openai
-import { ZorveusOpenAI } from "@zorveus/sdk/openai";
-
-const openai = new ZorveusOpenAI({
-  apiKey: "zrv_your_api_key",
-  externalUserId: "usr_sara_101",
-  displayName: "Sara Connor",
-  userEmail: "sara@example.com",
-});
-
-const completion = await openai.chat.completions.create({
-  model: "openai/gpt-4.1-mini",
-  messages: [
-    { role: "user", content: "Summarize the latest trends in renewable energy." }
-  ],
-});
-
-console.log(completion.choices[0].message.content);
-```
-
-```typescript
-// npm install @zorveus/sdk ai @ai-sdk/openai
-import { createZorveus } from "@zorveus/sdk/vercel";
-import { generateText } from "ai";
-
-const zorveus = createZorveus({
-  apiKey: "zrv_your_api_key",
-  externalUserId: "usr_sara_101",
-});
-
-const { text } = await generateText({
-  model: zorveus("openai/gpt-4.1-mini"),
-  prompt: "Summarize the latest trends in renewable energy.",
-});
-
-console.log(text);
-```
-
-```python
+import os
 from openai import OpenAI
 
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_api_key",
-)
-
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[
-        {"role": "user", "content": "Summarize the latest trends in renewable energy."}
-    ],
-    # Pass Zorveus product-user metadata
-    extra_body={
-        "metadata": {
-            "external_user_id": "usr_sara_101",
-            "product_user": {
-                "display_name": "Sara Connor",
-                "email": "sara@example.com",
-                "metadata": {"plan": "pro"},
-            },
-        }
-    },
-)
-
-print(response.choices[0].message.content)
-```
-
-```bash
-curl https://api.zorveus.com/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_api_key" \
-  -d '{
-    "model": "openai/gpt-4.1-mini",
-    "messages": [
-      {"role": "user", "content": "Summarize the latest trends in renewable energy."}
-    ],
-    "metadata": {
-      "external_user_id": "usr_sara_101",
-      "product_user": {
-        "display_name": "Sara Connor",
-        "email": "sara@example.com",
-        "metadata": {"plan": "pro"}
-      }
-    }
-  }'
-```
-
-</CodeGroup>
-
----
-
-## Step 2: Query the user and credit balance
-
-When you need to view user profile details, active credit grants, or remaining balance, use `ZorveusServiceClient` with an Organization Service Key (`zrv_svc_...`):
-
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "cURL"]}>
-
-```typescript
-import { ZorveusServiceClient } from "@zorveus/sdk";
-
-const service = new ZorveusServiceClient({
-  apiKey: "zrv_svc_your_service_key",
-});
-
-const userInfo = await service.productUsers.getByExternalId({
-  appId: "app_123",
-  externalUserId: "usr_sara_101",
-});
-
-const credits = await service.productUsers.getCreditSummaryByExternalId({
-  appId: "app_123",
-  externalUserId: "usr_sara_101",
-});
-
-console.log("Display name:", userInfo.display_name);
-console.log("Available credits:", credits.available_credits);
-```
-
-```bash
-curl -X GET "https://api.zorveus.com/product-users/by-external-id?app_id=app_123&external_user_id=usr_sara_101" \
-  -H "Authorization: Bearer zrv_svc_your_service_key"
-```
-
-</CodeGroup>
-
-<Callout type="tip" title="Grant credits only when needed">
-  Inline inference creates the product user. Call `grantCreditByExternalId` only when your application adds a trial, subscription, promotional, or support balance.
-</Callout>
-
----
-
-## Identifier resolution
-
-You can attribute inference calls using any of these fields:
-
-1. The standard top-level OpenAI `user` field (e.g. `user="usr_sara_101"`), which maps directly to `external_user_id`.
-2. `metadata.external_user_id` inside extra request body parameters.
-3. `metadata.product_end_user_id` when referencing the internal Zorveus ID.
-
----
-
-## Handle exhausted virtual allowance
-
-When an attributed product user runs out of allowance (remaining base cap plus available credits), the gateway rejects the request with HTTP `403 Forbidden` and error code `zorveus_product_user_allowance_insufficient`.
-
-The error response includes a structured `params` object detailing the exact shortfall:
-
-```json
-{
-  "error": {
-    "code": "zorveus_product_user_allowance_insufficient",
-    "message": "This request is estimated to cost 0.010000000000 USD, but the product user has 0.004720000000 USD of AI allowance remaining.",
-    "params": {
-      "cap_rule_id": "cap_123",
-      "cap_period": "monthly",
-      "currency": "USD",
-      "cap_amount": "0.010000000000",
-      "settled_spend_this_period": "0.005280000000",
-      "active_reservations_amount": "0.000000000000",
-      "remaining_base_allowance": "0.004720000000",
-      "promotional_credit_balance": "0.000000000000",
-      "available_allowance": "0.004720000000",
-      "estimated_request_cost": "0.010000000000",
-      "shortfall": "0.005280000000"
-    }
-  }
-}
-```
-
-Standard OpenAI and Zorveus SDK clients raise `PermissionDeniedError`:
-
-<CodeGroup titles={["Python (zorveus / openai)", "TypeScript (@zorveus/sdk / openai)"]}>
-
-```python
-from openai import OpenAI, PermissionDeniedError
-
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_api_key",
-)
-
-try:
-    response = client.chat.completions.create(
-        model="openai/gpt-4.1-mini",
-        messages=[{"role": "user", "content": "Hello!"}],
-        user="usr_sara_101",
-    )
-except PermissionDeniedError as err:
-    print(f"Allowance exhausted: {err.message}")
-    # Prompt the user to upgrade, wait for cap reset, or grant credits via Service Key
+with OpenAI(
+	api_key=os.environ["ZORVEUS_API_KEY"],
+	base_url="https://api.zorveus.com/v1",
+) as client:
+	response = client.chat.completions.create(
+		model=os.environ["ZORVEUS_MODEL"],
+		messages=[{"role": "user", "content": "Hello"}],
+		extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
+	)
+	print(response.choices[0].message.content)
 ```
 
 ```typescript
-import OpenAI from "openai";
+import { Zorveus } from "@zorveus/sdk";
 
-const client = new OpenAI({
-  baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_api_key",
+const client = new Zorveus({ apiKey: process.env.ZORVEUS_API_KEY! });
+const response = await client.chat.completions.create({
+	model: process.env.ZORVEUS_MODEL!,
+	messages: [{ role: "user", content: "Hello" }],
+	zorveusMetadata: { externalUserId: "customer_42" },
 });
 
-try {
-  const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
-    messages: [{ role: "user", content: "Hello!" }],
-    user: "usr_sara_101",
-  });
-} catch (err: any) {
-  if (err?.status === 403) {
-    console.warn("Product user allowance exhausted:", err.message);
-  }
-}
+console.log(response.choices[0].message.content);
 ```
 
 </CodeGroup>
 
----
+For names, email, and custom metadata, see [Product-user metadata](/inference/product-user-metadata). Profile metadata such as `plan: "pro"` does not authorize a plan or select a different key
 
-## Verify the product user
+## Read the customer from your backend
 
-After making the request:
-1. Go to [app.zorveus.com](https://app.zorveus.com) -> **Product Users**.
-2. Search for `usr_sara_101` or `Sara Connor`.
-3. View the customer's:
-   - Lifetime token consumption and requests
-   - Remaining credit balance (if credit grants are applied)
-   - Spending caps
-   - Attributed usage records
+Create a service key in the dashboard with `product_users:read`. Store it as `ZORVEUS_SERVICE_KEY` and set `ZORVEUS_APP_ID` to the app that owns the inference key. Run this on your server:
 
----
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
+	--data-urlencode "external_user_id=customer_42"
+```
 
-## Next steps
+HTTP `200` returns the profile directly. Confirm that `external_user_id` matches and inspect `usage.this_period`, `allowance`, and `credits`. HTTP `404` means the app and external ID have no product user yet. A read does not create one
 
-<CardGroup cols={2}>
-  <Card title="Product Users Management" icon="layers" href="/startups/product-users">
-    Deep dive into programmatically managing, searching, and updating product users.
-  </Card>
-  <Card title="Credit Grants" icon="shield" href="/startups/credit-grants">
-    Issue expiring or rolling AI credits to trial and subscription users.
-  </Card>
-</CardGroup>
+## Interpret the allowance
+
+For a configured cap, `allowance.available_allowance` includes remaining base allowance plus available credits. `credits.available_credits` contains credits only. Use `allowance.period_end` for the reset date
+
+An uncapped connection can return no allowance object. This does not mean the customer is exhausted. A positive allowance also does not guarantee the next request fits or that the organization has funds. Follow [Check available allowance](/startups/check-allowance) before adding a pre-request check
+
+To create a profile before inference or update it outside a request, use `PUT /product-users/by-external-id` with `product_users:write`. To add allowance, follow [Credit grants](/startups/credit-grants). Neither operation deposits money into your organization's wallet

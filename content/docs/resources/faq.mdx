@@ -1,52 +1,44 @@
 ---
 title: Frequently asked questions
-description: Answers about credentials, product users, billing, Bring Your Own Key routing, latency, and stored usage data.
+description: Answers about keys, customer allowances, funding, and model access.
 ---
 
-### Does Zorveus add latency to AI inference?
+## Which organization do I need?
 
-Zorveus adds negligible gateway processing and network transit to the provider request. Streaming endpoints return Server-Sent Events in real time. Latency depends primarily on the upstream provider, selected model, and geographical region.
+Choose Business when your backend pays for AI, including a solo project. Choose Developer to register an OAuth app whose users authorize their own funding. See [Getting started](/getting-started/overview)
 
----
+## Which key do I send to inference?
 
-### Can I mix BYOK keys and wallet-funded routing?
+Use an inference key, routing key, or scoped OAuth access token. A service key is for backend product-user operations and cannot call inference. See [Authentication](/platform/authentication)
 
-Yes. An eligible provider credential routes matching models through your upstream provider account. If `auto_fallback_to_wallet` is enabled and your organization wallet is funded, Zorveus automatically falls back to wallet-funded routing if your BYOK key encounters rate limits or quota exhaustion.
+## Does a connection cap give each customer their own allowance?
 
----
+For attributed Business requests, Zorveus evaluates the connection's cap separately for each product user. For example, a $10 monthly connection cap supplies a $10 base allowance to each attributed customer. Usage in that customer's current app allowance window can span plan connections, so switching keys does not erase usage
 
-### Does Bring Your Own Key (BYOK) mean inference is free?
+Without attribution, an enforced connection cap covers that connection's unattributed traffic. With `enforce_if_present`, missing attribution bypasses virtual allowance checks. Validate the customer ID in your backend. A direct product-user cap can override the allowance shown on their profile, and other applicable caps can still constrain admission
 
-No. Upstream model providers (OpenAI, Anthropic, Gemini) bill your credit card or invoice directly for model tokens.
+See [Configure product-user allowances](/startups/configure-product-user-allowances)
 
-Zorveus provides **free BYOK routing for the first $25,000/month** in traffic (`sell_cost = $0.00`). If your monthly BYOK volume exceeds $25k, Zorveus applies a volume platform fee to the incremental traffic above $25k, settled against your Zorveus wallet.
+## Must I register product users first?
 
----
+No. Send your authenticated customer ID with inference, for example in `X-Zorveus-External-User-ID`. A service-key profile read returns `404` until that app and ID exist. You can also create the profile with a service-key upsert
 
-### Are prompt inputs and completions stored?
+## Do credit grants fund my wallet?
 
-Zorveus usage records contain accounting and observability fields (model, provider, token counts, cost, status, latency, and user attribution). Zorveus does not persist prompt inputs or completion text.
+No. Grants extend a customer's virtual AI allowance. Your wallet or upstream provider account still pays for model usage. See [Funding and billing](/concepts/funding-and-billing)
 
----
+## Can I mix BYOK and wallet-funded requests?
 
-### Which key calls inference?
+Yes. Eligible credentials can route requests through your upstream account. Wallet fallback after a BYOK failure depends on its configuration and funding. See [Automatic provider routing](/startups/automatic-routing)
 
-Use an API key (`zrv_...`) against `https://api.zorveus.com/v1` or provider-native wire endpoints. Scoped OAuth user tokens are also valid inference credentials.
+## Is BYOK free?
 
-Do not use an organization Service Key for inference. Service keys (`zrv_svc_...`) are for supported product-user routes under `/product-users/by-external-id` at `https://api.zorveus.com`.
+The upstream provider bills your provider account. Zorveus can charge a configured platform fee above the monthly free routing threshold. See [BYOK costs](/wallet-and-billing/byok-costs)
 
----
+## Does Zorveus add latency?
 
-### Does an API-key cap give every customer a separate allowance?
+Requests pass through the gateway for authentication, routing, and accounting. End-to-end latency depends on the model, provider, network, and request. Measure with your workload rather than assuming a fixed gateway overhead
 
-No. An API key belongs to an app connection, and an app-connection cap limits aggregate usage across that key.
+## What is in a usage record?
 
-To enforce individual limits for each customer:
-- Use **Product-User Spend Caps** for monthly/daily spending caps per customer.
-- Use **Product-User Credit Grants** to issue one-time or promotional allowances to specific users.
-
----
-
-### Must I register product users in advance?
-
-No. Simply pass `metadata.external_user_id` (e.g. `usr_123`) in your inference request payload or SDK client. Zorveus automatically provisions and tracks the product user on the fly.
+Usage records contain accounting and attribution fields such as model, token counts, costs, status, and identifiers. This does not describe the retention policy of every provider or optional logging integration. Review the data-handling settings for the route you use before sending sensitive data

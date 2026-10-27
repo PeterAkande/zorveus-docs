@@ -3,28 +3,28 @@ title: Outbound Webhooks
 description: Receive real-time HTTP event notifications for balance alerts, payment events, and product user spending caps.
 ---
 
-Zorveus Outbound Webhooks send real-time HTTP event notifications to your server whenever state changes occur within your organization workspace.
+Zorveus Outbound Webhooks send real-time HTTP event notifications to your server whenever state changes occur within your organization workspace
 
-Instead of polling Zorveus REST endpoints, your server registers a webhook URL to receive event payloads automatically.
+Instead of polling Zorveus REST endpoints, your server registers a webhook URL to receive event payloads automatically
 
 ---
 
 ## Architecture and Delivery Guarantees
 
-Zorveus uses the Transactional Outbox Pattern to guarantee at-least-once event delivery without adding network latency to core API calls.
+Zorveus uses the Transactional Outbox Pattern to persist events and retry eligible delivery failures without adding network latency to core API calls
 
 <Steps>
   <Step title="1. Atomic Event Persistence">
-    Core API transactions write events directly to a PostgreSQL outbox table in the same database transaction.
+    Core API transactions write events directly to a PostgreSQL outbox table in the same database transaction
   </Step>
   <Step title="2. Outbox Worker Processing">
-    An asynchronous worker polls pending outbox events, checks active organization subscriptions, and computes an HMAC SHA-256 signature.
+    An asynchronous worker polls pending outbox events, checks active organization subscriptions, and computes an HMAC SHA-256 signature
   </Step>
   <Step title="3. HTTP POST Delivery">
-    Zorveus sends an HTTP POST request containing the event payload to your registered webhook URL.
+    Zorveus sends an HTTP POST request containing the event payload to your registered webhook URL
   </Step>
   <Step title="4. Retry Policy">
-    If your endpoint returns a 5xx status or times out, Zorveus retries delivery up to 10 times using exponential backoff.
+    If your endpoint returns a 5xx status or times out, Zorveus makes up to 10 total delivery attempts using exponential backoff
   </Step>
 </Steps>
 
@@ -39,9 +39,9 @@ Zorveus categorizes webhook events by product area:
 | **Wallet** | `wallet.low_balance` | Available organization wallet balance drops below alert threshold. |
 | **Wallet** | `wallet.payment_credited` | Wallet top-up purchase or credit succeeds. |
 | **Wallet** | `wallet.payment_failed` | Wallet top-up transaction fails. |
-| **Product User** | `product_user.cap_reached` | An attributed product user reaches a direct or connection cap for the configured period. |
-| **Product User** | `product_user.credits_granted` | Promotional or admin credits are granted to a product user. |
-| **App Connection** | `app_connection.cap_reached` | API key app connection reaches monthly spend cap. |
+| **Product User** | `product_user.cap_reached` | An attributed request is blocked by a direct or connection cap for the configured period. |
+| **Product User** | `product_user.credits_granted` | Credits are granted to a product user. |
+| **App Connection** | `app_connection.cap_reached` | Unattributed traffic is blocked by an app-connection cap for its configured period. |
 | **Provider Credential** | `provider_credential.quota_exhausted` | An upstream provider credential reports exhausted quota. |
 
 ---
@@ -51,23 +51,25 @@ Zorveus categorizes webhook events by product area:
 Zorveus evaluates response HTTP status codes returned by your receiver endpoint:
 
 * **`2xx` (200-299):** Success. Event marked as delivered.
-* **`5xx` (Server Error):** Retryable. Zorveus schedules retries with exponential backoff up to 10 attempts.
+* **`5xx` (Server Error):** Retryable. Zorveus schedules retries with exponential backoff up to 10 total attempts.
 * **`429` (Rate Limited):** Retryable. Zorveus backs off before retrying.
 * **Timeouts and Connection Refused:** Retryable.
 * **`4xx` (Client Error except 429):** Non-retryable. Requests returning `400`, `401`, or `404` are marked as failed immediately.
-* **Disabled Webhooks (`enabled: false`):** Non-retryable. When an organization sets `"enabled": false`, the outbox worker skips HTTP delivery cleanly (`reason: "webhook_disabled_or_not_configured"`).
+* **Disabled Webhooks (`enabled: false`):** Non-retryable. When an organization sets `"enabled": false`, the outbox worker skips HTTP delivery cleanly (`reason: "webhook_disabled_or_not_configured"`)
 
 ---
 
-## Subscription Management
+## Configure delivery
 
-Manage webhook subscriptions through the Zorveus dashboard in your settings.
+Set the URL, secret, enabled status, and event subscriptions in the dashboard. Keep the signing secret on your server
+
+The envelope `id` is stable across retries. The envelope `timestamp` and signature timestamp describe the delivery attempt and can change. Deduplicate by `id`, not by timestamp or signature. Delivery order is not guaranteed
 
 ---
 
-## Complete Event Payload Schemas
+## Example event payloads
 
-Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signature` header.
+Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signature` header
 
 ### 1. `wallet.low_balance`
 
@@ -97,10 +99,10 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "data": {
     "org_id": "org_7k9xq2fm",
     "amount": "50.00",
-    "new_balance": "54.50",
-    "currency": "USD",
+      "currency": "USD",
     "payment_provider": "stripe",
-    "reference": "ch_3Mv123"
+    "credit_purchase_id": "cp_123",
+    "wallet_account_id": "wa_123"
   }
 }
 ```
@@ -118,7 +120,9 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
     "amount": "50.00",
     "currency": "USD",
     "payment_provider": "stripe",
-    "reason": "card_declined"
+    "reason": "payment.failed",
+    "credit_purchase_id": "cp_124",
+    "wallet_account_id": "wa_123"
   }
 }
 ```
@@ -142,7 +146,7 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
     "cap_target_type": "app_connection",
     "cap_target_id": "conn_456",
     "cap_rule_id": "cap_123",
-    "model": "openai/gpt-4.1-mini",
+    "model": "openai/gpt-6-sol",
     "cap_amount": "100.00",
     "spent_this_period": "99.99",
     "requested_amount": "0.02",
@@ -190,7 +194,7 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
     "target_type": "app_connection",
     "target_id": "conn_456",
     "cap_rule_id": "cap_456",
-    "model": "openai/gpt-4.1-mini",
+    "model": "openai/gpt-6-sol",
     "cap_amount": "500.00",
     "spent_this_period": "499.99",
     "requested_amount": "0.02",
@@ -206,7 +210,7 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
 
 ## Signature Verification
 
-Reject malformed timestamps and signatures. Reject timestamps outside a five-minute tolerance before processing the body. Compute the signature over the original body bytes, not parsed or reserialized JSON. The digest is a 64-character SHA-256 hexadecimal string.
+Reject malformed timestamps and signatures. Reject timestamps outside a five-minute tolerance before processing the body. Compute the signature over the original body bytes, not parsed or reserialized JSON. The digest is a 64-character SHA-256 hexadecimal string
 
 Every request includes an `X-Zorveus-Signature` header containing a UNIX timestamp (`t`) and an HMAC SHA-256 digest (`v1`):
 
@@ -219,7 +223,7 @@ To verify the signature:
 1. Extract `t` and `v1` from the header.
 2. Concatenate the timestamp string, a dot, and the raw HTTP request body bytes (`timestamp_bytes + b"." + raw_http_body`).
 3. Compute `HMAC-SHA256(webhook_secret, signed_payload)` as a hex string.
-4. Compare expected and received signatures using a constant-time comparison function.
+4. Compare expected and received signatures using a constant-time comparison function
 
 <CodeGroup titles={["Node.js (Express)", "Python (FastAPI / Flask)"]}>
 
@@ -245,7 +249,7 @@ function verifyZorveusSignature(req, secret) {
   const signedAt = Number(timestamp);
   if (!Number.isSafeInteger(signedAt) || Math.abs(Date.now() / 1000 - signedAt) > 300) return false;
 
-  const rawBody = req.rawBody;
+  const rawBody = req.body;
   if (!Buffer.isBuffer(rawBody)) return false;
 
   const signedPayload = Buffer.concat([
@@ -261,7 +265,6 @@ function verifyZorveusSignature(req, secret) {
   const sigBuf = Buffer.from(signature.toLowerCase(), 'utf-8');
   const expBuf = Buffer.from(expectedSignature, 'utf-8');
 
-  // Prevent length mismatch errors before timing-safe check
   if (sigBuf.length !== expBuf.length) {
     return false;
   }
@@ -309,12 +312,19 @@ def verify_zorveus_signature(raw_body: bytes, sig_header: str, secret: str) -> b
 
 ## Receiver Best Practices
 
-For product-user events, resolve your customer through `data.external_user_id` and verify `data.app_id` and the envelope's organization. Do not use an internal Zorveus ID as your application's customer ID. An attributed request that reaches a connection cap can emit `product_user.cap_reached`; inspect `cap_target_type` to identify that cap.
+For product-user events, resolve your customer through `data.external_user_id` and verify `data.app_id` and the envelope's organization. Do not use an internal Zorveus ID as your application's customer ID. An attributed request that reaches a connection cap can emit `product_user.cap_reached`; inspect `cap_target_type` to identify that cap
 
-Use one allowance service for webhook events and inference errors. Recheck [available allowance](/startups/check-allowance) when access may have recovered. A credit grant alone does not guarantee the next request will fit.
+Use one allowance service for webhook events and inference errors. Recheck [available allowance](/startups/check-allowance) when access may have recovered. A credit grant alone does not guarantee the next request will fit
 
-`provider_credential.quota_exhausted` contains `org_id`, `provider_credential_id`, `provider`, `credential_name`, and `exhausted_at` in `data`. Treat it as an upstream credential issue, not a customer allowance failure.
+`provider_credential.quota_exhausted` contains `org_id`, `provider_credential_id`, `provider`, `credential_name`, and `exhausted_at` in `data`. Treat it as an upstream credential issue, not a customer allowance failure
 
 * **Acknowledge quickly.** Return HTTP `200` or `204` within 3 seconds. Queue long-running tasks asynchronously.
 * **Prevent replay attacks.** Reject payloads with timestamps older than 5 minutes.
-* **Deduplicate using event IDs.** Zorveus guarantees at-least-once delivery. Use the `id` property in the JSON payload to skip duplicate processing.
+* **Deduplicate using event IDs.** Delivery can repeat, and retries are bounded. Use the `id` property in the JSON payload to skip duplicate processing
+
+
+Accept the event into durable storage before acknowledging it. If your receiver is Express, use `express.raw({ type: "application/json" })` on this route before a JSON parser and verify those body bytes. A parsed and reserialized body will not have the same signature
+
+After accepting the event, return a `2xx` promptly and process it asynchronously. Keep event handling idempotent so duplicate deliveries cannot create duplicate credit grants or customer notifications. Use the current profile or wallet state to resolve out-of-order events
+
+A cap event reports a blocked request, not a complete stream of every allowance change. Do not permanently block a customer based only on that event. Recheck current allowance when they retry

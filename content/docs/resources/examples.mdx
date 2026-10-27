@@ -8,8 +8,8 @@ Start with the guide that matches who pays for inference:
 - [Business quickstart](/getting-started/startup-quickstart) for an organization-funded backend.
 - [Product-user quickstart](/getting-started/product-user-quickstart) for customer attribution, caps, and credits.
 - [OAuth app quickstart](/getting-started/oauth-app-quickstart) for user-funded connected applications.
-- [BYOK quickstart](/getting-started/byok-quickstart) for organization-owned upstream credentials.
+- [BYOK quickstart](/getting-started/byok-quickstart) for organization-owned upstream credentials
 
-The inference guides include OpenAI SDK, native SDK, and direct HTTP examples. The [API reference](/api-reference/overview) contains the current management route schemas.
+The inference guides include OpenAI SDK, native SDK, and direct HTTP examples. The [API reference](/api-reference/overview) covers application endpoints for product users, OAuth, models, and key usage
 
-Before copying a model ID, call `GET /v1/models` with the key you plan to use. Before copying a provider configuration, call the provider catalog route because availability differs by environment.
+Before copying a model ID, call `GET /v1/models` with the key you plan to use. For provider configuration, use the supported fields shown under **Provider Credentials** in the dashboard

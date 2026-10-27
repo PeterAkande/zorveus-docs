@@ -1,65 +1,22 @@
 ---
 title: Wallets and balances
-description: Manage prepaid organization balances, balance reservations, and wallet top-ups in the Zorveus dashboard.
+description: Keep organization funding separate from customer AI allowance.
 ---
 
-Every spendable organization in Zorveus has a prepaid wallet denominated in USD. The wallet funds model inference on Zorveus-managed routes and pays platform fees on high-volume BYOK traffic.
+A spendable organization has a wallet that funds managed inference and applicable BYOK platform fees. Fund and inspect it in the [dashboard](https://app.zorveus.com)
 
-You manage and fund your wallet in the [Zorveus Dashboard](https://app.zorveus.com) under **Billing & Wallets**.
+## Available and reserved funds
 
----
+`available_balance` is available for new reservations. `reserved_balance` is held for in-flight requests. Their sum is the balance before those pending charges settle
 
-## Dashboard balance overview
+For example, a $50 balance with $1.80 held leaves $48.20 available. The hold is an estimate. Settlement charges actual usage and releases any unused amount
 
-When you open **Billing & Wallets**, the dashboard displays three balance metrics:
+A slow or disconnected request can need later reconciliation before all holds are released. Do not treat a stream disconnect as proof that the provider stopped producing billable output
 
-- **Available balance (`available_balance`)**: Uncommitted funds ready to reserve for new inference calls or BYOK platform fees.
-- **Reserved balance (`reserved_balance`)**: Funds temporarily held for in-flight requests that are currently streaming tokens.
-- **Total balance**: The total value in your account (`available_balance + reserved_balance`).
+## Restore funding
 
-```text
-Total balance ($50.00) = available ($48.20) + reserved ($1.80)
-```
+If the wallet cannot cover an estimated charge, inference can return `402` with `zorveus_reservation_insufficient_balance`. Top up the funding organization's wallet and confirm the credited available balance before retrying
 
----
+An organization can also have a billing freeze or outstanding wallet debt. Resolve that state before new inference. A customer credit grant does not clear wallet debt or add cash
 
-## Topping up your wallet
-
-To add funds to your organization wallet:
-
-1. In the [Zorveus Dashboard](https://app.zorveus.com), navigate to **Billing & Wallets**.
-2. Click **Top Up Balance**.
-3. Choose an amount (such as `$25.00`, `$100.00`, or a custom amount).
-4. Pay securely using a credit card, debit card, or bank transfer.
-5. Funds appear in your **Available balance** immediately after payment confirmation.
-
-### Auto-recharge
-
-To prevent service interruptions in production, you can enable auto-recharge in the dashboard:
-
-- **Threshold**: Set a minimum available balance (for example, `$20.00`).
-- **Recharge amount**: Specify how much to add when your balance drops below the threshold (for example, `$100.00`).
-
----
-
-## How the platform handles reservations
-
-When an application sends an inference request using your API key:
-
-1. **Pre-flight hold**: Zorveus estimates the maximum request cost and checks your **Available balance**. If funds are sufficient, the estimate moves from available to reserved balance.
-2. **Model execution**: The gateway streams the model completion to your application.
-3. **Settlement**: When the stream closes, Zorveus calculates the exact token charge:
-   - The actual charge is deducted from your reserved balance.
-   - Any unused reservation hold returns to your **Available balance** immediately.
-
----
-
-## What happens when funds run out
-
-If your **Available balance** cannot cover an incoming request's estimated hold:
-
-- The gateway rejects the call with HTTP `402 Payment Required` and error code `zorveus_reservation_insufficient_balance`.
-- The dashboard highlights your wallet status as requiring a top-up.
-- Existing completed requests and in-flight streams finish normally.
-
-Top up your wallet in the dashboard to restore inference traffic immediately.
+See [Wallet top-ups](/wallet-and-billing/top-ups), [BYOK costs](/wallet-and-billing/byok-costs), and [Funding and billing](/concepts/funding-and-billing)

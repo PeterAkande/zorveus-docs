@@ -3,7 +3,7 @@ title: Getting started
 description: Choose the right Zorveus integration path for your architecture and business model.
 ---
 
-Zorveus provides three core integration models depending on who funds the AI usage and how credentials are managed.
+Choose who pays for inference first. Business keys fund your product, while OAuth lets users authorize their own funding. BYOK is an optional funding choice within those request flows
 
 ---
 
@@ -16,7 +16,7 @@ Zorveus provides three core integration models depending on who funds the AI usa
 | **End-user funds third-party app** | [OAuth App Quickstart](/getting-started/oauth-app-quickstart) | User's Personal/Company Wallet | Scoped OAuth Token (`zrv_...`) |
 
 <Callout type="info" title="Need an API key? Choose a Business Organization">
-  If you want an API key (`zrv_...`) to call models from your code, server backend, or scripts, select or create a **Business Organization** in the dashboard. Even if you are a solo developer building an independent project, Business is the workspace that funds AI and mints API keys. A **Developer Organization** only registers third-party OAuth applications where end-users bring their own wallets.
+  If you want an API key (`zrv_...`) to call models from your code, server backend, or scripts, select or create a **Business Organization** in the dashboard. Even if you are a solo developer building an independent project, Business is the workspace that funds AI and mints API keys. A **Developer Organization** only registers third-party OAuth applications where end-users bring their own wallets
 </Callout>
 
 ---
@@ -28,10 +28,10 @@ Understanding credential types ensures you use the correct secret in each contex
 - **API Key (`zrv_...`)**: Secret token used in `Authorization: Bearer zrv_...` against the model gateway (`https://api.zorveus.com/v1` or native wire endpoints). Used to execute model inference and inspect connection spend. Shown only once upon creation.
 - **Service Key (`zrv_svc_...`)**: Server-to-server credential for supported `/product-users/by-external-id` operations at `https://api.zorveus.com`; never expose this key in browser code and do not pass it to inference endpoints.
 - **Client ID & Client Secret (`zrv_client_...` / `zrv_client_secret_...`)**: Credentials for registered OAuth applications to authenticate during PKCE token exchanges.
-- **Provider Credential**: Encrypted upstream API keys (e.g. OpenAI, Anthropic, Gemini) stored in Zorveus for Bring Your Own Key (BYOK) routing.
+- **Provider Credential**: Encrypted upstream API keys (e.g. OpenAI, Anthropic, Gemini) stored in Zorveus for Bring your own Key (BYOK) routing
 
 <Callout type="warning" title="Security Boundary">
-  Never use a **Service Key** (`zrv_svc_...`) for model inference requests or inside frontend client bundles. Service keys support product-user reads, upserts, and credit grants by external user ID. Manage provider credentials and connections in the dashboard. Model inference requires an **API Key** (`zrv_...`).
+  Never use a **Service Key** (`zrv_svc_...`) for model inference requests or inside frontend client bundles. Use service keys for customer reads, upserts, credit grants, and allowance debt. See [Service clients](/startups/service-keys) for scopes and SDK actions. Configure connections, caps, and BYOK credentials in the dashboard. Model inference requires an **API Key** (`zrv_...`)
 </Callout>
 
 ---
@@ -50,19 +50,19 @@ OAuth Authorize URL: https://app.zorveus.com/oauth/authorize
 
 ## Quickstart paths
 
-Use [Integrate an organization-funded product](/getting-started/integrate-your-product) for the full workflow, including attribution, plan keys, allowances, payments, and errors. Use [Integrate with a coding agent](/getting-started/coding-agents) for a copyable prompt and source links.
+Use [Integrate an organization-funded product](/getting-started/integrate-your-product) for the full workflow, including attribution, plan keys, allowances, payments, and errors. Use [Integrate with a coding agent](/getting-started/coding-agents) for a copyable prompt and source links
 
 <CardGroup cols={2}>
   <Card title="Business Quickstart" icon="rocket" href="/getting-started/startup-quickstart">
-    Send your first request with an OpenAI-compatible client or Zorveus SDK.
+    Send your first request with an OpenAI-compatible client or Zorveus SDK
   </Card>
   <Card title="Product-User Metering" icon="layers" href="/getting-started/product-user-quickstart">
-    Attribute requests to specific end users and apply credit grants without extra database setup.
+    Attribute requests to specific end users and apply credit grants without extra database setup
   </Card>
-  <Card title="Bring Your Own Key (BYOK)" icon="key" href="/getting-started/byok-quickstart">
-    Attach your existing provider accounts to Zorveus for cost tracking and unified routing.
+  <Card title="Bring your own Key (BYOK)" icon="key" href="/getting-started/byok-quickstart">
+    Attach your existing provider accounts to Zorveus for cost tracking and unified routing
   </Card>
   <Card title="OAuth PKCE Flow" icon="shield" href="/getting-started/oauth-app-quickstart">
-    Implement secure OAuth 2.0 PKCE login so users pay for their own inference in your app.
+    Implement secure OAuth 2.0 PKCE login so users pay for their own inference in your app
   </Card>
 </CardGroup>

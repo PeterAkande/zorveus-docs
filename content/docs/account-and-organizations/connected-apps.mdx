@@ -1,8 +1,8 @@
 ---
-title: Connected Applications
-description: Inspect and revoke third-party OAuth apps authorized on your wallet.
+title: Connected applications
+description: Inspect or revoke an OAuth connection in the dashboard.
 ---
 
-<ApiEndpoint method="GET" path="/apps/connected" auth="dashboard_session" />
+Users manage authorized applications in the [dashboard](https://app.zorveus.com). Revoking access prevents subsequent requests using the connection's token
 
-Users can inspect all authorized third-party applications, check current month spend, and revoke access instantly.
+When your application implements a Disconnect action, call the [OAuth revocation endpoint](/oauth/revocation) and remove the stored user token after a confirmed result

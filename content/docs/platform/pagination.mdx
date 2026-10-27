@@ -1,18 +1,16 @@
 ---
-title: Pagination
-description: Follow the pagination contract defined by each list endpoint.
+title: Lists and pagination
+description: Read product-user grant lists without assuming a shared cursor contract.
 ---
 
-Pagination is not identical across every route. Check the API reference for the endpoint you call.
-
-Cursor-based routes, including usage events and the wallet ledger, return `next_cursor` and `has_more`. Pass `next_cursor` back as `cursor` only while `has_more` is `true`.
+List formats depend on the endpoint. The application-facing product-user grant list returns `credit_grants` and accepts `limit` from 1 to 1000, with a default of 100. It does not return `next_cursor` or `has_more`, and it does not accept a cursor
 
 ```json
 {
-  "items": [],
-  "next_cursor": "opaque-value",
-  "has_more": true
+	"credit_grants": []
 }
 ```
 
-Collection names vary by resource, such as `items`, `events`, or `product_users`. Limits also vary.
+Use `status` and `source` to narrow the grant list. See [List credit grants](/api-reference/product-users#list-credit-grants). A limited result is not a complete credit ledger
+
+The key-scoped model list returns `data`. The public catalog returns `items`. Do not assume a generic `items` wrapper or dashboard pagination fields in your application's client

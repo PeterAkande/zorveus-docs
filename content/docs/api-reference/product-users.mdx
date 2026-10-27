@@ -1,214 +1,216 @@
 ---
-title: Product Users & Credits API
-description: Supported service-key operations for product users identified by external user ID.
+title: Product users and credits API
+description: Read profiles, update users, and grant credits with a server-side service key.
 ---
 
-<KeyInserter type="service" label="Service Key Tester" placeholder="zrv_svc_your_service_key" />
+All routes on this page use `https://api.zorveus.com` without `/v1`. Send `Authorization: Bearer zrv_svc_...` from your backend. The service key determines the organization. Supply `app_id` and your stable `external_user_id` to identify the customer
 
-## Get Product User by External ID
+| Operation | Method and path | Scope |
+| --- | --- | --- |
+| Read profile and allowance | `GET /product-users/by-external-id` | `product_users:read` |
+| Create or update profile | `PUT /product-users/by-external-id` | `product_users:write` |
+| Read credit balance | `GET /product-users/by-external-id/credit-summary` | `product_users:read` |
+| Read carried allowance debt | `GET /product-users/by-external-id/allowance-debt` | `product_users:read` |
+| Grant credits | `POST /product-users/by-external-id/credit-grants` | `product_users:write` |
+| List grants | `GET /product-users/by-external-id/credit-grants` | `product_users:read` |
+| Find a grant by reference | `GET /product-users/by-external-id/credit-grants/by-reference` | `product_users:read` |
+| List usage and credit activity | `GET /product-users/by-external-id/activity` | `product_users:read` |
 
-Retrieve complete product user profile, spend cap, live credit balances, and token usage by your own system identifier (`external_user_id`).
+`product_users:write` also permits these reads. Prefer the narrower scope for a read-only backend. Change user status and revoke grants in the dashboard
 
-The response can include `allowance` with the effective connection, period boundaries, remaining base allowance, and total available allowance. See [Check available allowance](/startups/check-allowance) and [allowance periods](/startups/allowance-periods). `credits` alone does not represent the total amount available to spend.
+## Get product user by external ID
 
 <ApiEndpoint method="GET" path="/product-users/by-external-id" auth="service_key" />
 
-### Query Parameters
+Required query fields are `app_id` and `external_user_id`. HTTP `200` returns the profile directly. By default, a read does not create a user. A missing user returns HTTP 404 with `zorveus_product_user_not_found`. The optional upsert header below enables creation
 
-<ParamField name="app_id" type="string" required>
-  The Zorveus App ID (e.g. `app_support_123`).
-</ParamField>
-
-<ParamField name="external_user_id" type="string" required>
-  Your platform's unique user identifier (e.g. `usr_alex_8842`).
-</ParamField>
-
-<ApiRunner method="GET" path="/product-users/by-external-id" authType="service_key" />
-
-#### Response (`200 OK`)
-
-```json
-{
-  "product_end_user_id": "peu_01j6abc1234567890def",
-  "org_id": "org_startup_123",
-  "app_id": "app_support_123",
-  "external_user_id": "usr_alex_8842",
-  "display_name": "Alex Smith",
-  "email_hash": "sha256:5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
-  "status": "active",
-  "metadata": {
-    "plan": "pro"
-  },
-  "allowance_starts_at": null,
-  "last_app_connection_id": "conn_123",
-  "allowance": {
-    "app_connection_id": "conn_123",
-    "cap_source": "product_end_user",
-    "cap_rule_id": "cap_01j6def456",
-    "credit_mode": "enforce",
-    "overrun_policy": "limit_output",
-    "currency": "USD",
-    "period": "monthly",
-    "period_start": "2026-08-01T00:00:00Z",
-    "period_end": "2026-09-01T00:00:00Z",
-    "cap_amount": "50.000000000000",
-    "spent_this_period": "12.450000000000",
-    "remaining_base_allowance": "37.550000000000",
-    "available_credits": "25.000000000000",
-    "available_allowance": "62.550000000000"
-  },
-  "cap": {
-    "source": "product_end_user",
-    "cap_rule_id": "cap_01j6def456",
-    "amount": "50.000000000000",
-    "currency": "USD",
-    "period": "monthly",
-    "spent_this_period": "12.450000000000",
-    "reset_at": "2026-09-01T00:00:00Z",
-    "status": "active",
-    "updated_at": "2026-08-01T10:00:00Z"
-  },
-  "credits": {
-    "currency": "USD",
-    "available_credits": "25.000000000000",
-    "active_grant_count": 2,
-    "expiring_soon_amount": "5.000000000000",
-    "spent_this_month": "10.000000000000",
-    "spent_total": "35.000000000000",
-    "last_grant_at": "2026-08-10T14:30:00Z",
-    "last_used_at": "2026-08-14T22:15:00Z"
-  },
-  "usage": {
-    "this_month": {
-      "sell_cost": "12.450000000000",
-      "input_tokens": 154000,
-      "output_tokens": 32000,
-      "total_tokens": 186000,
-      "request_count": 48
-    },
-    "total": {
-      "sell_cost": "45.800000000000",
-      "input_tokens": 620000,
-      "output_tokens": 115000,
-      "total_tokens": 735000,
-      "request_count": 192
-    }
-  }
-}
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
+	--data-urlencode 'external_user_id=customer_42'
 ```
 
----
+| Response field | Meaning |
+| --- | --- |
+| `product_end_user_id`, `org_id`, `app_id`, `external_user_id` | Internal user ID, owning organization, app, and your customer ID |
+| `display_name`, `email_hash`, `metadata`, `status` | Profile fields. The email is returned as a hash |
+| `allowance_starts_at` | Stored subscription anchor, or null for calendar periods |
+| `last_app_connection_id` | Last connection used to resolve the customer's policy |
+| `usage.this_period`, `usage.total` | Usage buckets with `sell_cost`, token counts, and `request_count` |
+| `usage.period_start`, `usage.period_end` | Current usage window |
+| `cap`, `direct_cap` | Resolved cap and explicit user cap, when present |
+| `credits` | Credit summary, independent of remaining base allowance |
+| `allowance` | Effective allowance, when a cap can be resolved |
 
-## Get Product User Credit Summary by External ID
+`allowance` contains `app_connection_id`, `cap_source`, `cap_rule_id`, `credit_mode`, `overrun_policy`, `currency`, `period`, `period_start`, `period_end`, `cap_amount`, `spent_this_period`, `remaining_base_allowance`, `available_credits`, `available_allowance`, and nullable `adjustment`
 
-A fast, lightweight endpoint for querying a product user's live credit balance without token usage breakdowns.
+Use `allowance.available_allowance` for the reported amount available to spend. It includes base allowance and eligible credits. Null allowance is not proof of exhaustion. The profile can reflect the previous plan connection until the user sends a request with the new plan. See [Check available allowance](/startups/check-allowance)
 
-<ApiEndpoint method="GET" path="/product-users/by-external-id/credit-summary" auth="service_key" />
+The usage bucket field is `this_period`, not `this_month`. `usage.this_period.sell_cost` and `usage.total.sell_cost` contain reference-priced virtual spend despite the historical field name. Use the returned allowance object for spendable allowance rather than reconstructing it from usage
 
-### Query Parameters
+## Create a missing user during a read
 
-<ParamField name="app_id" type="string" required>
-  The Zorveus App ID (e.g. `app_support_123`).
-</ParamField>
+Product-user GET requests return HTTP 404 when the user is missing. Add this header to create a missing user while reading:
 
-<ParamField name="external_user_id" type="string" required>
-  Your platform's unique user identifier (e.g. `usr_alex_8842`).
-</ParamField>
-
-<ParamField name="currency" type="string">
-  3-letter ISO currency code. Defaults to `USD`.
-</ParamField>
-
-<ApiRunner method="GET" path="/product-users/by-external-id/credit-summary" authType="service_key" />
-
-#### Response (`200 OK`)
-
-```json
-{
-  "currency": "USD",
-  "available_credits": "25.000000000000",
-  "active_grant_count": 2,
-  "expiring_soon_amount": "5.000000000000",
-  "spent_this_month": "10.000000000000",
-  "spent_total": "35.000000000000",
-  "last_grant_at": "2026-08-10T14:30:00Z",
-  "last_used_at": "2026-08-14T22:15:00Z"
-}
+```http
+X-Zorveus-Upsert-Product-User: true
 ```
 
----
+The header applies to `GET /product-users/by-external-id` and its `/credit-summary`, `/allowance-debt`, `/credit-grants`, and `/activity` subroutes. Omitting it or setting it to `false` keeps the request lookup-only. Only the literal strings `true` and `false` are accepted. Other values return HTTP 422
 
-## Upsert Product User by External ID
+Opt-in creation requires an app owned by the service key's organization that has not been deleted. The new user is active with no existing credits, grants, usage, or debt. Existing profiles and statuses are preserved. The same read scopes apply with or without the header. Explicit `PUT` upsert, credit-grant writes, and inference attribution retain their existing creation behavior
 
-The request accepts `allowance_starts_at` as a nullable RFC 3339 timestamp. Omit the field to preserve the stored anchor. Send `null` to restore calendar periods. A supplied timestamp cannot be in the future or older than the stored anchor. See [allowance periods](/startups/allowance-periods).
+<CodeGroup titles={["cURL", "Python", "TypeScript"]}>
+
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	-H 'X-Zorveus-Upsert-Product-User: true' \
+	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
+	--data-urlencode 'external_user_id=customer_42'
+```
+
+```python
+profile = service.product_users.get_by_external_id(
+	app_id=app_id,
+	external_user_id=authenticated_user_id,
+	upsert_if_missing=True,
+)
+```
+
+```typescript
+const profile = await service.productUsers.getByExternalId({
+	appId,
+	externalUserId: authenticatedUserId,
+	upsertIfMissing: true,
+});
+```
+
+</CodeGroup>
+
+Use `upsert_if_missing=True` on synchronous and asynchronous Python reads, or `upsertIfMissing: true` in TypeScript request parameters. The SDK sends the header automatically. An explicit boolean option takes precedence over raw upsert headers; existing raw-header calls remain supported when the option is omitted. Keep service keys on your backend and obtain the customer ID from trusted application state
+
+## Upsert product user by external ID
 
 <ApiEndpoint method="PUT" path="/product-users/by-external-id" auth="service_key" />
 
-<ApiRunner method="PUT" path="/product-users/by-external-id" authType="service_key" />
+HTTP `200` returns `{ "product_user": { ... }, "created": true }` when the user is new. `created` is false for an update
 
----
+| JSON field | Required | Meaning |
+| --- | --- | --- |
+| `app_id` | Yes | App owned by the service key's organization |
+| `external_user_id` | Yes | Stable customer ID, non-empty |
+| `display_name`, `email` | No | Profile enrichment |
+| `metadata` | No | Custom profile object |
+| `allowance_starts_at` | No | Timezone-aware subscription anchor |
 
-## Grant Product User Credits By External Id Route
+```bash
+curl --fail-with-body --request PUT https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	-H "Content-Type: application/json" \
+	-d '{"app_id":"app_123","external_user_id":"customer_42","display_name":"Example user"}'
+```
+
+Omit `allowance_starts_at` to preserve it. Send null to restore calendar periods. A supplied timestamp cannot be in the future or older than the stored anchor. See [Allowance periods](/startups/allowance-periods)
+
+## Get credit summary
+
+<ApiEndpoint method="GET" path="/product-users/by-external-id/credit-summary" auth="service_key" />
+
+Required query fields are `app_id` and `external_user_id`. Optional `currency` defaults to `USD`. HTTP `200` returns `currency`, `available_credits`, `active_grant_count`, `expiring_soon_amount`, `spent_this_month`, `spent_total`, `last_grant_at`, and `last_used_at`
+
+The summary contains credits only. It excludes remaining base allowance. Monetary values are decimal strings
+
+## Get allowance debt
+
+<ApiEndpoint method="GET" path="/product-users/by-external-id/allowance-debt" auth="service_key" />
+
+Required query fields are `app_id` and `external_user_id`. Optional `currency` defaults to `USD`. HTTP `200` returns `outstanding_amount`, `repaid_by_credits_total`, `repaid_by_base_total`, `currency`, and nullable `oldest_debt_at`
+
+This is virtual allowance debt from `carry_overrun_forward`. It is separate from organization wallet debt. See [Overrun policies](/startups/configure-product-user-allowances#choose-the-overrun-policy)
+
+## Grant credits
 
 <ApiEndpoint method="POST" path="/product-users/by-external-id/credit-grants" auth="service_key" />
 
-<ApiRunner method="POST" path="/product-users/by-external-id/credit-grants" authType="service_key" />
+Creates the user if needed and adds a credit grant. With `external_reference`, a matching retry returns the existing grant. HTTP `201` returns `product_user`, `credit_grant`, and `credit_summary` for both creation and replay
 
----
+| JSON field | Required | Meaning |
+| --- | --- | --- |
+| `app_id`, `external_user_id` | Yes | Identify the customer |
+| `amount` | Yes | Positive decimal string, for example `"10.00"` |
+| `external_reference` | No | Durable reference with 1 to 255 characters after trimming, or null for independent creation |
+| `currency` | No | Defaults to `USD` |
+| `source` | No | `admin_adjustment`, `service_key`, `purchase`, `promotion`, `monthly_allowance`, `support_credit`, or `import`. Default is `service_key` |
+| `reason` | No | Human-readable reason |
+| `expires_at` | No | Timezone-aware expiry timestamp, or null for no expiry |
+| `display_name`, `email`, `metadata` | No | Optional details accepted with the grant |
 
-## Dashboard-only operations
-
-Use **Product Users** in the dashboard to change a user's status or revoke a credit grant. Routes that use `product_end_user_id` are dashboard operations, not service-key endpoints.
-
----
-
-## Error Codes & Statuses
-
-| HTTP Status | Error Code (`error.code`) | Description | Resolution |
-| :--- | :--- | :--- | :--- |
-| `400 Bad Request` | `zorveus_invalid_app_id` | `app_id` query parameter is empty or missing. | Supply a valid Zorveus `app_id`. |
-| `400 Bad Request` | `zorveus_invalid_external_user_id` | `external_user_id` query parameter is empty. | Supply a non-empty `external_user_id`. |
-| `401 Unauthorized` | `zorveus_malformed_or_missing_service_key` | Missing or invalid `Authorization` header. | Provide a valid Bearer token (`zrv_svc_...`). |
-| `403 Forbidden` | `zorveus_service_key_scope_required` | Service key lacks `product_users:read` or `product_users:write`. | Add the required scope in the Zorveus Dashboard. |
-| `403 Forbidden` | `zorveus_service_key_inactive` | Service key has expired or been revoked. | Rotate or create a new active Service Key. |
-| `404 Not Found` | `zorveus_product_user_not_found` | No user exists for that `(app_id, external_user_id)` tuple. | Call `PUT /product-users/by-external-id` to create/upsert. |
-
-### Error Response Format
-
-```json
-{
-  "error": {
-    "code": "zorveus_product_user_not_found",
-    "message": "Product user not found."
-  }
-}
+```bash
+curl --fail-with-body https://api.zorveus.com/product-users/by-external-id/credit-grants \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	-H "Content-Type: application/json" \
+	-d '{"app_id":"app_123","external_user_id":"customer_42","amount":"10.00","currency":"USD","source":"service_key","external_reference":"purchase:purchase_123","reason":"Paid purchase purchase_123","metadata":{"purchase_id":"purchase_123"}}'
 ```
+
+The grant includes `credit_grant_id`, `external_reference`, identifiers, `amount`, `remaining_amount`, `currency`, `source`, `reason`, `status`, `expires_at`, `metadata`, `created_at`, and `updated_at`. A returned grant can repay carried allowance debt, so do not assume its full amount becomes immediately spendable
+
+On a backend with migration `20261027_0062`, reference uniqueness covers the organization and app, across users and grant sources. Matching normalized grant parameters recover the same grant. Changed parameters return HTTP 409 with `zorveus_product_user_credit_reference_conflict`. References survive key rotation and grant lifecycle changes. Neither `reason`, metadata, nor an idempotency header provides this guarantee. See [Idempotency and retries](/platform/idempotency) for the compared fields and normalization rules
+
+## Find a credit grant by reference
+
+<ApiEndpoint method="GET" path="/product-users/by-external-id/credit-grants/by-reference" auth="service_key" />
+
+Required query fields are `app_id`, `external_user_id`, and `external_reference`. Requires `product_users:read` or a scope that includes it. HTTP 200 returns the grant directly with its current balance and status, including expired, exhausted, and revoked grants. HTTP 404 with `zorveus_product_user_credit_not_found` means no committed grant is visible in that scope
+
+The lookup never creates a user, even with an upsert header. A 404 can race an unfinished creation. Repeat the original referenced POST if the outcome remains uncertain. Do not replace the reference with a new one
+
+## List credit grants
+
+<ApiEndpoint method="GET" path="/product-users/by-external-id/credit-grants" auth="service_key" />
+
+Required query fields are `app_id` and `external_user_id`
+
+| Optional query field | Meaning |
+| --- | --- |
+| `status` | `active`, `exhausted`, `expired`, or `revoked` |
+| `source` | One of the grant sources above |
+| `limit` | 1 to 1000, default 100 |
+
+HTTP `200` returns `{ "credit_grants": [...] }`. There is no cursor or `has_more` field. Use the direct reference lookup for uncertain referenced grants. Do not treat a limited list as proof that a grant never existed
+
+## List product-user activity
+
+<ApiEndpoint method="GET" path="/product-users/by-external-id/activity" auth="service_key" />
+
+Requires `product_users:read` or a scope that includes it. Required query fields are `app_id` and `external_user_id`. Optional fields are `type`, `from`, `to`, `currency`, `cursor`, and `limit`. The limit defaults to 20 and accepts 1 to 100. Timestamps require a timezone offset. `from` is inclusive and `to` is exclusive
+
+HTTP 200 returns `product_end_user_id`, `items`, `next_cursor`, `has_more`, and `limit`. The discriminated item types include `usage`, `credit_added`, `credit_revoked`, `credit_expired`, `credit_refunded`, `credit_adjusted`, and `allowance_debt_repayment`. Usage items include saved `usage_metadata`, the signed product-user charge, base allowance and credit breakdowns, and per-grant allocations with saved metadata
+
+A missing user returns HTTP 404 by default. Add `X-Zorveus-Upsert-Product-User: true` to create one in the service key's owned, non-deleted app. Existing profiles and statuses are preserved. Use the same filters with each returned cursor. Invalid or mismatched cursors return `zorveus_invalid_product_user_activity_cursor`. Empty or reversed time windows return `zorveus_invalid_product_user_activity_filter`, both HTTP 400
+
+Read [Product-user activity](/startups/product-user-activity) for the full response, SDK calls, UI mapping, and historical-data limitations
+
+## Errors
+
+| HTTP status | Code or format | Meaning |
+| --- | --- | --- |
+| `400` | `zorveus_invalid_external_user_id` or other validation code | A supplied value is invalid |
+| `401` | `zorveus_malformed_or_missing_service_key`, `zorveus_unknown_service_key` | Missing, malformed, or unknown credential |
+| `403` | `zorveus_service_key_inactive` | Revoked, disabled, or expired key |
+| `403` | `zorveus_service_key_scope_required` | Missing read or write permission |
+| `404` | `zorveus_product_user_not_found` | No user for this app and external ID |
+| `422` | Validation `detail` array | Missing required query or body fields, or invalid schema types |
+
+Zorveus application errors use `{ "error": { "code": "...", "message": "..." } }`. See [Error handling](/platform/errors)
 
 ## Prorated allowance
 
-`X-Zorveus-Allowance-Change-Policy: prorate_increase` prorates allowance increases when a product user switches to a higher-cap connection. The equivalent body field is `metadata.product_user.allowance_change`. The body takes precedence
+Send `X-Zorveus-Allowance-Change-Policy: prorate_increase` on Business inference to prorate an upgrade. The body alternative is `metadata.product_user.allowance_change`, which takes precedence
 
-First-use and same-connection requests create no proration event. Upgrades require active caps on both plan connections with the same period and currency. Daily and monthly periods are supported
+First-use and same-connection requests do not create a proration event. A transition requires active daily or monthly caps on both connections with the same period and currency. Decreases, uncapped plans, lifetime caps, or active direct product-user caps reject the transition policy. User OAuth connections reject it
 
-A decrease, an uncapped plan, a lifetime cap, or an active direct product-user cap returns `zorveus_invalid_allowance_change` on a transition. OAuth user connections reject the policy
+`cap.amount` is the configured cap. `allowance.cap_amount` is the effective current-cycle amount. `allowance.adjustment` includes `type: "prorate_increase"`, `configured_cap_amount`, and `effective_at` when an adjustment applies
 
-Detail responses and list items include `allowance`. Only detail responses include `cap`
-
-| Field | Meaning |
-| :--- | :--- |
-| `cap.amount` | Configured cap amount |
-| `allowance.cap_amount` | Effective allowance for the current cycle |
-| `allowance.available_allowance` | Remaining base allowance plus available credit grants |
-| `allowance.period_start` | Start of the allowance window |
-| `allowance.period_end` | End of the window, exclusive, and start of the next window |
-| `allowance.adjustment` | Current proration, or null when no matching adjustment applies |
-| `allowance.adjustment.configured_cap_amount` | Configured cap amount saved at the transition |
-| `allowance.adjustment.effective_at` | Time of the request that accepted the transition |
-
-Later upgrades add the prorated increase to the current effective allowance. For example, a $50 to $100 upgrade with one quarter remaining adds $12.50
-
-The adjustment survives a failed inference request or omission of the policy on later requests. Edits to the configured amount leave the current effective allowance unchanged. The edited amount applies at renewal
-
-Each accepted transition appends `product_user.allowance_prorated` to the audit log. The response contains the current adjustment, and the audit log preserves earlier transitions. Actual usage and wallet transactions remain separate
-
-The [plan upgrade guide](/startups/prorated-plan-changes) includes request examples and a complete product-user response
+An accepted adjustment survives a later inference failure. Further upgrades add their prorated increase to the current effective amount. At renewal, the full configured cap applies. See [Prorated plan changes](/startups/prorated-plan-changes) for a worked response

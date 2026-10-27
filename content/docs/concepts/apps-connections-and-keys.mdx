@@ -3,15 +3,15 @@ title: Apps, connections, and keys
 description: Understand the relational hierarchy linking organizations, apps, app connections, and API keys.
 ---
 
-A common point of confusion is the relationship between an **App**, an **App Connection**, and an **API Key**. In Zorveus, these represent separate logical layers.
+A common point of confusion is the relationship between an **App**, an **App Connection**, and an **API Key**. In Zorveus, these represent separate logical layers
 
 ---
 
 ## The resource hierarchy
 
 ```text
-Organization (e.g. Business Acme Corp)
-  └── App (e.g. Acme Code Reviewer)
+Business organization
+  └── App (your product)
         └── App Connection (Binding App to Funding Org)
               ├── Policy: Allowed Models (e.g. "openai/*", "anthropic/*")
               ├── Policy: Spending Cap ($50.00 / month)
@@ -22,17 +22,17 @@ Organization (e.g. Business Acme Corp)
 ```
 
 ### 1. App
-An **App** is a registered product identity. It defines the application's public name, logo, allowed model catalog, OAuth scopes, and redirect URIs. An app is not a credential and cannot make inference calls on its own.
+An **App** is a registered product identity. It defines the application's public name, logo, allowed model catalog, OAuth scopes, and redirect URIs. An app is not a credential and cannot make inference calls on its own
 
 ### 2. App Connection
 An **App Connection** binds an App to a specific funding Organization:
 - `org_programmatic`: Created by a business to fund its own internal application.
-- `user_oauth`: Created when a user grants OAuth consent for a third-party app to draw from their wallet.
+- `user_oauth`: Created when a user grants OAuth consent for a third-party app to draw from their wallet
 
-The connection owns the enforceable policy: allowed model wildcards, credit enforcement mode, and periodic spending caps.
+The connection owns the enforceable policy: allowed model wildcards, credit enforcement mode, and periodic spending caps
 
 ### 3. API Key
-An **API Key** (`zrv_...`) is the cryptographic secret issued under an App Connection. It authenticates requests against `https://api.zorveus.com/v1` and native provider wire endpoints. Only active, non-revoked API keys can execute inference.
+An **API Key** (`zrv_...`) is the cryptographic secret issued under an App Connection. It authenticates requests against `https://api.zorveus.com/v1` and native provider wire endpoints. Only active, non-revoked API keys can execute inference
 
 ---
 
@@ -46,13 +46,13 @@ Select a member through `X-Zorveus-Key-Alias` or `metadata.key_alias` in the JSO
 
 | Credential | Prefix / Format | Target Endpoint | Usage Location | Privilege Level |
 | :--- | :--- | :--- | :--- | :--- |
-| **API Key** | `zrv_...` | `https://api.zorveus.com/v1` | Server backend or safe client | Scoped to connection model policy & cap |
+| **API Key** | `zrv_...` | `https://api.zorveus.com/v1` | Server backend, or scoped OAuth client | Scoped to connection model policy & cap |
 | **Service Key** | `zrv_svc_...` | `https://api.zorveus.com` | Backend server ONLY | Scoped product-user reads, upserts, and credit grants by external user ID |
 | **OAuth Client Secret** | `zrv_client_secret_...` | `/oauth/token` | OAuth backend ONLY | Confidential client authentication |
 | **Provider Credential** | `sk-...` / encrypted | Upstream provider | Stored securely in Zorveus | Upstream provider account secret |
 
 <Callout type="danger" title="Never Mix Service Keys and API Keys">
-  Never paste a Service Key into the OpenAI client `api_key` parameter or pass it to `/v1` endpoints. The inference gateway (`/v1/chat/completions`, `/v1/messages`) only accepts API Keys (`zrv_...`). Service keys (`zrv_svc_...`) are for supported product-user operations under `/product-users/by-external-id` against `https://api.zorveus.com`.
+  Never paste a Service Key into the OpenAI client `api_key` parameter or pass it to `/v1` endpoints. The inference gateway (`/v1/chat/completions`, `/v1/messages`) only accepts API Keys (`zrv_...`). Service keys (`zrv_svc_...`) authorize [scoped service actions](/startups/service-keys) against `https://api.zorveus.com`, for customer profiles, credit grants, and allowance
 </Callout>
 
 ---
@@ -63,4 +63,4 @@ API keys support seamless rotation without downtime:
 1. Generate a new secondary API key under the active connection.
 2. Update your production environment variables to use the new key.
 3. Verify that requests succeed on the new key.
-4. Revoke the old key from the dashboard or via the Management API.
+4. Revoke the old key in the dashboard

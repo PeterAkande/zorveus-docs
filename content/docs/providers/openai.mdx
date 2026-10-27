@@ -15,7 +15,7 @@ Use this guide to route matching requests through an OpenAI API key owned by you
 
 Open **Provider Credentials** in the dashboard and select OpenAI. Enter a name and your OpenAI API key, then configure the model policy and routing mode.
 
-Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Application code does not call a provider-credential API. Use a Zorveus API key for inference, not the upstream provider secret.
+Manage provider credentials in the Zorveus dashboard under **Provider Credentials**. Use a Zorveus API key for inference, not the upstream provider secret.
 
 Zorveus validates the key before storing it. The response contains a fingerprint, not the raw secret. Test a model returned by `GET /models` in the dashboard or `GET /v1/models` with the API key before moving production traffic.
 

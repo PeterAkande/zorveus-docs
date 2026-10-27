@@ -3,7 +3,7 @@ title: Funding and billing
 description: Understand wallet-funded inference, BYOK routing, and credit enforcement modes.
 ---
 
-Zorveus provides two main routing modes: organization wallet funding and Bring Your Own Key (BYOK) routing. Both modes record reference-priced virtual spend and enforce spending caps.
+Zorveus provides two main routing modes: organization wallet funding and Bring Your Own Key (BYOK) routing. Both modes record reference-priced virtual spend and enforce spending caps
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -11,26 +11,26 @@ Zorveus provides two main routing modes: organization wallet funding and Bring Y
 
 ## Wallet-funded inference
 
-In wallet mode, Zorveus routes inference requests through Zorveus-managed credentials. The organization wallet pays the applicable sell price for model tokens.
+In wallet mode, Zorveus routes inference requests through Zorveus-managed credentials. The organization wallet pays the applicable sell price for model tokens
 
 When a request arrives, Zorveus checks the wallet available balance and the virtual allowance:
 
 1. The gateway places a temporary hold on the estimated wallet charge.
 2. The model provider executes the request.
-3. Upon stream completion, Zorveus settles the actual wallet charge, releases unused holds, and records virtual spend in the ledger.
+3. Upon stream completion, Zorveus settles the actual wallet charge, releases unused holds, and records virtual spend in the ledger
 
-If the organization wallet lacks funds to cover the estimated reservation, the gateway rejects the request with HTTP `402 Payment Required` and error code `zorveus_reservation_insufficient_balance`.
+If the organization wallet lacks funds to cover the estimated reservation, the gateway rejects the request with HTTP `402 Payment Required` and error code `zorveus_reservation_insufficient_balance`
 
 ---
 
 ## Bring Your Own Key (BYOK)
 
-With BYOK, Zorveus routes requests using your organization credentials for OpenAI, Anthropic, Google Gemini, and other providers.
+With BYOK, Zorveus routes requests using your organization credentials for OpenAI, Anthropic, Google Gemini, and other providers
 
 - **Upstream billing**: The model provider bills your provider account directly for raw token costs.
 - **Virtual spend**: BYOK calls consume spending caps and product-user credits at the exact same reference rates as wallet-funded calls.
-- **Platform fees**: Zorveus includes a free monthly BYOK routing threshold (such as $25,000 per month). Volume above this threshold incurs an explicit platform fee.
-- **Fee settlement**: Platform fees are deducted from your organization wallet. Product-user credits never pay platform fees. If the wallet lacks funds to cover an estimated fee, the request returns `402 Payment Required`.
+- **Platform fees**: A configured monthly threshold determines free BYOK routing volume. An overage percentage applies above that threshold. Check the pricing that applies to your organization
+- **Fee settlement**: Platform fees are deducted from your organization wallet. Product-user credits never pay platform fees. If the wallet lacks funds to cover an estimated fee, the request returns `402 Payment Required`
 
 ---
 
@@ -45,7 +45,7 @@ App connections configure a `credit_mode` that dictates how virtual caps and cre
 | `track_only` | Allocates cap and credits without blocking | Allocates cap without blocking | Never rejects for allowance. Records `uncovered_virtual_spend`. |
 | `disabled` | Bypasses cap checks and credits | Bypasses cap checks | Records virtual spend for reporting without quota limits. |
 
-User OAuth connections always use `enforce`. You cannot change the credit mode for a user OAuth connection.
+User OAuth connections always use `enforce`. You cannot change the credit mode for a user OAuth connection
 
 ---
 
@@ -54,4 +54,4 @@ User OAuth connections always use `enforce`. You cannot change the credit mode f
 Organization wallet balance and product-user virtual allowance are independent:
 
 - A request can have plenty of virtual allowance but fail with `402 Payment Required` because the organization wallet cannot fund a wallet-routed call or BYOK platform fee.
-- A request can have plenty of wallet funds but fail with `403 Forbidden` (`zorveus_product_user_allowance_insufficient`) because the product user's combined cap and credit allowance is exhausted.
+- A request can have plenty of wallet funds but fail with `403 Forbidden` (`zorveus_product_user_allowance_insufficient`) because the product user's combined cap and credit allowance is exhausted

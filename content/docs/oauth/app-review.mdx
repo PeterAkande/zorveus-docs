@@ -1,19 +1,17 @@
 ---
 title: App review and publishing
-description: Submit an OAuth app for review and understand each lifecycle state.
+description: Prepare an OAuth app for users outside its test audience.
 ---
 
-Draft and other non-public testable apps are limited to configured test users and members who can manage the owning developer organization. Submit the app when its identity, redirect URIs, model policy, scopes, cap policy, and user-facing details are ready.
+Configure your app's identity, redirect URIs, scopes, models, test users, and consent spending policy in the [dashboard](https://app.zorveus.com). Test the authorization, inference, and disconnect flows before submitting it for review
 
-<ApiEndpoint method="POST" path="/apps/{app_id}/submit-review" auth="dashboard_session" />
+| Status | Meaning |
+| --- | --- |
+| `draft` | Editable and available to permitted testers |
+| `submitted_for_review` | Waiting for review |
+| `active` | Available outside the test audience |
+| `rejected` | Returned with review feedback |
+| `suspended` | Authorization is blocked |
+| `deleted` | No longer active |
 
-The lifecycle states are:
-
-- `draft`: editable and available for permitted testing.
-- `submitted_for_review`: waiting for review.
-- `active`: available to users outside the test allowlist.
-- `rejected`: returned with review feedback.
-- `suspended`: blocked from authorization.
-- `deleted`: no longer active.
-
-You can cancel a pending submission through the app review cancellation endpoint, make changes, and submit again. Do not describe an app as verified or public until its returned status is `active`.
+Manage submission and cancellation in the dashboard. Treat an app as publicly available only when its status is `active`. See [Testing draft apps](/oauth/testing-draft-apps)

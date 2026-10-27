@@ -1,57 +1,43 @@
 ---
-title: Usage & Analytics API
-description: Reference and interactive runner for usage & analytics operations.
+title: Key usage
+description: Read the selected inference key’s connection cap and period spend.
 ---
-
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
-
-## Get API Key Usage Summary
-
-Inspect live period spend, spending caps, and remaining balance using an API key directly.
-
-<Callout type="tip" title="Public CORS Support">
-  This endpoint has public CORS enabled and can be queried directly by browser clients and frontend extensions.
-</Callout>
---
 
 <ApiEndpoint method="GET" path="/inference-keys/usage" auth="api_key" />
 
-### Headers
+Authenticate with the inference key or scoped OAuth access token. With a routing key, include `X-Zorveus-Key-Alias` to select the member you want to inspect
 
-| Header | Value | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `Authorization` | `Bearer <zrv_api_key>` | **Yes** | Your active Zorveus API key. |
-
-<ApiRunner method="GET" path="/inference-keys/usage" authType="api_key" />
-
-#### Response (`200 OK`) — Capped Connection
+```bash
+curl --fail-with-body https://api.zorveus.com/inference-keys/usage \
+	-H "Authorization: Bearer $ZORVEUS_API_KEY"
+```
 
 ```json
 {
-  "status": "active",
-  "app_id": "app_mindspire_123",
-  "app_connection_id": "appcon_01j...",
-  "currency": "USD",
-  "period": "monthly",
-  "spend_cap": "50.000000000000",
-  "spent_this_period": "12.500000000000",
-  "remaining_balance": "37.500000000000",
-  "reset_at": "2026-09-01T00:00:00Z"
+	"status": "active",
+	"app_id": "app_123",
+	"app_connection_id": "appcon_123",
+	"currency": "USD",
+	"period": "monthly",
+	"spend_cap": "50.000000000000",
+	"spent_this_period": "12.500000000000",
+	"remaining_balance": "37.500000000000",
+	"reset_at": "2026-11-01T00:00:00Z"
 }
 ```
 
-#### Response (`200 OK`) — Uncapped Connection
+Amounts and dates above illustrate the response. `spend_cap`, `remaining_balance`, and `reset_at` can be null. A null cap means that this summary has no finite connection cap, not that the wallet is empty
 
-```json
-{
-  "status": "active",
-  "app_id": "app_mindspire_123",
-  "app_connection_id": "appcon_01j...",
-  "currency": "USD",
-  "period": "monthly",
-  "spend_cap": null,
-  "spent_this_period": "12.500000000000",
-  "remaining_balance": null,
-  "reset_at": null
-}
-```
+This endpoint does not accept an external customer ID. Do not use it as a customer's allowance check. Use [the product-user profile](/startups/check-allowance), which includes their credits, anchor, and applicable connection
+
+The TypeScript SDK exposes this as `client.getUsage()`. Organization usage analytics and ledger inspection are available in the dashboard
+
+
+## Request activity and detailed events
+
+Attach business context during inference using [usage metadata](/inference/product-user-metadata#attach-business-context-to-usage-events). Detailed usage-event responses expose the captured `usage_metadata` object or `null` under their existing dashboard permissions
+
+`GET /inference-keys/usage` remains a connection-level summary. It does not return individual usage events or the metadata attached to them. Organization service keys do not grant access to dashboard finance-event APIs
+
+
+Business backends can fetch a customer-scoped history through [Product-user activity](/startups/product-user-activity) with `product_users:read`. This is a separate endpoint from dashboard organization analytics

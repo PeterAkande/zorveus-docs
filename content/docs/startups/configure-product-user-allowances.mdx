@@ -3,7 +3,7 @@ title: Configure product-user allowances
 description: Choose model access, caps, enforcement, and overrun settings with practical examples.
 ---
 
-Use this guide when your product pays for customers' AI usage. Configure the API key's connection in the dashboard. Your backend selects the key for the customer's plan and sends the customer's external user ID on every request.
+Use this guide when your product pays for customers' AI usage. Configure the API key's connection in the dashboard. Your backend selects the key for the customer's plan and sends the customer's external user ID on every request
 
 ## Start with this configuration
 
@@ -19,7 +19,7 @@ For a product with finite customer allowances:
 | Allowance anchor | Subscription start time, or no anchor for UTC calendar periods | Align resets with your billing cycle. |
 
 <Callout type="warning" title="Enforcement alone does not create a limit">
-  Without a configured cap, virtual allowance is unlimited in every credit mode. Product-user credits are not consumed. Model access and funding checks still apply.
+  Without a configured cap, virtual allowance is unlimited in every credit mode. Product-user credits are not consumed. Model access and funding checks still apply
 </Callout>
 
 ## Which settings belong where?
@@ -37,11 +37,13 @@ For a product with finite customer allowances:
 | --- | --- |
 | Allowed models, cap amount and period, `credit_mode`, `overrun_policy` | External user ID, profile metadata, allowance anchor, and credit grants |
 
-An active direct product-user cap can override the connection cap used to resolve that user's allowance. Manage caps in the dashboard. Set profile details and the anchor through supported product-user operations or inference metadata. Grant credits through the service-key API.
+For attributed Business traffic, the connection cap amount is evaluated separately for each product user. A $10 monthly connection cap supplies each attributed customer with a $10 base allowance. It is not one shared $10 pool
+
+An active direct product-user cap can override the connection cap used to resolve that user's allowance. Manage caps in the dashboard. Set profile details and the anchor through supported product-user operations or inference metadata. Grant credits through the service-key API
 
 ## Choose the credit mode
 
-These behaviors assume a configured cap. This table describes allowance enforcement, not every possible request rejection.
+These behaviors assume a configured cap. This table describes allowance enforcement, not every possible request rejection
 
 | `credit_mode` | With external user ID | Without external user ID | Choose it when |
 | --- | --- | --- | --- |
@@ -50,23 +52,23 @@ These behaviors assume a configured cap. This table describes allowance enforcem
 | `track_only` | Tracks base allowance, credit use, and uncovered spend without blocking for allowance | Tracks usage without blocking for allowance | You want to observe spend before enforcing limits. |
 | `disabled` | Skips allowance checks and credit consumption | Skips allowance checks | You want usage reporting without virtual quotas. |
 
-`enforce` does not require a user ID. Your backend must require the ID if every request must be attributed. OAuth user connections always use `enforce`.
+`enforce` does not require a user ID. Your backend must require the ID if every request must be attributed. OAuth user connections always use `enforce`
 
 ```text
 Request arrives
-  ├─ No cap → unlimited virtual allowance; no credits consumed
+  ├─ No cap -> unlimited virtual allowance; no credits consumed
   └─ Cap configured
-       ├─ disabled → skip allowance checks and credits
-       ├─ track_only → account for allowance; do not block for it
-       ├─ enforce_if_present + no user ID → bypass virtual allowance checks
-       └─ enforced request → check applicable base allowance + eligible credits
+       ├─ disabled -> skip allowance checks and credits
+       ├─ track_only -> account for allowance; do not block for it
+       ├─ enforce_if_present + no user ID -> bypass virtual allowance checks
+       └─ enforced request -> check applicable base allowance + eligible credits
 
 Model access and funding checks still apply on every path.
 ```
 
 ## Choose the overrun policy
 
-The credit mode controls allowance enforcement. The overrun policy controls how a request handles output that could exceed the remaining allowance.
+The credit mode controls allowance enforcement. The overrun policy controls how a request handles output that could exceed the remaining allowance
 
 | `overrun_policy` | What happens | Choose it when |
 | --- | --- | --- |
@@ -74,7 +76,7 @@ The credit mode controls allowance enforcement. The overrun policy controls how 
 | `allow_overrun` | Allows output up to the declared or safe limit. Records excess as uncovered spend, without carrying debt into future allowance. | Finishing an admitted response matters more than staying within its remaining allowance. |
 | `carry_overrun_forward` | Allows output up to the declared or safe limit. Records excess as debt repaid from later credits or base allowance resets. | A longer answer is allowed, but future allowance must cover the excess. |
 
-Overrun policies do not supply wallet funds or guarantee admission when allowance is already exhausted. They do not override model access or funding checks.
+Overrun policies do not supply wallet funds or guarantee admission when allowance is already exhausted. They do not override model access or funding checks
 
 ## Scenarios
 
@@ -87,15 +89,15 @@ Configure two connections in the dashboard:
 | Free | $2 | Your selected lower-cost models | `enforce` | `limit_output` |
 | Pro | $20 | Your selected Pro models | `enforce` | `limit_output` |
 
-The amounts are examples, not Zorveus subscription prices. Your backend looks up the customer's plan, selects its key, and sends the same external user ID. Keep both keys on your server.
+The amounts are examples, not Zorveus subscription prices. Your backend looks up the customer's plan, selects its key, and sends the same external user ID. Keep both keys on your server
 
-If a customer upgrades, select the Pro key. Do not assume a new key resets their usage. The product-user allowance window can include usage across connections. A profile lookup can still reflect the previous connection, so do not reject a Pro request using a stale Free allowance.
+If a customer upgrades, select the Pro key. Do not assume a new key resets their usage. The product-user allowance window can include usage across connections. A profile lookup can still reflect the previous connection, so do not reject a Pro request using a stale Free allowance
 
 ### A request accidentally omits the user ID
 
-With `enforce_if_present`, missing attribution bypasses virtual allowance enforcement. With `enforce`, the request still faces key-level allowance, but it is not attributed to your customer and cannot use that customer's credits.
+With `enforce_if_present`, missing attribution bypasses virtual allowance enforcement. With `enforce`, the request still faces key-level allowance, but it is not attributed to your customer and cannot use that customer's credits
 
-Validate the external user ID in your backend before sending customer requests. Neither mode repairs missing attribution.
+Validate the external user ID in your backend before sending customer requests. Neither mode repairs missing attribution
 
 ### A customer buys extra credits
 
@@ -107,10 +109,10 @@ Eligible credits:                     $5
 Total available allowance:           $7
 
 A request reserves $3:
-  $2 from base allowance → $1 from credits
+  $2 from base allowance -> $1 from credits
 ```
 
-Base allowance is consumed first, then eligible credits by earliest expiry. Credits do not pay the provider. Your wallet or BYOK account must still fund the request. See [Credit grants](/startups/credit-grants) and [Billing integration](/startups/billing-integration).
+Base allowance is consumed first, then eligible credits by earliest expiry. Credits do not pay the provider. Your wallet or BYOK account must still fund the request. See [Credit grants](/startups/credit-grants) and [Billing integration](/startups/billing-integration)
 
 ### A longer answer costs more than the remaining allowance
 
@@ -118,7 +120,7 @@ Suppose an admitted request has $1 of allowance left but its completed response 
 
 - `limit_output` attempts to keep output within the affordable amount. Unexpected variance is still possible.
 - `allow_overrun` records the extra $0.50 as uncovered spend without future debt.
-- `carry_overrun_forward` records $0.50 of debt. Later credits or the next base reset repay that debt before restoring spendable allowance.
+- `carry_overrun_forward` records $0.50 of debt. Later credits or the next base reset repay that debt before restoring spendable allowance
 
 ### A subscription renews on the 17th
 
@@ -130,7 +132,7 @@ Jul 17          Aug 17          Sep 17       Sep 30          Oct 17
                                   current allowance window
 ```
 
-Do not send the current time as a new anchor on every request. The anchor belongs to the product user within the app, not separately to each plan key. Without an anchor, monthly periods follow UTC calendar months. See [Allowance periods and anchors](/startups/allowance-periods).
+Do not send the current time as a new anchor on every request. The anchor belongs to the product user within the app, not separately to each plan key. Without an anchor, monthly periods follow UTC calendar months. See [Allowance periods and anchors](/startups/allowance-periods)
 
 ## Check your setup before launch
 
@@ -140,6 +142,6 @@ Do not send the current time as a new anchor on every request. The anchor belong
 4. Add credits and confirm that eligible credits restore allowance.
 5. Omit the user ID and verify the behavior you intended.
 6. Test a plan change without assuming usage resets.
-7. Test allowance exhaustion separately from insufficient wallet funding.
+7. Test allowance exhaustion separately from insufficient wallet funding
 
-Use [Check available allowance](/startups/check-allowance) for admission checks. The reported amount is a snapshot, not a reservation or a guarantee that the next request fits.
+Use [Check available allowance](/startups/check-allowance) for admission checks. The reported amount is a snapshot, not a reservation or a guarantee that the next request fits

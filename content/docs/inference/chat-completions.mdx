@@ -5,7 +5,7 @@ description: Generate text and reasoning completions across OpenAI, Anthropic, G
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
 
-The `/v1/chat/completions` endpoint generates text, code, or structured reasoning responses from AI models.
+The `/v1/chat/completions` endpoint generates text, code, or structured reasoning responses from AI models
 
 <KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
 
@@ -24,27 +24,27 @@ Authorization: Bearer zrv_your_api_key
 ## Request parameters
 
 <ParamField name="model" type="string" required>
-  The model identifier to route the request to (e.g. `openai/gpt-4.1-mini`, `anthropic/claude-3-7-sonnet`, `gemini/gemini-2.5-flash`).
+  The model identifier to route the request to (e.g. `openai/gpt-6-sol`, `anthropic/claude-sonnet-5`, `gemini/gemini-3.8-flash`)
 </ParamField>
 
 <ParamField name="messages" type="array" required>
-  An array of message objects representing the conversation history. Each object contains `role` (`system`, `user`, `assistant`, `tool`) and `content`.
+  An array of message objects representing the conversation history. Each object contains `role` (`system`, `user`, `assistant`, `tool`) and `content`
 </ParamField>
 
-<ParamField name="temperature" type="number" default="1.0">
-  Sampling temperature between `0.0` and `2.0`. Lower values yield more deterministic answers.
+<ParamField name="temperature" type="number">
+  Optional sampling setting. Supported values and defaults depend on the model. Some reasoning models reject this field
 </ParamField>
 
 <ParamField name="max_tokens" type="integer">
-  Maximum number of tokens to generate in the completion.
+  Output token limit for models that accept it. Some reasoning models use `max_completion_tokens` instead. See the chosen model's parameter contract
 </ParamField>
 
 <ParamField name="stream" type="boolean" default="false">
-  If `true`, tokens are returned via Server-Sent Events (SSE).
+  If `true`, tokens are returned via Server-Sent Events (SSE)
 </ParamField>
 
 <ParamField name="metadata" type="object">
-  Zorveus attribution metadata. Use `external_user_id` for your customer ID and put optional profile fields inside `product_user`.
+  Zorveus attribution metadata. Use `external_user_id` for your customer ID and put optional profile fields inside `product_user`
 </ParamField>
 
 ---
@@ -62,12 +62,11 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
+    model="openai/gpt-6-sol",
     messages=[
         {"role": "system", "content": "You are a senior systems engineer."},
         {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."},
     ],
-    temperature=0.3,
     extra_body={
         "metadata": {
             "external_user_id": "usr_dev_4812",
@@ -88,17 +87,12 @@ const client = new OpenAI({
 
 async function main() {
   const completion = await client.chat.completions.create({
-    model: "openai/gpt-4.1-mini",
+    model: "openai/gpt-6-sol",
     messages: [
       { role: "system", content: "You are a senior systems engineer." },
       { role: "user", content: "Explain write-ahead logging (WAL) concisely." },
     ],
-    temperature: 0.3,
-    ...({
-      metadata: {
-        external_user_id: "usr_dev_4812",
-      },
-    } as any),
+    metadata: { external_user_id: "usr_dev_4812" },
   });
 
   console.log(completion.choices[0].message.content);
@@ -112,12 +106,11 @@ curl https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
-    "model": "openai/gpt-4.1-mini",
+    "model": "openai/gpt-6-sol",
     "messages": [
       {"role": "system", "content": "You are a senior systems engineer."},
       {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."}
     ],
-    "temperature": 0.3,
     "metadata": {
       "external_user_id": "usr_dev_4812"
     }
@@ -129,7 +122,7 @@ curl https://api.zorveus.com/v1/chat/completions \
 <ApiRunner
   method="POST"
   path="/v1/chat/completions"
-  defaultBody='{\n  "model": "openai/gpt-4.1-mini",\n  "messages": [\n    {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."}\n  ]\n}'
+  defaultBody='{\n  "model": "openai/gpt-6-sol",\n  "messages": [\n    {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."}\n  ]\n}'
 />
 
 ---
@@ -141,7 +134,7 @@ curl https://api.zorveus.com/v1/chat/completions \
   "id": "chatcmpl-9K8xZ1048",
   "object": "chat.completion",
   "created": 1723580000,
-  "model": "openai/gpt-4.1-mini",
+  "model": "openai/gpt-6-sol",
   "choices": [
     {
       "index": 0,
@@ -171,5 +164,6 @@ curl https://api.zorveus.com/v1/chat/completions \
 | `zorveus_product_user_allowance_insufficient` | 403 | The estimated request cost exceeds the product user's remaining base allowance plus promotional credits. |
 | `zorveus_cap_exceeded` | 403 | The organization, connection, or product-user spending cap has been reached. |
 | `zorveus_model_not_allowed` | 403 | The requested model is outside your connection's allowed model policy. |
-| `zorveus_reservation_conflict` | 409 | Idempotency key was reused with mismatched request parameters. |
 | `rate_limit_exceeded` | 429 | Upstream model provider rate limit reached. Retry with exponential backoff. |
+
+Select an available chat model with [model discovery](/inference/model-discovery) before copying an example ID. See [Error handling](/platform/errors) for the nested gateway error code

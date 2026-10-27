@@ -10,6 +10,7 @@
     "allowance-periods",
     "prorated-plan-changes",
     "credit-grants",
+    "product-user-activity",
     "billing-integration",
     "service-keys",
     "provider-credentials",

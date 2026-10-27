@@ -101,8 +101,17 @@ The sidebar uses `content/docs/meta.json` and each section's `meta.json`. Keep e
 
 `/llms.txt` and `/sitemap.xml` use the Fumadocs page source. `/api/raw-doc?slug=startups/check-allowance` returns the published MDX source, including every SDK tab. The raw route rejects unknown pages and path traversal.
 
-Run `npm test`, `npm run audit:docs`, and `npm run build` before publishing. Verify product-user examples against the Python and TypeScript SDK response contracts. The coding-agent prompt is in `content/docs/getting-started/coding-agents.mdx`.
+Run `npm test`, `npm run audit:docs`, `npm run typecheck`, and `npm run build` before publishing. Verify product-user examples against the Python and TypeScript SDK response contracts. The coding-agent prompt is in `content/docs/getting-started/coding-agents.mdx`.
 
 ## 📝 License
 
 Proprietary © [Zorveus](https://zorveus.com). All rights reserved.
+
+
+## Cross-check application contracts
+
+Use the backend router, schema, and service implementation together. A route appearing in OpenAPI does not mean an application can authenticate to it. The public reference covers inference, OAuth, product-user service-key operations, key usage, and model discovery. Keep dashboard administration in dashboard setup guides
+
+Generate schema-based drafts in a separate directory with `npm run generate:api-reference -- /path/to/openapi.json /tmp/zorveus-reference-drafts`. The generator allowlists application operations and refuses to overwrite the curated reference. Review draft fields against service behavior before merging them into the guides, especially forms parsed manually by OAuth handlers
+
+For the first-request walkthrough, verify model discovery, inference, and product-user reads using the same app and stable customer ID. Check native SDK examples against the Python and TypeScript SDK contracts as well as the HTTP backend. Do not add a client method because another SDK uses a similar name

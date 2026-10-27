@@ -1,46 +1,22 @@
 ---
-title: Models and Routing
-description: Learn about provider-prefixed model names, wildcard policies, credential resolution, and managed routing.
+title: Models and routing
+description: Separate model access, plan selection, and provider credential routing.
 ---
 
-Zorveus provides a unified OpenAI-compatible routing layer across OpenAI, Anthropic, Google Gemini, NVIDIA NIM, and OpenRouter.
+Your request names a concrete model. The selected inference key determines which models you may use and which connection's spending policy applies
 
----
+## Model access policies
 
-## Model Naming Convention
+Policies support an exact model ID, `provider/*`, or `*`. A provider wildcard matches model IDs beginning with that provider and a slash. Partial patterns such as `anthropic/claude-*` are not wildcard matches
 
-Model identifiers in Zorveus use a standardized `provider/model_name` convention:
+Use `GET /v1/models` with the inference key to discover concrete IDs. With a routing key, include `X-Zorveus-Key-Alias` to inspect the selected member. The [public catalog](/api-reference/models) also describes capabilities, but it does not authorize a model for your key
 
-| Model ID | Target Provider | Description |
-| :--- | :--- | :--- |
-| `openai/gpt-4.1-mini` | OpenAI | Fast, cost-efficient reasoning model |
-| `openai/gpt-4.1` | OpenAI | High-intelligence flagship reasoning model |
-| `anthropic/claude-3-7-sonnet` | Anthropic | Hybrid reasoning and coding model |
-| `gemini/gemini-2.5-flash` | Google Gemini | Ultra-high speed multimodal model |
-| `openrouter/deepseek-r1` | OpenRouter | Open-weights deep reasoning model |
+## Plan selection
 
-<Callout type="tip" title="Unprefixed Aliases">
-  Standard aliases like `gpt-4o-mini` or `claude-3-5-sonnet` automatically resolve to their canonical provider-prefixed routes when allowed by your connection model policy.
-</Callout>
+A [routing key](/startups/routing-keys) selects a member inference key using `X-Zorveus-Key-Alias` or `metadata.key_alias`. Your backend chooses the alias from the customer's subscription. This selects policy, not a different model unless your application also changes `model`
 
----
+## Provider credential routing
 
-## Model Policies and Wildcards
+For the requested model, Zorveus resolves eligible BYOK credentials or uses a managed route. [Automatic provider routing](/startups/automatic-routing) explains credential ordering and wallet fallback
 
-When configuring an App or App Connection, you specify allowed model patterns:
-- `*`: Allows all current and future models available on the platform.
-- `openai/*`: Allows any model hosted by OpenAI.
-- `anthropic/claude-3-*`: Allows any Claude 3/3.5/3.7 variant.
-- `openai/gpt-4.1-mini`: Restricts the key strictly to a single model.
-
----
-
-## Credential Resolution Priority
-
-When an inference request arrives:
-1. **Connection-Specific Override**: Checks if the app connection has an explicitly bound provider key.
-2. **Organization BYOK Credential**: Checks if the organization has an active BYOK credential matching the requested model policy (sorted by priority).
-3. **Zorveus-Funded Credential**: Falls back to Zorveus-managed enterprise provider infrastructure (debiting the organization wallet).
-
-
-Use `GET /v1/models` with the API key that will make the request. The response expands allowed policy patterns into concrete model IDs. Send one of those concrete IDs in the model request.
+A model policy permits access. It does not create a deployment, guarantee that every endpoint works for that model, or guarantee upstream capacity

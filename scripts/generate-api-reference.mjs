@@ -2,106 +2,77 @@ import fs from "node:fs";
 import path from "node:path";
 
 const schemaPath = process.argv[2];
-if (!schemaPath) {
-  throw new Error("Usage: node scripts/generate-api-reference.mjs <openapi.json>");
+const outputPath = process.argv[3];
+if (!schemaPath || !outputPath) {
+  throw new Error("Usage: node scripts/generate-api-reference.mjs <openapi.json> <output-directory>");
 }
 
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
-const outputDirectory = path.resolve("content/docs/api-reference");
+const outputDirectory = path.resolve(outputPath);
+if (outputDirectory === path.resolve("content/docs/api-reference")) {
+  throw new Error("Generate drafts in a separate directory, then review them against the curated reference.");
+}
+fs.mkdirSync(outputDirectory, { recursive: true });
 const methods = new Set(["get", "post", "put", "patch", "delete"]);
-const privatePrefixes = ["/admin/", "/internal/", "/payments/webhooks/", "/provider-credentials", "/app-connections/org-programmatic"];
+const publicOperations = new Map([
+  ["/models", new Set(["get"])],
+  ["/inference-keys/usage", new Set(["get"])],
+  ["/oauth/authorize", new Set(["get"])],
+  ["/oauth/token", new Set(["post"])],
+  ["/oauth/revoke", new Set(["post"])],
+  ["/product-users/by-external-id", new Set(["get", "put"])],
+  ["/product-users/by-external-id/credit-summary", new Set(["get"])],
+  ["/product-users/by-external-id/allowance-debt", new Set(["get"])],
+  ["/product-users/by-external-id/credit-grants", new Set(["get", "post"])],
+  ["/product-users/by-external-id/credit-grants/by-reference", new Set(["get"])],
+]);
 const backtick = String.fromCharCode(96);
 
 const pageConfig = {
-  authentication: {
-    title: "Authentication and current user API",
-    description: "Account, email verification, password, session, CSRF, and current-user operations.",
-  },
-  organizations: {
-    title: "Organizations API",
-    description: "Organizations, members, invitations, onboarding, service keys, and outbound webhooks.",
-  },
-  apps: {
-    title: "Apps and connections API",
-    description: "Apps, app connections, API keys, model policies, caps, and connection lifecycle operations.",
-  },
   oauth: {
     title: "OAuth API",
-    description: "Authorization Code with PKCE, consent decisions, token exchange, and revocation operations.",
+    description: "Authorization, code exchange, and token revocation for application clients.",
   },
   "product-users": {
     title: "Product users and credits API",
-    description: "Product-user lookup, upsert, status, usage, caps, credit balances, grants, and revocation operations.",
-  },
-  wallet: {
-    title: "Wallet and payments API",
-    description: "Wallet balances, ledger entries, top-up checkout, purchase status, and promotion redemption.",
-  },
-  caps: {
-    title: "Caps API",
-    description: "Create, list, replace, and delete organization, member, connection, and product-user caps.",
+    description: "Service-key profile, allowance, credit, and grant operations by external user ID.",
   },
   usage: {
-    title: "Usage and dashboard API",
-    description: "Usage events, summaries, time series, dashboard views, and API key spend.",
+    title: "Key usage API",
+    description: "Inspect the selected inference key's connection cap and spend.",
   },
   models: {
-    title: "Models and health API",
-    description: "Routable model discovery and service health operations.",
-  },
-  notifications: {
-    title: "Notification settings API",
-    description: "Read and update the current dashboard user's notification preferences.",
+    title: "Public model catalog API",
+    description: "Inspect model capabilities and route status.",
   },
 };
 
 function pageFor(route) {
-  if (route.startsWith("/notification-settings")) return "notifications";
-  if (route.startsWith("/product-users")) return "product-users";
-  if (route.startsWith("/wallet")) return "wallet";
-  if (route.startsWith("/caps")) return "caps";
-  if (route.startsWith("/dashboard-api") || route.startsWith("/inference-keys")) return "usage";
-  if (route.startsWith("/models") || route.startsWith("/health")) return "models";
-  if (route.startsWith("/oauth")) return "oauth";
-  if (route.startsWith("/auth") || route === "/me") return "authentication";
-  if (route.startsWith("/orgs") || route.startsWith("/onboarding")) return "organizations";
-  if (route.startsWith("/apps") || route.startsWith("/app-connections")) return "apps";
-  throw new Error("No API reference page for " + route);
+  if (route.startsWith("/product-users/")) return "product-users";
+  if (route === "/inference-keys/usage") return "usage";
+  if (route === "/models") return "models";
+  if (route.startsWith("/oauth/")) return "oauth";
+  throw new Error("No application reference page for " + route);
 }
 
-function authFor(route, method) {
-  if (route.startsWith("/health")) return "none";
-  if (route.startsWith("/inference-keys")) return "api_key";
-  if (route.startsWith("/product-users/by-external-id")) return "service_key";
-  if (route === "/oauth/authorize") return "none";
+function authFor(route) {
+  if (route.startsWith("/product-users/")) return "service_key";
+  if (route === "/inference-keys/usage") return "api_key";
   if (route === "/oauth/token" || route === "/oauth/revoke") return "oauth_client";
-  if (route.startsWith("/oauth/authorization-requests")) return "dashboard_session";
-  const publicAuthRoutes = new Set([
-    "POST /auth/signup",
-    "POST /auth/login",
-    "POST /auth/email/verify",
-    "POST /auth/email/resend-code",
-    "POST /auth/password/forgot",
-    "POST /auth/password/reset",
-  ]);
-  if (publicAuthRoutes.has(method + " " + route)) return "none";
-  return "dashboard_session";
+  return "none";
 }
 
 function authDescription(auth) {
   if (auth === "service_key") {
-    return "Send an organization service key in " + backtick + "Authorization: Bearer zrv_svc_..." + backtick + ".";
+    return "Send a server-side service key in " + backtick + "Authorization: Bearer zrv_svc_..." + backtick;
   }
-  if (auth === "api_key" || auth === "inference_key") {
-    return "Send an API key in " + backtick + "Authorization: Bearer zrv_..." + backtick + ".";
-  }
-  if (auth === "dashboard_session") {
-    return "Use the HTTP-only dashboard session cookie. State-changing requests also require " + backtick + "X-CSRF-Token" + backtick + " and an allowed " + backtick + "Origin" + backtick + ".";
+  if (auth === "api_key") {
+    return "Send an inference key in " + backtick + "Authorization: Bearer zrv_..." + backtick;
   }
   if (auth === "oauth_client") {
-    return "Send the form fields required by the OAuth client contract. Confidential clients include their client secret; public clients omit it.";
+    return "Send form fields as described in [Token exchange](/oauth/token-exchange) or [Revocation](/oauth/revocation). Confidential clients include their client secret. Public clients omit it";
   }
-  return "This operation does not require an existing Zorveus credential.";
+  return "This operation does not require an application API credential";
 }
 
 function sentenceCase(value) {
@@ -189,10 +160,12 @@ function parameterBlock(parameter) {
 }
 
 function requestBlock(operation) {
-  const body = operation.requestBody?.content?.["application/json"]?.schema;
+  const content = operation.requestBody?.content;
+  const isForm = Boolean(content?.["application/x-www-form-urlencoded"]);
+  const body = (content?.["application/json"] || content?.["application/x-www-form-urlencoded"])?.schema;
   if (!body) return "";
   const fields = fieldsFromSchema(body);
-  const lines = ["### JSON body", ""];
+  const lines = [isForm ? "### Form fields" : "### JSON body", ""];
   if (fields.length === 0) {
     lines.push("Request schema: " + backtick + (resolve(body).schemaName || schemaType(body)) + backtick + ".");
   } else {
@@ -236,11 +209,10 @@ function responseBlock(operation) {
 
 const grouped = Object.fromEntries(Object.keys(pageConfig).map((name) => [name, []]));
 for (const [route, pathItem] of Object.entries(schema.paths)) {
-  if (privatePrefixes.some((prefix) => route.startsWith(prefix))) continue;
-  if (route.split("/").includes("routing-keys")) continue;
-  if (route.startsWith("/product-users") && !route.startsWith("/product-users/by-external-id")) continue;
+  const allowedMethods = publicOperations.get(route);
+  if (!allowedMethods) continue;
   for (const [method, operation] of Object.entries(pathItem)) {
-    if (!methods.has(method)) continue;
+    if (!methods.has(method) || !allowedMethods.has(method)) continue;
     grouped[pageFor(route)].push({ route, method: method.toUpperCase(), operation });
   }
 }
@@ -254,12 +226,12 @@ for (const [page, operations] of Object.entries(grouped)) {
     "description: " + config.description,
     "---",
     "",
-    "This reference includes dashboard routes, which are not application integration endpoints. Service-key integration supports only product-user operations under /product-users/by-external-id. Configure apps, connections, caps, provider credentials, and webhooks in the dashboard.",
+    "This generated draft covers application integration endpoints. Review it alongside the curated guides. Configure apps, connections, caps, provider credentials, and webhooks in the dashboard",
     "",
   ];
 
   for (const { route, method, operation } of operations) {
-    const auth = authFor(route, method);
+    const auth = authFor(route);
     lines.push(
       "## " + sentenceCase(operation.summary || method + " " + route),
       "",
@@ -283,4 +255,4 @@ for (const [page, operations] of Object.entries(grouped)) {
   fs.writeFileSync(path.join(outputDirectory, page + ".mdx"), lines.join("\n").trim() + "\n");
 }
 
-console.log("Generated " + Object.values(grouped).reduce((total, entries) => total + entries.length, 0) + " public operations.");
+console.log("Generated " + Object.values(grouped).reduce((total, entries) => total + entries.length, 0) + " integration operations.");

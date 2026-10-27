@@ -1,16 +1,8 @@
 ---
-title: Apps & Connections API
-description: Configure apps and connections in the Zorveus dashboard.
+title: App setup
+description: Create your app and configure its connections in the dashboard.
 ---
 
-Apps are a unit for inference categorization and billing. Each app has a unique `app_id` and is associated with an organization. Apps can be connected to external services via OAuth or API keys.
-There are two concepts where apps are used:
-1. **Developer Apps**: These are apps that are created by developers and can be connected to external services via OAuth. They can be used to make inference requests to the Zorveus API.
-2. **Apps by Businesses**: These are apps created by business organizations and are used for metering product users.
+Create your app and configure its connections in the dashboard. See [the guide](/startups/apps)
 
-Every API key is associated with an app connection under an app. The API key is used to make inference requests to the Zorveus API. The API key can be created by the app owner or by the organization that owns the app.
-
-
-## Configure apps and connections
-
-Create and manage apps, connections, API keys, model policies, and spending caps in the dashboard. App-connection creation is not a supported service-key operation.
+The SDK focuses on inference, OAuth, and customer allowance. App registration, connection setup, and key management are part of your dashboard setup workflow

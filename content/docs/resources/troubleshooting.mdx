@@ -3,7 +3,7 @@ title: Troubleshooting
 description: Diagnose inference, product-user, service-key, provider, streaming, and OAuth failures.
 ---
 
-Zorveus product API errors use an `error` object with a stable `code` and a safe `message`. Log the HTTP status, error code, and request ID. Never log a key, OAuth code, provider secret, or prompt.
+Zorveus product API errors use an `error` object with a stable `code` and a safe `message`. Log the HTTP status, error code, and request ID. Never log a key, OAuth code, provider secret, or prompt
 
 ```json
 {
@@ -16,7 +16,7 @@ Zorveus product API errors use an `error` object with a stable `code` and a safe
 
 ## Inference authentication fails
 
-For a missing or malformed API key, the API returns `zorveus_malformed_or_missing_key`. For an unknown key, it returns `zorveus_unknown_key`. An inactive key returns `zorveus_key_inactive`.
+For a missing or malformed API key, the API returns `zorveus_malformed_or_missing_key`. For an unknown key, it returns `zorveus_unknown_key`. An inactive key returns `zorveus_key_inactive`
 
 Check that `Authorization` contains the complete API key:
 
@@ -24,25 +24,25 @@ Check that `Authorization` contains the complete API key:
 Authorization: Bearer zrv_your_api_key
 ```
 
-If the key was revoked or lost, rotate it from the app connection and replace the backend secret. Zorveus shows the new raw key only once.
+If the key was revoked or lost, rotate it from the app connection and replace the backend secret. Zorveus shows the new raw key only once
 
 ## A model is rejected
 
-`zorveus_model_not_allowed` means the requested model is outside the API key's model policy. `zorveus_unsupported_model` means Zorveus cannot route the model.
+`zorveus_model_not_allowed` means the requested model is outside the API key's model policy. `zorveus_unsupported_model` means Zorveus cannot route the model
 
-List the models available to the current key with `GET /v1/models`. Then update the app connection policy or choose a returned model ID. Do not assume that every provider model is routable.
+List the models available to the current key with `GET /v1/models`. Then update the app connection policy or choose a returned model ID. Do not assume that every provider model is routable
 
 ## Wallet funds are insufficient
 
-`zorveus_reservation_insufficient_balance` means the selected organization cannot reserve enough wallet value for the request. Top up the wallet or configure an eligible provider credential for Bring Your Own Key routing.
+`zorveus_reservation_insufficient_balance` means the selected organization cannot reserve enough wallet value for the request. Top up the wallet or configure an eligible provider credential for Bring Your Own Key routing
 
-A provider credential does not guarantee that the request will use it. Its status, model policy, routing priority, and app-connection access must all match.
+A provider credential does not guarantee that the request will use it. Its status, model policy, routing priority, and app-connection access must all match
 
 ## A spending cap blocks the request
 
-`zorveus_cap_exceeded` (HTTP 403) means an organization, app-connection, or product-user cap would be exceeded. Inspect the cap named in the error message.
+`zorveus_cap_exceeded` (HTTP 403) means an organization, app-connection, or product-user cap would be exceeded. Inspect the cap named in the error message
 
-An app-connection cap applies to the connection's combined usage. A product-user cap applies only to that product user.
+For attributed Business traffic, a connection cap applies separately to each product user. Under `enforce`, unattributed traffic is evaluated separately. A direct product-user cap belongs to one user in the app
 
 ## Product-user allowance blocks the request
 
@@ -71,10 +71,10 @@ When a product user exhausts their base cap and active credits under an enforced
 }
 ```
 
-In official OpenAI and Zorveus SDK clients, this error raises `openai.PermissionDeniedError`:
+The OpenAI Python SDK raises `openai.PermissionDeniedError` for HTTP `403`. Native SDKs expose their own error types. Check the structured code:
 
 - `zorveus_product_user_allowance_insufficient` (HTTP 403): The product user lacks enough remaining base allowance plus promotional credits. Grant more credit, raise the base cap, or wait for the cap period to reset. Legacy clients may still receive `zorveus_product_user_credits_insufficient`.
-- `zorveus_product_user_credits_required` (HTTP 400): The connection requires product-user attribution, but the request omitted `user` or `metadata.external_user_id`.
+The `enforce` credit mode does not require a customer ID. Require attribution in your own backend when every customer request must have one
 
 ## Product-user details do not appear
 
@@ -93,11 +93,11 @@ Use the nested raw request shape:
 }
 ```
 
-Fields such as `metadata.name`, `metadata.email`, and `metadata.user_metadata` are not canonical product-user fields. The supported flat compatibility fields are `product_user_display_name`, `product_user_email`, and `product_user_metadata`.
+Fields such as `metadata.name`, `metadata.email`, and `metadata.user_metadata` are not canonical product-user fields. The supported flat compatibility fields are `product_user_display_name`, `product_user_email`, and `product_user_metadata`
 
 ## A service-key request fails
 
-Service keys start with `zrv_svc_`. They authenticate supported management routes at `https://api.zorveus.com`, without an `/api/v1` prefix.
+Service keys start with `zrv_svc_`. They authenticate supported management routes at `https://api.zorveus.com`, without an `/api/v1` prefix
 
 | Code | Meaning | Fix |
 | --- | --- | --- |
@@ -108,18 +108,14 @@ Service keys start with `zrv_svc_`. They authenticate supported management route
 
 ## Streaming stops before completion
 
-Read Server-Sent Events until the stream emits `data: [DONE]` or closes. Preserve incomplete lines between network chunks. If the connection closes early, record the request ID and treat the result as incomplete.
+Read Server-Sent Events until the stream emits `data: [DONE]` or closes. Preserve incomplete lines between network chunks. If the connection closes early, record the request ID and treat the result as incomplete
 
-Retry only when your application can tolerate a second provider request. A retry can produce another billable completion.
+Retry only when your application can tolerate a second provider request. A retry can produce another billable completion
 
 ## OAuth redirects fail
 
-`zorveus_redirect_uri_mismatch` means the authorization request or token exchange used a URI that does not exactly match a registered redirect URI. Check the scheme, host, port, path, query, and trailing slash.
+`zorveus_redirect_uri_mismatch` means the authorization request or token exchange used a URI that does not exactly match a registered redirect URI. Check the scheme, host, port, path, query, and trailing slash
 
-For PKCE failures, keep the original verifier in a secure server session. Send the same `redirect_uri` and verifier during the token exchange. Authorization codes are single-use and expire.
+For PKCE failures, keep the original verifier in a secure server session. Send the same `redirect_uri` and verifier during the token exchange. Authorization codes are single-use and expire
 
-## Browser management requests fail
-
-Dashboard writes require the HTTP-only session cookie, a current `X-CSRF-Token` header, and an allowed `Origin`. Browser code cannot read or attach the session cookie manually. Send credentials with the request and obtain a CSRF token from `GET /auth/csrf`.
-
-If the problem continues, include the request ID, endpoint, HTTP status, and stable error code when you contact [support](/resources/support).
+If the problem continues, include the request ID, endpoint, HTTP status, and stable error code when you contact [support](/resources/support)

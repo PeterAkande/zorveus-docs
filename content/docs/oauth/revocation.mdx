@@ -16,3 +16,35 @@ curl -X POST https://api.zorveus.com/oauth/revoke \
 ```
 
 The response contains `revoked: true` when an active connection was revoked. Repeating revocation can return `revoked: false`. Remove the local token in either case and send the user through authorization again if they reconnect.
+
+## Revoke with the SDK
+
+Use the OAuth client utility, not a Business service client. Pass the access token that belongs to the current local user
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import { ZorveusOAuth } from "@zorveus/sdk";
+
+const result = await ZorveusOAuth.revokeToken({
+	clientId: "YOUR_CLIENT_ID",
+	token: storedUserAccessToken,
+});
+console.log(result.revoked);
+```
+
+```python
+from zorveus import ZorveusOAuth
+
+result = ZorveusOAuth.revoke_token(
+	client_id="YOUR_CLIENT_ID",
+	token=stored_user_access_token,
+)
+print(result.revoked)
+```
+
+</CodeGroup>
+
+These examples are for public clients. A confidential backend also supplies `clientSecret` in TypeScript or `client_secret` in Python. Remove the local token after a confirmed response, including `revoked: false`. On a network error, preserve the uncertain state and retry revocation before claiming that remote access has ended
+
+The React hook's `disconnect()` clears local session state. Revoke with `ZorveusOAuth.revokeToken()` first when your Disconnect action must revoke remote access

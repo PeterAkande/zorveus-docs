@@ -17,13 +17,8 @@ test('provider setup guides use the dashboard, not credential API requests', () 
   }
 });
 
-test('API reference generation excludes dashboard credential routes', () => {
-  const script = fs.readFileSync('scripts/generate-api-reference.mjs', 'utf8');
-  assert.match(script, /const privatePrefixes = \[[^\]]*"\/provider-credentials"/);
-  assert.doesNotMatch(script, /"provider-credentials":\s*\{/);
-});
 
-test('documented service-key endpoints use external product-user IDs only', () => {
+test('documented service-key actions focus on customers and allowance', () => {
   const files = fs.readdirSync('content/docs', { recursive: true }).filter((name) => name.endsWith('.mdx'));
   let count = 0;
   for (const file of files) {
@@ -39,35 +34,48 @@ test('documented service-key endpoints use external product-user IDs only', () =
   assert.ok(count > 0);
 });
 
-test('API reference generation preserves the confirmed public integration boundary', () => {
-  const script = fs.readFileSync('scripts/generate-api-reference.mjs', 'utf8');
-  assert.match(script, /const privatePrefixes = \[[^\]]*"\/app-connections\/org-programmatic"/);
-  assert.match(script, /if \(route\.startsWith\("\/product-users"\) && !route\.startsWith\("\/product-users\/by-external-id"\)\) continue;/);
-});
 
 
-test('API reference generation omits routing management from a full backend schema', () => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'zorveus-routing-docs-'));
+test('API reference drafts stay within the documented integration scope', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'zorveus-reference-'));
   try {
-    const outputDirectory = path.join(directory, 'content/docs/api-reference');
-    fs.mkdirSync(outputDirectory, { recursive: true });
-    const routingPaths = [
-      '/orgs/{org_id}/routing-keys',
+    const publicPaths = {
+      '/models': { get: { summary: 'List models' } },
+      '/inference-keys/usage': { get: {} },
+      '/oauth/authorize': { get: {} },
+      '/oauth/token': { post: {} },
+      '/oauth/revoke': { post: {} },
+      '/product-users/by-external-id': { get: {}, put: {} },
+      '/product-users/by-external-id/credit-summary': { get: {} },
+      '/product-users/by-external-id/allowance-debt': { get: {} },
+      '/product-users/by-external-id/credit-grants': { get: {}, post: {} },
+    };
+    const privatePaths = [
+      '/auth/login', '/auth/csrf', '/me', '/orgs', '/apps', '/wallet', '/caps',
+      '/dashboard-api/usage', '/notification-settings', '/provider-credentials',
+      '/app-connections/org-programmatic', '/product-users/{product_end_user_id}',
+      '/oauth/authorization-requests/{id}/decision',
       '/orgs/{org_id}/apps/{app_id}/routing-keys',
-      '/orgs/{org_id}/apps/{app_id}/routing-keys/batch',
-      '/orgs/{org_id}/apps/{app_id}/routing-keys/{api_key_id}',
-      '/orgs/{org_id}/apps/{app_id}/routing-keys/{api_key_id}/members',
-      '/orgs/{org_id}/apps/{app_id}/routing-keys/{api_key_id}/rotate',
-      '/orgs/{org_id}/apps/{app_id}/routing-keys/{api_key_id}/revoke',
+      '/product-users/by-external-id/future-dashboard-route',
     ];
-    const paths = Object.fromEntries(routingPaths.map((route) => [route, { get: {}, post: {}, put: {} }]));
     const schemaPath = path.join(directory, 'openapi.json');
-    fs.writeFileSync(schemaPath, JSON.stringify({ paths: { ...paths, '/health': { get: {} } } }));
-    execFileSync(process.execPath, [path.resolve('scripts/generate-api-reference.mjs'), schemaPath], { cwd: directory });
+    fs.writeFileSync(schemaPath, JSON.stringify({ paths: {
+      ...Object.fromEntries(privatePaths.map((route) => [route, { get: {}, post: {} }])),
+      ...publicPaths,
+    } }));
+    const outputDirectory = path.join(directory, 'drafts');
+    execFileSync(process.execPath, [path.resolve('scripts/generate-api-reference.mjs'), schemaPath, outputDirectory]);
     const output = fs.readdirSync(outputDirectory)
       .map((name) => fs.readFileSync(path.join(outputDirectory, name), 'utf8')).join('\n');
-    assert.match(output, /path="\/health"/);
-    for (const route of routingPaths) assert.ok(!output.includes(route), route);
+    for (const [route, methods] of Object.entries(publicPaths)) {
+      for (const method of Object.keys(methods)) {
+        assert.ok(output.includes(`method="${method.toUpperCase()}" path="${route}"`), `${method} ${route}`);
+      }
+    }
+    for (const route of privatePaths) assert.ok(!output.includes(`path="${route}"`), route);
+    assert.match(output, /path="\/models" auth="none"/);
+    assert.match(output, /path="\/product-users\/by-external-id" auth="service_key"/);
+    assert.match(output, /path="\/inference-keys\/usage" auth="api_key"/);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

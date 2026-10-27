@@ -1,6 +1,40 @@
 ---
-title: Idempotency
-description: Retry only the operations that define an idempotency contract.
+title: Idempotency and retries
+description: Understand which requests can be repeated and how to recover uncertain credit grants.
 ---
 
-Idempotency is endpoint-specific. Do not assume that every write  is idempotent
+Zorveus does not provide a universal `Idempotency-Key` contract. Credit-grant retries use the JSON field `external_reference`. That guarantee does not apply to inference
+
+## Read requests
+
+Repeat profile, credit-summary, grant-list, model-discovery, and key-usage reads as needed. Their results can change between requests
+
+## Profile updates
+
+`PUT /product-users/by-external-id` creates or updates the same user for the app and external ID. Repeating the same profile values does not create a second user. This does not make a separate credit-grant request idempotent
+
+## Credit grants
+
+On a backend with migration `20261027_0062`, include `external_reference` in `POST /product-users/by-external-id/credit-grants`. Use a stable purchase or award ID, such as `purchase:purchase_123`. Repeating the same reference and normalized grant parameters returns the existing grant, including under concurrent requests
+
+References are case-sensitive, have surrounding whitespace removed, and contain 1 to 255 characters after trimming. Uniqueness covers the organization and app within credit-grant creation. It does not depend on the service-key secret, user, or grant source. Include your own prefix to distinguish purchases, welcome awards, and imports
+
+The compared parameters are external user ID, numeric amount, currency, source, reason, expiry, and all metadata. User IDs and reasons are trimmed, currency is trimmed and uppercased, equivalent decimal amounts compare equally, and expiry timestamps compare in UTC. A timestamp without an offset is interpreted as UTC. JSON object key order does not matter. Missing metadata and an empty object are different values. Display name and email are excluded and are not updated on replay
+
+Changed parameters return HTTP 409 with `zorveus_product_user_credit_reference_conflict`. Do not create a fresh random reference to bypass that conflict. Correct the reused purchase reference or investigate the original operation
+
+There is no retry-cache expiry. The reference stays attached to an expired, exhausted, or revoked grant. A retry returns its current lifecycle state and remaining amount, rather than restoring the original spendable balance. Profile and summary fields are current reads, not a cached copy of the first HTTP response
+
+After response loss, repeat the original POST with the same reference and parameters. You can also read the grant directly through `GET /product-users/by-external-id/credit-grants/by-reference` using `app_id`, `external_user_id`, and `external_reference`. This lookup requires `product_users:read` or a scope that includes it and never creates a user
+
+A lookup returning 404 does not prove an in-flight transaction failed. Repeat the original referenced POST to wait for the original transaction or create the grant if it rolled back. A timeout while waiting remains an unknown outcome, so keep the same reference on the next attempt
+
+Calls without `external_reference`, or with null, retain independent creation behavior. Neither `reason`, metadata, nor an idempotency header supplies the guarantee. The SDKs expose the reference and lookup operation without enabling automatic grant POST retries by default. Deploy the backend migration and API before relying on retries. See [Grant credits after a payment](/startups/billing-integration)
+
+## Inference
+
+A repeated inference request can generate new output and another charge. A request ID or reservation ID helps trace a call but does not deduplicate a new public request. Bound retries and treat a disconnected stream as an uncertain provider outcome
+
+## OAuth
+
+Authorization codes are single-use. If token exchange succeeds but your client loses the response, repeating the exchange can return `zorveus_oauth_code_consumed`. Start authorization again if you cannot recover the first token. Repeating revocation can return `revoked: false` for an already revoked connection

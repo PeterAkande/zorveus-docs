@@ -1,87 +1,18 @@
 ---
-title: OAuth API
-description: Authorization Code with PKCE, consent decisions, token exchange, and revocation operations.
+title: OAuth endpoints
+description: Authorize a user, exchange a code, and revoke an inference token.
 ---
 
-## Authorize
+OAuth uses Authorization Code with S256 PKCE. Register the app in the dashboard, then use these endpoints from your application
 
-<ApiEndpoint method="GET" path="/oauth/authorize" auth="none" />
+| Operation | Endpoint | Contract |
+| --- | --- | --- |
+| Start authorization | Browser navigation to `https://app.zorveus.com/oauth/authorize` | [Authorization request](/oauth/authorization-request) |
+| Exchange a code | `POST https://api.zorveus.com/oauth/token` | [Form fields and response](/oauth/token-exchange) |
+| Revoke a token | `POST https://api.zorveus.com/oauth/revoke` | [Revocation](/oauth/revocation) |
 
-This operation does not require an existing Zorveus credential.
+Token exchange and revocation accept `application/x-www-form-urlencoded`. Confidential clients include `client_secret` from their backend. Public clients omit it. Both client types use PKCE for authorization
 
-### Parameters
+The returned `access_token` is an inference credential. It does not grant dashboard access or product-user management permissions. There is no refresh-token grant. Use [reauthorization](/oauth/reauthorization) to replace a token or change consent
 
-<ParamField name="response_type" type="string" required>
-  Filters or selects the request by response type.
-</ParamField>
-
-<ParamField name="client_id" type="string" required>
-  Filters or selects the request by client id.
-</ParamField>
-
-<ParamField name="redirect_uri" type="string" required>
-  Filters or selects the request by redirect uri.
-</ParamField>
-
-<ParamField name="scope" type="string" required>
-  Filters or selects the request by scope.
-</ParamField>
-
-<ParamField name="code_challenge" type="string" required>
-  Filters or selects the request by code challenge.
-</ParamField>
-
-<ParamField name="code_challenge_method" type="string" required>
-  Filters or selects the request by code challenge method.
-</ParamField>
-
-<ParamField name="state" type="string">
-  Filters or selects the request by state.
-</ParamField>
-
-
----
-
-## Revoke
-
-<ApiEndpoint method="POST" path="/oauth/revoke" auth="oauth_client" />
-
-Revoke the API key issued.
-
----
-
-## Token
-
-<ApiEndpoint method="POST" path="/oauth/token" auth="oauth_client" />
-
-After the code has been gotten from the `/oauth/authorize` endpoint, you can exchange it for an access token (Which is the API key that can be used to make llm inference request to the Zorveus API). No refresh token is issued, so the access token will need to be re-issued after it expires.
-
-### Responses
-
-#### 200 Successful Response
-
-<ResponseField name="access_token" type="string" required>
-  Returns the access token value. This is the API key that can be used to make llm inference request to the Zorveus API.
-</ResponseField>
-
-<ResponseField name="api_base" type="string" required>
-  Returns the api base value.
-</ResponseField>
-
-<ResponseField name="app_connection_id" type="string" required>
-  Returns the app connection id value.
-</ResponseField>
-
-<ResponseField name="expires_in" type="integer" required>
-  Returns the expires in value.
-</ResponseField>
-
-<ResponseField name="scope" type="string" required>
-  Returns the scope value.
-</ResponseField>
-
-<ResponseField name="token_type" type="string" required>
-  Returns the token type value.
-</ResponseField>
-
----
+Start with the [OAuth app quickstart](/getting-started/oauth-app-quickstart). See [OAuth errors](/oauth/errors) for the JSON error contract

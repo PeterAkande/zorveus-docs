@@ -1,17 +1,10 @@
 {
-  "title": "API Reference",
+  "title": "API reference",
   "pages": [
     "overview",
-    "authentication",
-    "organizations",
-    "apps",
-    "oauth",
     "product-users",
-    "provider-credentials",
-    "wallet",
-    "caps",
+    "oauth",
     "usage",
-    "models",
-    "notifications"
+    "models"
   ]
 }
