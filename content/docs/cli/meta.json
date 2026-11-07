@@ -1,0 +1,14 @@
+{
+  "title": "CLI & MCP",
+  "pages": [
+    "overview",
+    "installation",
+    "authentication",
+    "quickstart",
+    "manifest",
+    "examples",
+    "environments",
+    "commands",
+    "mcp"
+  ]
+}

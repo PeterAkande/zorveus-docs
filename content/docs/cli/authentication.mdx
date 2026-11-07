@@ -1,0 +1,54 @@
+---
+title: Sign in and select an organization
+description: Authorize the CLI through browser consent and manage its shared local session.
+---
+
+```sh
+zorveus login
+zorveus whoami
+zorveus apps list
+```
+
+Login opens the Zorveus dashboard, where you choose an organization and approve access. It uses `https://api.zorveus.com` and `https://app.zorveus.com` by default.
+
+By default, login requests all CLI management permissions for apps, inference connections, routing keys, spending caps, service keys, and provider credentials. These include creation, updates, credential rotation, and supported deletion or revocation operations. Choose the organization and approve access in the browser. For a local server, use `zorveus login --local`.
+
+To request fewer permissions, pass an explicit scope list. For example, to view apps only:
+
+```sh
+zorveus login --scope "apps:read"
+```
+
+The CLI keeps one saved login. Signing in again replaces it. To request different permissions or switch organizations, run `login` again. Your organization role still determines which operations you can perform.
+
+Use `login --no-browser` to print the authorization URL and open it in your preferred browser. To end the CLI session:
+
+```sh
+zorveus logout
+```
+
+## Use a local backend
+
+To connect to a local Zorveus server with its management API on port 8000 and dashboard on port 3000:
+
+```sh
+zorveus login --local
+zorveus whoami
+zorveus apps list
+```
+
+`--local` selects `http://localhost:8000` and `http://localhost:3000`. Subsequent commands use the saved login's API origin. Local login requests the same full set of CLI permissions by default. Use `--scope` to request fewer permissions.
+
+For other environments, use `--api-url` and `login --dashboard-url`. Custom HTTP origins must use loopback addresses and require `--allow-insecure-loopback`.
+
+## Credential storage and permissions
+
+Login and credential creation require an available OS credential store: Keychain on macOS, Secret Service on Linux, or Credential Manager on Windows. Tokens and generated secrets stay out of manifests and command output.
+
+The default login requests all CLI management scopes. Browser consent chooses the organization and approved permissions; your organization role still applies. If a command reports `authorization_required`, sign in again with the required scopes. Existing consent does not gain new scopes automatically.
+
+Renewal is optional during browser consent. Without renewal, sign in again after the access token expires. The CLI and MCP server coordinate refreshes through the same credential lock. A new successful login replaces the saved login for both.
+
+Login requires an interactive terminal. Scripts and coding agents can use the saved login, but cannot complete browser consent through `--non-interactive`.
+
+Continue with [your first app](/cli/quickstart) or [connect a coding agent](/cli/mcp).

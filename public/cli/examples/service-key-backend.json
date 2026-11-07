@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "app": {
+    "name": "Customer assistant",
+    "allowedModels": [
+      "*"
+    ]
+  },
+  "serviceKeys": {
+    "customers": {
+      "name": "Customer management backend",
+      "scopes": [
+        "product_users:read",
+        "product_users:write"
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "app": {
+    "name": "Internal assistant",
+    "allowedModels": [
+      "*"
+    ]
+  },
+  "keys": {
+    "backend": {
+      "name": "Backend",
+      "creditMode": "enforce_if_present",
+      "overrunPolicy": "limit_output",
+      "cap": {
+        "amount": "100",
+        "currency": "USD",
+        "period": "monthly"
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "app": {
+    "name": "My first app",
+    "allowedModels": [
+      "*"
+    ]
+  }
+}

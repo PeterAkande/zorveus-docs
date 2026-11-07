@@ -1,0 +1,111 @@
+---
+title: Command reference
+description: Look up CLI commands, flags, structured results, exit codes, and common errors.
+---
+
+Use `zorveus <command> --help` to see the flags for an installed command. Relative paths use the current working directory. The MCP server can set its own base directory with `--directory`.
+
+## Structured results and scripts
+
+Use `--json` for structured results and `--non-interactive` to prevent interactive login:
+
+```sh
+zorveus status --config zorveus.json --json --non-interactive
+```
+
+JSON results include `version`, `ok`, `command`, and either `result` or `error`. Diagnostics go to stderr. Status exits zero after a successful read even when configuration differs, so check `result.in_sync` in scripts.
+
+Normal terminal errors show a readable message. Use `--log-level debug` when you need additional command diagnostics on stderr; debug output also excludes credentials.
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Command succeeded |
+| 1 | Operational failure or incomplete logout/login replacement |
+| 2 | Invalid arguments or manifest |
+| 3 | Login or additional permissions required |
+| 4 | Target mismatch, stale plan, or changed manifest |
+| 5 | Incomplete apply or uncertain mutation outcome |
+
+Login requires an interactive terminal and browser consent. Other commands can use a saved login with an available OS credential store. Renewal is optional during consent; without it, sign in again after the access token expires. Hosts without an OS credential store are not supported.
+
+## Command reference
+
+| Command | Purpose |
+| --- | --- |
+| `login`, `whoami`, `logout` | Manage your CLI session |
+| `apps list` | List apps in the selected organization |
+| `init`, `validate` | Create and check a manifest offline |
+| `plan`, `apply` | Review and apply configuration changes |
+| `import` | Adopt an existing app into a manifest |
+| `clone` | Prepare a separate app configuration |
+| `promote` | Update a target JSON locally with source settings and target IDs |
+| `mcp serve` | Expose account, manifest, provisioning, and service-key operations to a local MCP client over stdio |
+| `status` | Compare the manifest with remote resources |
+| `service-keys list`, `service-keys revoke` | Inspect and revoke organization service keys |
+| `completion` | Generate shell completion scripts |
+
+Run `zorveus <command> --help` for flags. See the [manifest reference](/cli/manifest) and [JSON Schema](https://docs.zorveus.com/cli/manifest-v1.schema.json) for configuration details.
+
+## Command flags
+
+| Command | Flags |
+| --- | --- |
+| `login` | `--scope`, `--dashboard-url`, `--timeout` default `5m`, `--no-browser` |
+| `apps list` | `--limit` default `1000`, range `1` to `1000` |
+| `init` | `--config` default `zorveus.json`, `--name` default `My app`, repeatable `--model` default `*` |
+| `validate`, `status` | `--config` default `zorveus.json` |
+| `plan` | `--config`, optional `--from`, `--keep-names` with `--from`, optional `--out` |
+| `apply` | `--plan` default `zorveus.plan.json`, required `--yes`, optional `--allow-delete` |
+| `import` | `--app-id`, `--config` default `zorveus.json`; destination must be new |
+| `clone` | `--from`, `--to`, optional `--name`; destination must be new |
+| `promote` | `--from`, `--to`, optional `--keep-names`; target must contain an existing app ID |
+| `service-keys list` | No command-specific flags |
+| `service-keys revoke` | `--id`, required `--yes` |
+| `mcp serve` | Optional `--directory`, default current working directory |
+| `completion` | Shell argument: `bash`, `zsh`, `fish`, or `powershell` |
+
+A plan's default filename follows its target manifest. For example, `zorveus.prod.json` produces `zorveus.prod.plan.json`. Apply uses the supplied saved plan; pass `--plan` for filenames other than its default.
+
+## Global flags
+
+| Flag | Behavior |
+| --- | --- |
+| `--json` | Write one structured command result; MCP mode keeps its protocol output instead |
+| `--non-interactive` | Refuse interactive login; authenticated commands can use the saved login |
+| `--local` | Use the management API on `http://localhost:8000` and the login dashboard on `http://localhost:3000` |
+| `--api-url` | Override or require a management API origin; remote operations must match the saved login |
+| `--allow-insecure-loopback` | Permit a custom HTTP origin on localhost or a loopback address |
+| `--log-level` | `debug`, `info`, `warn`, or `error`; default `info` |
+| `--no-color` | Disable terminal plan colors |
+| `--help` | Show command usage |
+
+Login defaults to `https://api.zorveus.com` and `https://app.zorveus.com`. Subsequent remote commands use the saved login's API origin unless an explicit origin requires a match.
+
+## Service keys
+
+Declare `serviceKeys` in a manifest to create or manage organization service keys. Each entry contains a name and machine scopes, or an existing ID to reuse. Newly generated secrets go to the OS credential store.
+
+Service-key management uses `service_keys:read`, `service_keys:write`, and, for revocation, `service_keys:revoke`. These are included in the default login request. Service-key management requires organization-wide consent.
+
+```sh
+zorveus service-keys list
+zorveus service-keys revoke --id service_example --yes
+```
+
+Revocation affects the key across the organization. Service-key payload scopes describe what the generated key can do; they are separate from the permissions granted to your CLI login.
+
+## Troubleshooting
+
+| Symptom | Action |
+| --- | --- |
+| `zorveus` is not found | Add the installation directory to your shell's `PATH`; see [installation](/cli/installation) |
+| `login_required` | Run `zorveus login`; use `--local` when targeting your local backend |
+| `authorization_required` | Sign in again and approve the scopes named by the error; also check your organization role |
+| Credential store is unavailable | Unlock or configure your OS credential store, then retry |
+| `stale_plan` or a manifest changed | Review the edits and create a fresh plan before starting apply |
+| `apply_pending` or `apply_incomplete` | Keep the saved plan and `.zorveus/` state; inspect the journal and resume the same plan |
+| Status succeeds but reports drift | Check `result.in_sync` in JSON; a successful status read does not mean the configuration matches |
+| A provider input is `unverified` | Make its `secretFromEnv` variable available in the process running status |
+| MCP starts but shows no terminal output | It is waiting for protocol messages; configure your MCP client to launch it |
+
+See [the first-app walkthrough](/cli/quickstart) for safe retry steps and [the MCP guide](/cli/mcp) for client configuration.

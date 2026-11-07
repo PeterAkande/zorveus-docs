@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "app": {
+    "name": "Subscription assistant",
+    "allowedModels": [
+      "*"
+    ]
+  },
+  "keys": {
+    "free": {
+      "name": "Free plan",
+      "creditMode": "enforce",
+      "overrunPolicy": "limit_output",
+      "cap": {
+        "amount": "1",
+        "currency": "USD",
+        "period": "monthly"
+      }
+    },
+    "pro": {
+      "name": "Pro plan",
+      "creditMode": "enforce",
+      "overrunPolicy": "limit_output",
+      "cap": {
+        "amount": "10",
+        "currency": "USD",
+        "period": "monthly"
+      }
+    }
+  },
+  "routingKeys": {
+    "primary": {
+      "name": "Subscription backend",
+      "members": [
+        "free",
+        "pro"
+      ],
+      "defaultSelector": null
+    }
+  }
+}

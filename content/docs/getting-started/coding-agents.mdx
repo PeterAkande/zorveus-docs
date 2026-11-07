@@ -16,6 +16,12 @@ Tell the agent which AI features to integrate and any models you have selected f
 
 The Business prompt adapts the full Zorveus integration-agent prompt. The OAuth version uses a separate workflow so the agent does not apply Business credit management to user-funded connections.
 
+## Connect the agent to your Zorveus account
+
+The [local MCP server](/cli/mcp) lets your coding agent inspect apps, prepare manifests, plan changes, apply approved plans, and manage service keys. It uses the same saved login as the CLI. Complete `zorveus login` in a terminal first; management tokens and generated secrets stay in your OS credential store.
+
+Use the integration prompts above to implement your application. Use MCP to configure its Zorveus resources and inspect the result.
+
 ## Documentation for agents
 
 Use [/llms.txt](https://docs.zorveus.com/llms.txt) for the page index and Markdown source links. The complete prompts are also available as [Business Markdown](/api/integration-prompt?route=business) and [Developer OAuth Markdown](/api/integration-prompt?route=oauth), without the picker UI.

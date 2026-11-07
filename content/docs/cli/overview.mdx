@@ -1,0 +1,49 @@
+---
+title: CLI and MCP
+description: Manage Zorveus apps from your terminal or coding agent with one manifest per app.
+---
+
+Describe your Zorveus app in a JSON manifest, review a plan, and apply the changes. The CLI manages apps, inference keys, routing keys, spending caps, OAuth and consent settings, service keys, and provider credentials.
+
+The local MCP server exposes the same operations to coding agents. Both use your saved CLI login and the existing Zorveus management API.
+
+## Start with your workflow
+
+<CardGroup cols={2}>
+  <Card title="Install the CLI" icon="terminal" href="/cli/installation">
+    Install a prebuilt executable on macOS, Linux, or Windows.
+  </Card>
+  <Card title="Create your first app" icon="rocket" href="/cli/quickstart">
+    Create a manifest, review changes, apply them, and verify an update.
+  </Card>
+  <Card title="Configure a coding agent" icon="terminal" href="/cli/mcp">
+    Connect an MCP client and use the twelve available tools.
+  </Card>
+  <Card title="Move settings to production" icon="layers" href="/cli/environments">
+    Copy development settings while preserving production IDs and optional display names.
+  </Card>
+</CardGroup>
+
+## How the files fit together
+
+| File | Purpose |
+| --- | --- |
+| `zorveus.json` | Desired configuration for one app, with resource IDs recorded after apply |
+| `zorveus.plan.json` | Saved changes to review and apply |
+| `.zorveus/` | Managed-resource state and apply recovery journals beside your manifest |
+
+Use a separate manifest for each app or environment. For example, `zorveus.dev.json` and `zorveus.prod.json` hold distinct app IDs. Their plans are `zorveus.dev.plan.json` and `zorveus.prod.plan.json`.
+
+Keep the resource IDs that apply records. Display names can change without creating replacements. Resource object names such as `keys.backend` connect related settings and match entries between manifests.
+
+## Choose a configuration
+
+The [example manifests](/cli/examples) include complete JSON for an internal tool, subscription tiers, credit-based pricing, OAuth, BYOK, and service keys. Use the [manifest reference](/cli/manifest) to look up individual fields.
+
+## Management and runtime credentials
+
+Sign in through browser consent with `zorveus login`. The CLI saves its delegated management credentials in your OS credential store. They are separate from the inference and service keys your application uses at runtime.
+
+Plan and apply configure resources and policies. Your application's inference requests, customer attribution, payments, and credit grants continue to use their existing [inference](/inference/overview) and [product-user](/startups/product-users) APIs. A spending cap does not buy credits or fund a wallet.
+
+Use the [command reference](/cli/commands) for flags, structured output, exit codes, and troubleshooting.
