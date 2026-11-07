@@ -42,6 +42,8 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 The body value takes precedence over the header. Zorveus records the initial connection without proration
 
+A selected-key allowance read also remembers that connection. Apply a prorated plan change before reading allowance with the new key. The read itself does not apply `prorate_increase`
+
 ## Use a native SDK
 
 These calls run on your server. Configure the Pro plan key, select an allowed model, and get the customer ID from your authenticated session

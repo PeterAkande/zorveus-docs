@@ -109,3 +109,48 @@ A missing profile returns HTTP 404 by default. To create it during the read, sen
 The profile uses an active direct product-user cap, or the user's last applicable connection cap. If a plan change selects a different key, do not reject the new request using an allowance from the old connection
 
 Continue with [allowance periods](/startups/allowance-periods), [credit grants](/startups/credit-grants), and [webhook processing](/platform/webhooks)
+
+
+## Read allowance before the first AI request
+
+Use the service client and pass the inference key selected by your application's subscription logic. For a routing key, supply its member alias or use its configured default. Your database remains the source of the customer's plan
+
+```typescript
+const user = await service.productUsers.getByExternalId({
+	appId,
+	externalUserId: authenticatedUserId,
+	inferenceKey: selectedInferenceOrRoutingKey,
+	keyAlias: selectedRoutingAlias,
+	upsertIfMissing: true,
+});
+console.log(user.allowance?.remaining_credit_units);
+```
+
+```python
+user = service.product_users.get_by_external_id(
+	app_id=app_id,
+	external_user_id=authenticated_user_id,
+	inference_key=selected_inference_or_routing_key,
+	key_alias=selected_routing_alias,
+	upsert_if_missing=True,
+)
+print(user.allowance.remaining_credit_units if user.allowance else None)
+```
+
+Python supports the same arguments on the asynchronous service client. Omit the alias for a direct inference key. Both SDKs send the selection in headers, keeping the service key in `Authorization`
+
+```http
+GET /product-users/by-external-id?app_id=app_example&external_user_id=shop_123
+Authorization: Bearer <organization-service-key>
+X-Zorveus-Inference-Key: <inference-or-routing-key>
+X-Zorveus-Key-Alias: pro
+X-Zorveus-Upsert-Product-User: true
+```
+
+Use an active Business inference key or routing key from the service key's app and organization. OAuth user tokens do not select a product-user policy. An invalid selection returns an error without falling back or creating a user. Read-only product-user permission is sufficient. Keep both credentials on your backend
+
+For a $5 monthly allowance at 1,000 credit units per USD, a first read with no usage or grants returns `allowance.remaining_credit_units: "5000"`. Selecting a new plan key on the next read reflects that policy immediately, using the customer's shared usage and grants. The read saves the validated connection as `last_app_connection_id`, so later reads without a key use it as their fallback. The business still owns the customer's subscription state
+
+For prorated upgrades, [apply the plan change](/startups/prorated-plan-changes) before reading with the new key. The read does not apply proration
+
+Without the optional key, the profile continues to use its direct cap or last-used connection. A user with no usable cap has null allowance. `credits.remaining_credit_units` counts grants only. The complete base-plus-grants total is in `allowance.remaining_credit_units`

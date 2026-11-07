@@ -39,7 +39,7 @@ Store the returned grant identifier against the purchase and mark the purchase f
 
 ## Recover from uncertain results
 
-A timeout can occur after Zorveus creates the grant. On a backend with migration `20261027_0062`, repeat the POST with the same `external_reference` and grant parameters to recover the original grant. This does not repeat credit issuance, debt repayment, or the grant webhook
+A timeout can occur after Zorveus creates the grant. Repeat the POST with the same `external_reference` and grant parameters to recover the original grant. This does not repeat credit issuance, debt repayment, or the grant webhook
 
 To retrieve the current grant without posting again:
 
@@ -62,3 +62,42 @@ For refunds, define the policy for unused credits and already consumed allowance
 Zorveus `wallet.payment_credited` means an organization wallet top-up. It is not proof that your customer paid your application
 
 For `product_user.credits_granted`, identify the customer with `data.external_user_id` and verify `data.app_id`. Refresh [available allowance](/startups/check-allowance) rather than assuming any grant guarantees the next request will succeed. Deduplicate webhook event IDs and tolerate delayed delivery
+
+
+## Credit units and conversion rates
+
+The app's `credit_units_per_usd` is the default for new USD grants. A grant can supply its own rate. Omit the override to save the app default on the new grant
+
+```typescript
+const receipt = await service.productUsers.grantCreditByExternalId({
+	appId,
+	externalUserId: authenticatedUserId,
+	externalReference: `purchase:${verifiedPayment.id}`,
+	amount: "2.000000000000",
+	creditUnitsPerUsd: "1500",
+	source: "purchase",
+});
+console.log(receipt.credit_grant.remaining_credit_units);
+```
+
+```python
+receipt = service.product_users.grant_credit_by_external_id(
+	app_id=app_id,
+	external_user_id=authenticated_user_id,
+	external_reference=f"purchase:{verified_payment.id}",
+	amount="2.000000000000",
+	credit_units_per_usd="1500",
+	source="purchase",
+)
+print(receipt.credit_grant.remaining_credit_units)
+```
+
+The $2 grant above starts with 3,000 credit units. Its saved rate stays fixed when the app default changes. Referenced retries preserve the original rate. Changing an explicitly supplied rate under the same reference returns HTTP 409
+
+Grant creation, lists, reference lookup, and revocation return `credit_units_per_usd` and `remaining_credit_units`. An older grant without a saved rate uses the current app default. If neither rate exists, a positive balance has null credit units. Zero remaining USD returns zero units
+
+`credit_summary.remaining_credit_units` sums all usable grants at their respective rates, independently of the grant list limit. If any positive usable grant has no conversion, the total is null. USD fields such as `remaining_amount` and `available_credits` retain their existing meaning
+
+`allowance.remaining_credit_units` includes the remaining base allowance at the current app rate plus grants permitted by the selected connection. It is the field to display for the customer's total remaining credit units. Credit units and rates are exact decimal strings. Keep their precision when displaying or processing them
+
+Rates must be positive finite decimal values with at most 12 digits before and 12 digits after the decimal point. An explicit grant rate requires USD. Existing grants in other currencies remain supported without conversion

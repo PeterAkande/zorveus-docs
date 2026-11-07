@@ -126,3 +126,12 @@ Optional TypeScript filters are `type`, `from`, `to`, and `currency`. For opt-in
 ## Errors
 
 Malformed or mismatched cursors return HTTP 400 with `zorveus_invalid_product_user_activity_cursor`. A reversed or empty time window returns HTTP 400 with `zorveus_invalid_product_user_activity_filter`. Invalid enum values, limits, currencies, or timestamps return HTTP 422. Authentication and scope errors use the existing service-key contracts. An inaccessible or deleted app returns HTTP 404 without creating a user
+
+
+## Credit units charged
+
+Usage items include nullable `charged_credit_units`. Zorveus saves this quantity at settlement from the actual base and grant allocations. For example, $0.01 from base allowance at 1,000 units/USD plus $0.01 from a grant at 1,500 units/USD produces `charged_credit_units: "25"`
+
+The original `amount` remains the signed USD charge. The unit charge is a positive exact decimal string. Changing app defaults does not recalculate old usage. Reservations and releases are not settled charges. Refunds do not reprice the original usage row
+
+Historical usage without a recorded quantity returns null. A charge with a missing conversion or funding that has not been allocated also returns null rather than a partial total. Known zero charges return zero

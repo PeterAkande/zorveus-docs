@@ -15,11 +15,11 @@ Repeat profile, credit-summary, grant-list, model-discovery, and key-usage reads
 
 ## Credit grants
 
-On a backend with migration `20261027_0062`, include `external_reference` in `POST /product-users/by-external-id/credit-grants`. Use a stable purchase or award ID, such as `purchase:purchase_123`. Repeating the same reference and normalized grant parameters returns the existing grant, including under concurrent requests
+Include `external_reference` in `POST /product-users/by-external-id/credit-grants`. Use a stable purchase or award ID, such as `purchase:purchase_123`. Repeating the same reference and normalized grant parameters returns the existing grant, including under concurrent requests
 
 References are case-sensitive, have surrounding whitespace removed, and contain 1 to 255 characters after trimming. Uniqueness covers the organization and app within credit-grant creation. It does not depend on the service-key secret, user, or grant source. Include your own prefix to distinguish purchases, welcome awards, and imports
 
-The compared parameters are external user ID, numeric amount, currency, source, reason, expiry, and all metadata. User IDs and reasons are trimmed, currency is trimmed and uppercased, equivalent decimal amounts compare equally, and expiry timestamps compare in UTC. A timestamp without an offset is interpreted as UTC. JSON object key order does not matter. Missing metadata and an empty object are different values. Display name and email are excluded and are not updated on replay
+The compared parameters are external user ID, numeric amount, currency, source, reason, expiry, all metadata, and an explicit `credit_units_per_usd` when supplied. User IDs and reasons are trimmed, currency is trimmed and uppercased, equivalent decimal amounts compare equally, and expiry timestamps compare in UTC. A timestamp without an offset is interpreted as UTC. JSON object key order does not matter. Missing metadata and an empty object are different values. Equivalent numeric rates compare equally. Omitted or null rate preserves existing references and does not re-resolve a saved grant rate after an app-default change. Display name and email are excluded and are not updated on replay
 
 Changed parameters return HTTP 409 with `zorveus_product_user_credit_reference_conflict`. Do not create a fresh random reference to bypass that conflict. Correct the reused purchase reference or investigate the original operation
 
@@ -29,7 +29,7 @@ After response loss, repeat the original POST with the same reference and parame
 
 A lookup returning 404 does not prove an in-flight transaction failed. Repeat the original referenced POST to wait for the original transaction or create the grant if it rolled back. A timeout while waiting remains an unknown outcome, so keep the same reference on the next attempt
 
-Calls without `external_reference`, or with null, retain independent creation behavior. Neither `reason`, metadata, nor an idempotency header supplies the guarantee. The SDKs expose the reference and lookup operation without enabling automatic grant POST retries by default. Deploy the backend migration and API before relying on retries. See [Grant credits after a payment](/startups/billing-integration)
+Calls without `external_reference`, or with null, retain independent creation behavior. Neither `reason`, metadata, nor an idempotency header supplies the guarantee. The SDKs expose the reference and lookup operation without enabling automatic grant POST retries by default. See [Grant credits after a payment](/startups/billing-integration)
 
 ## Inference
 
