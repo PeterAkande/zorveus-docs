@@ -7,10 +7,13 @@ import ts from 'typescript';
 const prompts = JSON.parse(fs.readFileSync('lib/integration-prompts.json', 'utf8'));
 
 test('Business prompt retains detailed billing, attribution, and webhook instructions', () => {
-  for (const section of ['ZORVEUS_FREE_KEY', 'allowance_starts_at', 'grant_credit_by_external_id', 'product_user.cap_reached', 'provider_credential.quota_exhausted', 'X-Zorveus-External-User-ID']) {
+  for (const section of ['ZORVEUS_FREE_KEY', 'allowance_starts_at', 'grant_credit_by_external_id', 'product_user.cap_reached', 'provider_credential.quota_exhausted', 'X-Zorveus-External-User-ID', 'X-Zorveus-Allowance-Change-Policy', 'prorate_increase', 'metadata.product_user.allowance_change', 'X-Zorveus-Key-Alias', 'product_user_details']) {
     assert.ok(prompts.business.includes(section), section);
   }
-  assert.match(prompts.business, /dashboard only/);
+  assert.match(prompts.business, /Configure resources with the CLI or MCP/);
+  assert.match(prompts.business, /zorveus_plan/);
+  assert.match(prompts.business, /zorveus_apply/);
+  assert.doesNotMatch(prompts.business, /webhook settings in the dashboard only/);
   assert.match(prompts.business, /Status changes and credit revocation are dashboard-only/);
 });
 
@@ -21,6 +24,8 @@ test('OAuth prompt separates user authorization from Business credit management'
   assert.match(prompts.oauth, /Do not invent a refresh-token flow/);
   assert.match(prompts.oauth, /does not require a Business service key/);
   assert.doesNotMatch(prompts.oauth, /grant_credit_by_external_id/);
+  assert.match(prompts.oauth, /ZorveusOAuth\.generatePKCE/);
+  assert.match(prompts.oauth, /createOpenAI/);
 });
 
 test('prompt downloads return the selected text and reject unknown routes', async () => {
