@@ -1,11 +1,13 @@
 ---
-title: Integrate an organization-funded product
-description: Build a production backend workflow for inference, customer allowances, plan upgrades, and billing.
+title: Build customer billing
+description: Map subscription plans to AI allowances and grant customer credits after verified payments.
 ---
 
-When your organization funds AI for your users, Zorveus acts as your AI gateway, cost accountant, and spending guardrail.
+Use Zorveus to track customer AI usage, enforce plan allowances, and grant credits after payments. Your payment provider handles customer payments and subscriptions.
 
-This guide walks through the complete end-to-end backend integration: mapping customer tiers, making attributed requests, checking balances, and granting credits upon payment.
+This guide connects those capabilities in your backend, including plan selection, attributed model requests, allowance checks, and payment webhooks.
+
+If you do not yet have an app and inference key, follow [Make your first API request](/getting-started/startup-quickstart) to set them up and fund your route.
 
 <ArchitectureDiagram />
 
@@ -180,32 +182,36 @@ def run_user_prompt(user_id: str, user_tier: str, prompt: str):
 
 ---
 
-## 3. Selling credit top-ups with Stripe
+## 3. Grant credits after a payment
 
 When customers run out of their monthly plan allowance, you can let them purchase one-time credit top-ups.
 
-When your Stripe webhook receives a `payment_intent.succeeded` event, use your Zorveus service key to grant credits. Passing Stripe's payment intent ID as `external_reference` guarantees idempotency:
+Use any payment provider to collect the payment. After your backend verifies a successful-payment webhook, use your Zorveus service key to grant credits.
+
+Read the customer ID and purchased credit amount from your trusted billing records. Pass the credit amount as a USD decimal string and use a unique payment reference as `external_reference`. Reuse that reference on retries so the same payment does not grant credits twice.
+
+Call this helper from your verified payment handler:
 
 <CodeGroup titles={["TypeScript", "Python"]}>
 
 ```typescript
 import { ZorveusServiceClient } from "@zorveus/sdk";
-import type Stripe from "stripe";
 
 const service = new ZorveusServiceClient({ apiKey: process.env.ZORVEUS_SERVICE_KEY! });
 
-export async function handleStripePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
-  const userId = paymentIntent.metadata.userId;
-  const packAmountUsd = (paymentIntent.amount / 100).toFixed(2); // e.g. "10.00"
-
+export async function grantPurchasedCredits(
+  userId: string,
+  creditAmountUsd: string,
+  paymentReference: string,
+) {
   // Idempotent grant: retries with the same reference return the existing receipt
   const receipt = await service.productUsers.grantCreditByExternalId({
     appId: process.env.ZORVEUS_APP_ID!,
     externalUserId: userId,
-    amount: packAmountUsd,
-    externalReference: paymentIntent.id,
+    amount: creditAmountUsd,
+    externalReference: paymentReference,
     source: "purchase",
-    reason: `Stripe purchase ${paymentIntent.id}`,
+    reason: "Purchased AI credits",
   });
 
   console.log(`Granted $${receipt.credit_grant.amount} to user ${userId}`);
@@ -213,28 +219,66 @@ export async function handleStripePaymentSuccess(paymentIntent: Stripe.PaymentIn
 ```
 
 ```python
+import os
 from zorveus import ZorveusServiceClient
 
 service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
 app_id = os.environ["ZORVEUS_APP_ID"]
 
-def handle_stripe_payment_success(payment_intent):
-    user_id = payment_intent["metadata"]["user_id"]
-    pack_amount_usd = f"{payment_intent['amount'] / 100:.2f}"
-
+def grant_purchased_credits(user_id: str, credit_amount_usd: str, payment_reference: str):
     receipt = service.product_users.grant_credit_by_external_id(
         app_id=app_id,
         external_user_id=user_id,
-        amount=pack_amount_usd,
-        external_reference=payment_intent["id"],
+        amount=credit_amount_usd,
+        external_reference=payment_reference,
         source="purchase",
-        reason=f"Stripe purchase {payment_intent['id']}",
+        reason="Purchased AI credits",
     )
 
     print(f"Granted ${receipt.credit_grant.amount} to user {user_id}")
 ```
 
 </CodeGroup>
+
+See [Grant credits after a payment](/startups/billing-integration) for webhook integration, including a Stripe example.
+
+### Show balances as credits in your UI
+
+You can show customers a balance such as **200 credits left**. Choose how many credits equal one dollar. For example, set `app.creditUnitsPerUsd` to `"100"` in your [CLI manifest](/cli/manifest) and [apply the change](/cli/quickstart). A \$2 allowance then starts at 200 credits.
+
+Read the customer's balance using their plan key, then send `allowance.remaining_credit_units` to your UI:
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+const user = await service.productUsers.getByExternalId({
+	appId: process.env.ZORVEUS_APP_ID!,
+	externalUserId: "customer_42",
+	inferenceKey: process.env.ZORVEUS_PRO_KEY!,
+	upsertIfMissing: true,
+});
+
+const creditsLeft = user.allowance?.remaining_credit_units ?? null;
+```
+
+```python
+user = service.product_users.get_by_external_id(
+	app_id=os.environ["ZORVEUS_APP_ID"],
+	external_user_id="customer_42",
+	inference_key=os.environ["ZORVEUS_PRO_KEY"],
+	upsert_if_missing=True,
+)
+
+credits_left = user.allowance.remaining_credit_units if user.allowance else None
+```
+
+</CodeGroup>
+
+Use the key for the customer's actual plan. `upsertIfMissing` creates their record if needed, so you can show a balance before their first AI request.
+
+The returned credit balance includes the remaining plan allowance and any usable purchased credits. Keep it as a decimal string. If it is `null`, show "Balance unavailable". Read it again after AI requests or credit purchases to refresh your UI.
+
+For a complete example, see the [Write Room starter](/code-labs/write-room-saas).
 
 ---
 
@@ -250,5 +294,5 @@ def handle_stripe_payment_success(payment_intent):
 
 - [Write Room SaaS Code Lab](/code-labs/write-room-saas): Complete runnable React, TypeScript, and Express starter wired with `@zorveus/sdk` and the CLI.
 - [Configure product-user allowances](/startups/configure-product-user-allowances): Deep dive into caps, overrun policies, and enforcement modes.
-- [Billing integration](/startups/billing-integration): Webhook setup and payment reconciliation.
+- [Grant credits after a payment](/startups/billing-integration): Webhook setup and payment reconciliation.
 - [Product users API reference](/api-reference/product-users): Full parameters for reading customer allowances and credit histories.

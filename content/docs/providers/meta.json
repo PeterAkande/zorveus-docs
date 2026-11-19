@@ -1,7 +1,9 @@
 {
-  "title": "Provider routing (BYOK)",
+  "title": "Use your own provider keys",
   "pages": [
     "overview",
+    "../startups/provider-credentials",
+    "../startups/automatic-routing",
     "openai",
     "gemini",
     "anthropic",

@@ -1,17 +1,85 @@
 ---
-title: Product-user quickstart
-description: Attribute a request, read the customer profile, and inspect available allowance.
+title: Add customer usage limits
+description: Give each customer an AI spending limit and check what they have left.
 ---
 
-A product user is an end user or customer in your application. When you tag requests with their external ID, Zorveus tracks their token spend, enforces monthly allowance caps, and lets you grant prepaid credits. You do not need to pre-register users. Sending their ID on a model request creates the profile automatically.
+With Zorveus, you control how much AI each customer of your product can use. For example, a user on a \$5 subscription plan can get a \$2 monthly (or daily) AI limit. Every customer receives an isolated allowance, so one user's heavy spending never drains another customer's balance.
 
-Complete the [API quickstart](/getting-started/startup-quickstart) first so you have an app, a funded route, and an inference key.
+If you haven't made a model request yet, follow the [API quickstart](/getting-started/startup-quickstart) to set up your app and API key.
 
-## Attribute a request
+## 1. Set the plan's allowance
 
-Send `X-Zorveus-External-User-ID: customer_42` with inference. Get the real value from your authenticated user or trusted worker state. The first request creates the product user for that app. Later requests with the same app and external ID use the same user
+In the [dashboard](https://app.zorveus.com), open your app's connection settings.
 
-<CodeGroup titles={["Python", "TypeScript (@zorveus/sdk)"]}>
+- Set **Cap amount** to `$2` and **Period** to `monthly`. <InfoTooltip label="Cap amount and period">Each customer gets their own $2 allowance every month.</InfoTooltip>
+- Set **Credit mode** to `enforce`. <InfoTooltip label="Credit mode">Zorveus checks the customer's remaining allowance before accepting a request.</InfoTooltip>
+- Set **Overrun policy** to `limit_output`. <InfoTooltip label="Overrun policy">Zorveus lowers the model's maximum response length to fit the allowance.</InfoTooltip>
+
+Your backend chooses the API key for the customer's subscription plan. The examples below call it `ZORVEUS_API_KEY`.
+
+## 2. Show their starting balance
+
+Create a [service key](/startups/service-keys) with `product_users:read` permission so your backend can read customer balances. Save it as `ZORVEUS_SERVICE_KEY` and your app ID as `ZORVEUS_APP_ID`. Keep the service key and plan key on your server.
+
+Pass the customer's plan key as `inferenceKey` so Zorveus knows which allowance to use. With `upsertIfMissing: true`, this read also creates their customer record. You can show a balance before their first AI request.
+
+Replace `customer_42` below with the ID from your backend's signed-in user session.
+
+<CodeGroup titles={["Python (zorveus)", "TypeScript (@zorveus/sdk)", "cURL"]}>
+
+```python
+import os
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(service_key=os.environ["ZORVEUS_SERVICE_KEY"])
+
+user = service.product_users.get_by_external_id(
+	app_id=os.environ["ZORVEUS_APP_ID"],
+	external_user_id="customer_42",
+	inference_key=os.environ["ZORVEUS_API_KEY"],
+	upsert_if_missing=True,
+)
+
+print(user.allowance.available_allowance if user.allowance else None)
+```
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+	apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+});
+
+const user = await service.productUsers.getByExternalId({
+	appId: process.env.ZORVEUS_APP_ID!,
+	externalUserId: "customer_42",
+	inferenceKey: process.env.ZORVEUS_API_KEY!,
+	upsertIfMissing: true,
+});
+
+console.log(user.allowance?.available_allowance ?? null);
+```
+
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	-H "X-Zorveus-Inference-Key: $ZORVEUS_API_KEY" \
+	-H "X-Zorveus-Upsert-Product-User: true" \
+	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
+	--data-urlencode "external_user_id=customer_42"
+```
+
+</CodeGroup>
+
+Use `allowance.available_allowance` for the amount left in USD. A new customer on this plan starts with \$2. Keep the value as a decimal string. If it is `null`, show "Balance unavailable".
+
+Use `allowance.period_end` to show when the allowance resets.
+
+## 3. Send AI requests for that customer
+
+Use the customer's selected plan key and the same customer ID in each model request.
+
+<CodeGroup titles={["Python", "TypeScript (@zorveus/sdk)", "cURL"]}>
 
 ```python
 import os
@@ -42,64 +110,23 @@ const response = await client.chat.completions.create({
 console.log(response.choices[0].message.content);
 ```
 
-</CodeGroup>
-
-For names, email, and custom metadata, see [Product-user metadata](/inference/product-user-metadata). Profile metadata such as `plan: "pro"` does not authorize a plan or select a different key
-
-## Read the customer from your backend
-
-Create a service key in the dashboard with `product_users:read`. Store it as `ZORVEUS_SERVICE_KEY` and set `ZORVEUS_APP_ID` to the app that owns the inference key. You can read the profile with the Python SDK, TypeScript SDK, or cURL:
-
-<CodeGroup titles={["Python (zorveus)", "TypeScript (@zorveus/sdk)", "cURL"]}>
-
-```python
-import os
-from zorveus import ZorveusServiceClient
-
-service = ZorveusServiceClient(service_key=os.environ["ZORVEUS_SERVICE_KEY"])
-
-user = service.product_users.get_by_external_id(
-    app_id=os.environ["ZORVEUS_APP_ID"],
-    external_user_id="customer_42",
-)
-
-print("Usage this period:", user.usage.this_period)
-print("Allowance:", user.allowance)
-print("Credits:", user.credits)
-```
-
-```typescript
-import { ZorveusServiceClient } from "@zorveus/sdk";
-
-const service = new ZorveusServiceClient({
-  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
-});
-
-const user = await service.productUsers.getByExternalId({
-  appId: process.env.ZORVEUS_APP_ID!,
-  externalUserId: "customer_42",
-});
-
-console.log("Usage this period:", user.usage.this_period);
-console.log("Allowance:", user.allowance);
-console.log("Credits:", user.credits);
-```
-
 ```bash
-curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
-	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
-	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
-	--data-urlencode "external_user_id=customer_42"
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+	-H "Authorization: Bearer $ZORVEUS_API_KEY" \
+	-H "Content-Type: application/json" \
+	-H "X-Zorveus-External-User-ID: customer_42" \
+	-d '{
+		"model": "openai/gpt-4.1-mini",
+		"messages": [{"role": "user", "content": "Hello"}]
+	}'
 ```
 
 </CodeGroup>
 
-HTTP `200` (or the SDK user object) returns the profile directly. Confirm that `external_user_id` matches and inspect `usage.this_period`, `allowance`, and `credits`. HTTP `404` means the app and external ID have no product user yet. A read does not create one
+Zorveus tracks the customer's spending. Read their allowance again after the request to refresh the balance shown in your UI.
 
-## Interpret the allowance
+## When the allowance runs out
 
-For a configured cap, `allowance.available_allowance` includes remaining base allowance plus available credits. `credits.available_credits` contains credits only. Use `allowance.period_end` for the reset date
+If the allowance cannot cover a request, Zorveus returns HTTP `403` with `zorveus_product_user_allowance_insufficient`. The customer can retry after the allowance resets.
 
-An uncapped connection can return no allowance object. This does not mean the customer is exhausted. A positive allowance also does not guarantee the next request fits or that the organization has funds. Follow [Check available allowance](/startups/check-allowance) before adding a pre-request check
-
-To create a profile before inference or update it outside a request, use `PUT /product-users/by-external-id` with `product_users:write`. To add allowance, follow [Credit grants](/startups/credit-grants). Neither operation deposits money into your organization's wallet
+When you're ready to connect limits to subscriptions and customer payments, follow [Build customer billing](/getting-started/integrate-your-product).

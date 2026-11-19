@@ -1,27 +1,91 @@
 ---
-title: OAuth app quickstart
-description: Connect a user’s funding account with PKCE and send a request using their token.
+title: Let users fund their AI usage
+description: Let users connect their Zorveus account and pay for AI requests in your app.
 ---
 
-Build a tool whose users authorize AI usage against their own Zorveus funding account. If your organization pays for inference directly, use the [API quickstart](/getting-started/startup-quickstart).
+import { Tabs as ClientTabs, Tab as ClientTab } from 'fumadocs-ui/components/tabs';
 
-## Register the app and choose a client type
+With Zorveus, users can connect their account to your app and pay for their own AI requests. They sign in, choose the account that pays, and approve access. Your app then receives a token, which it uses to make requests for that user.
 
-Create a Developer organization in the [dashboard](https://app.zorveus.com), then register an OAuth app. Add the exact callback URL for each environment, permitted scopes, and model access. Include `inference:write` and a model scope such as `models:*`
+## 1. Register your app
 
-Use a confidential client when your backend exchanges and stores tokens. Keep its client secret on the server. Use a public client for browser-only or installed applications that cannot protect a secret. Public clients omit `client_secret` and still use PKCE
+Create a **Developer organization** in the [dashboard](https://app.zorveus.com), then register an OAuth app with these settings:
 
-While the app is not public, use an owning organization member or an allowed [test user](/oauth/testing-draft-apps). The authorizing user needs a funding organization and sufficient wallet funds or eligible BYOK credentials
+- **Client type:** `public` for React or browser TypeScript, `confidential` for the Python example. <InfoTooltip label="Client type">A public client runs in the browser without a client secret. A confidential client exchanges tokens on your server and keeps its secret there.</InfoTooltip>
+- **Callback URL:** `http://localhost:3000/oauth/callback`. <InfoTooltip label="Callback URL">This is the page users return to after approving or declining access. The URL in your code must exactly match the one registered here.</InfoTooltip>
+- **Permissions:** `inference:write` and `models:*`. <InfoTooltip label="Permissions">These let your app send AI requests and request access to models. For production, request only the model scopes your app needs.</InfoTooltip>
 
-## Start authorization
+Enable the models your app needs and copy its **Client ID**. Use it in your chosen example below.
 
-Generate a fresh verifier, S256 challenge, and state for each attempt. Bind the verifier and state to the initiating local user session with an expiry. Send the browser to the authorization URL
+While the app is in draft, connect with an organization member or an added [test user](/oauth/testing-draft-apps). That user needs funds or eligible provider keys in the account they choose to pay from.
 
-The following TypeScript example is for a public browser client using `@zorveus/sdk`. Register `http://localhost:3000/oauth/callback` exactly for this local example
+## 2. Get the user's token
+
+The user clicks your connect button, signs in to Zorveus, and approves model access and spending limits. After they return to your callback page, exchange the approval code for their token.
+
+Choose the implementation for your app. React and TypeScript run in the browser; Python runs on your server.
+
+<ClientTabs items={["React", "TypeScript", "Python"]} groupId="zorveus-oauth-quickstart">
+<ClientTab value="React">
+
+Install the React components:
+
+```bash
+npm install @zorveus/react @zorveus/sdk
+```
+
+Replace `YOUR_PUBLIC_CLIENT_ID` with your Client ID. Wrap your app and callback route with `WalletProvider`. Add `ConnectButton` where users connect, and render `WalletCallback` at `/oauth/callback`. The components handle the connection checks and token exchange.
+
+```tsx
+'use client';
+
+import {
+	ZorveusProvider,
+	ConnectWalletButton,
+	OAuthCallbackHandler,
+} from "@zorveus/react";
+
+export function WalletProvider({ children }: { children: React.ReactNode }) {
+	return (
+		<ZorveusProvider
+			clientId="YOUR_PUBLIC_CLIENT_ID"
+			redirectUri="http://localhost:3000/oauth/callback"
+		>
+			{children}
+		</ZorveusProvider>
+	);
+}
+
+export function ConnectButton() {
+	return <ConnectWalletButton>Connect Zorveus</ConnectWalletButton>;
+}
+
+export function WalletCallback() {
+	return <OAuthCallbackHandler redirectTo="/" />;
+}
+```
+
+After the user connects, read `accessToken` inside a component wrapped by `WalletProvider`:
+
+```tsx
+import { useZorveusAuth } from "@zorveus/react";
+
+// Inside your connected component:
+const { accessToken } = useZorveusAuth();
+```
+
+Once `accessToken` is available, pass it to either SDK in step 3. The React provider keeps it in memory for the connected user.
+
+</ClientTab>
+<ClientTab value="TypeScript">
+
+Install the SDK:
 
 ```bash
 npm install @zorveus/sdk
 ```
+
+Call `connectWallet(clientId)` when the user clicks your connect button. The SDK generates the PKCE values used below. <InfoTooltip label="PKCE">PKCE links the returned authorization code to the browser that started the connection. Keep the verifier and state checks in the callback code.</InfoTooltip>
 
 ```typescript
 import { ZorveusOAuth } from "@zorveus/sdk";
@@ -45,16 +109,10 @@ export async function connectWallet(clientId: string) {
 }
 ```
 
-The browser opens Zorveus sign-in and consent. The user selects a funding organization, reviews model access and spending policy, then approves or declines. Choose narrower model scopes in production when your app does not need the full catalog
-
-For a backend client, generate and store the same values in a protected server session instead of `sessionStorage`. See [Authorization request](/oauth/authorization-request) for the HTTP parameters
-
-## Handle the callback and exchange the code
-
-On your callback route, require the saved attempt, check its expiry, and compare the returned state before processing success or denial. Consume the local attempt once
+On `/oauth/callback`, add this function to check the returned connection and get the user's token. It checks that the attempt is still valid and uses it only once.
 
 ```typescript
-import { ZorveusOAuth, Zorveus } from "@zorveus/sdk";
+import { ZorveusOAuth } from "@zorveus/sdk";
 
 export async function finishWalletConnect(clientId: string) {
 	const stored = sessionStorage.getItem("zorveus_oauth_attempt");
@@ -84,20 +142,114 @@ export async function finishWalletConnect(clientId: string) {
 		codeVerifier: attempt.verifier,
 		redirectUri: "http://localhost:3000/oauth/callback",
 	});
-	return new Zorveus({ apiKey: token.access_token });
+	return token;
 }
 ```
 
-Keep the returned client in application memory. For persistent connections, exchange and store the token on your backend against the local user's account. Do not put a confidential client's secret in a browser bundle
-
-A backend exchange uses `POST https://api.zorveus.com/oauth/token` with a form-encoded body. It includes `grant_type=authorization_code`, `client_id`, `code`, `code_verifier`, and the exact `redirect_uri`. Confidential clients also include `client_secret`. See [Token exchange](/oauth/token-exchange)
-
-## Send a request with the user's token
-
-Use the returned client for this user only. Choose an authorized chat model through [model discovery](/inference/model-discovery)
+On the callback page, call it once to get the token:
 
 ```typescript
-const response = await connectedClient.chat.completions.create({
+const token = await finishWalletConnect("YOUR_PUBLIC_CLIENT_ID");
+const accessToken = token.access_token;
+```
+
+Keep this token response in memory for the connected user. It also includes `expires_in`, which tells you when they need to reconnect if an expiry is set.
+
+</ClientTab>
+<ClientTab value="Python">
+
+Install the SDK:
+
+```bash
+pip install zorveus
+```
+
+Save your Client ID and Client Secret as `ZORVEUS_CLIENT_ID` and `ZORVEUS_CLIENT_SECRET` on your server.
+
+Pass the signed-in user's server-side session to the helpers below. <InfoTooltip label="Server-side session">This stores data for the signed-in user on your server. Keep the verifier, client secret, and access token out of browser cookies and browser storage.</InfoTooltip>
+
+When the user clicks your connect button, call `start_wallet_connect` and redirect their browser to the returned URL.
+
+```python
+import os
+import time
+from zorveus import ZorveusOAuth
+
+CLIENT_ID = os.environ["ZORVEUS_CLIENT_ID"]
+CLIENT_SECRET = os.environ["ZORVEUS_CLIENT_SECRET"]
+REDIRECT_URI = "http://localhost:3000/oauth/callback"
+
+
+def start_wallet_connect(server_session):
+	pkce = ZorveusOAuth.generate_pkce()
+	server_session["zorveus_oauth_attempt"] = {
+		"state": pkce.state,
+		"verifier": pkce.code_verifier,
+		"expires_at": time.time() + 10 * 60,
+	}
+	return ZorveusOAuth.get_authorization_url(
+		client_id=CLIENT_ID,
+		redirect_uri=REDIRECT_URI,
+		state=pkce.state,
+		code_challenge=pkce.code_challenge,
+		scopes=["inference:write", "models:*"],
+		base_url="https://app.zorveus.com",
+	)
+```
+
+On `/oauth/callback`, pass the full callback URL and the same user's session to `finish_wallet_connect`. It checks the connection attempt and returns the user's token response.
+
+```python
+def finish_wallet_connect(callback_url, server_session):
+	attempt = server_session.pop("zorveus_oauth_attempt", None)
+	if not attempt or time.time() > attempt["expires_at"]:
+		raise ValueError("Connection attempt expired. Connect again.")
+
+	callback = ZorveusOAuth.validate_callback(
+		callback_url, expected_state=attempt["state"],
+	)
+	if not callback.valid or not callback.code:
+		raise ValueError(callback.error_description or "Connection was not approved.")
+
+	token = ZorveusOAuth.exchange_token(
+		client_id=CLIENT_ID,
+		client_secret=CLIENT_SECRET,
+		code=callback.code,
+		code_verifier=attempt["verifier"],
+		redirect_uri=REDIRECT_URI,
+	)
+	return token
+```
+
+Call it once from your callback route:
+
+```python
+token = finish_wallet_connect(callback_url, server_session)
+access_token = token.access_token
+```
+
+Keep the token and its expiry with the signed-in user's server-side session. Pass `access_token` to either SDK below when making requests for that user.
+
+</ClientTab>
+</ClientTabs>
+
+## 3. Use the token to make an AI request
+
+The returned `access_token` works as an API key for the user's approved Zorveus connection. Pass it as `apiKey` or `api_key` when creating a client. Getting the token does not make an AI request.
+
+Use `accessToken` from the React or TypeScript example, or `access_token` from Python. Choose a model through [model discovery](/inference/model-discovery) and set `selectedChatModelId` or `selected_chat_model_id` to its ID.
+
+<ClientTabs items={["Zorveus SDK", "OpenAI SDK"]}>
+<ClientTab value="Zorveus SDK">
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({ apiKey: accessToken });
+
+const response = await client.chat.completions.create({
 	model: selectedChatModelId,
 	messages: [{ role: "user", content: "Write a one-sentence welcome message." }],
 });
@@ -105,57 +257,85 @@ const response = await connectedClient.chat.completions.create({
 console.log(response.choices[0].message.content);
 ```
 
-A successful request returns a completion funded by the authorized connection. Do not silently fall back to your Business key if that token fails. User OAuth connections do not use Business product-user credit grants or allowance anchors
+```python
+from zorveus import Zorveus
 
-## Use React components
-
-For an existing React app, `@zorveus/react` wraps the public-client flow. Mount the provider around both your application and callback route. Render `OAuthCallbackHandler` on the registered callback route so popup and redirect results can be processed
-
-```tsx
-import {
-	ZorveusProvider,
-	ConnectWalletButton,
-	OAuthCallbackHandler,
-	useZorveusInference,
-} from "@zorveus/react";
-
-export function WalletProvider({ children }: { children: React.ReactNode }) {
-	return (
-		<ZorveusProvider
-			clientId="YOUR_PUBLIC_CLIENT_ID"
-			redirectUri="http://localhost:3000/oauth/callback"
-		>
-			{children}
-		</ZorveusProvider>
-	);
-}
-
-export function ConnectButton() {
-	return <ConnectWalletButton>Connect Zorveus wallet</ConnectWalletButton>;
-}
-
-export function WalletCallback() {
-	return <OAuthCallbackHandler redirectTo="/" />;
-}
-
-export function Chat({ modelId }: { modelId: string }) {
-	const { messages, submitPrompt, isStreaming, error } = useZorveusInference({ model: modelId });
-	return (
-		<div>
-			<button disabled={isStreaming} onClick={() => void submitPrompt("Hello")}>
-				Send
-			</button>
-			{error && <p role="alert">{error.message}</p>}
-			<pre>{JSON.stringify(messages, null, 2)}</pre>
-		</div>
-	);
-}
+client = Zorveus(api_key=access_token)
+try:
+	response = client.chat.completions.create(
+		model=selected_chat_model_id,
+		messages=[{"role": "user", "content": "Write a one-sentence welcome message."}],
+	)
+	print(response.choices[0].message.content)
+finally:
+	client.close()
 ```
 
-Install with `npm install @zorveus/react @zorveus/sdk`. In a framework with server components, place this code in a client component. Render the chat after the user connects. The provider accepts `clientId` and `redirectUri`, while the inference hook takes a `model` and returns conversation state and `submitPrompt`
+</CodeGroup>
 
-## Disconnect and reconnect
+</ClientTab>
+<ClientTab value="OpenAI SDK">
 
-Call [revocation](/oauth/revocation) when the user disconnects, then remove the local token after a confirmed result. Track uncertain network outcomes rather than claiming remote revocation succeeded
+You can keep the standard OpenAI SDK. Set its API key to the user's token and its base URL to `https://api.zorveus.com/v1`.
 
-`expires_in` can be null. Honor it when present, handle revoked or invalid tokens, and use [reauthorization](/oauth/reauthorization) to replace tokens or change consent. There is no refresh-token flow
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```bash
+npm install openai
+```
+
+```bash
+pip install openai
+```
+
+</CodeGroup>
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+	apiKey: accessToken,
+	baseURL: "https://api.zorveus.com/v1",
+	dangerouslyAllowBrowser: true, // This browser example uses the user's own OAuth token.
+});
+
+const response = await client.chat.completions.create({
+	model: selectedChatModelId,
+	messages: [{ role: "user", content: "Write a one-sentence welcome message." }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+
+with OpenAI(
+	api_key=access_token,
+	base_url="https://api.zorveus.com/v1",
+) as client:
+	response = client.chat.completions.create(
+		model=selected_chat_model_id,
+		messages=[{"role": "user", "content": "Write a one-sentence welcome message."}],
+	)
+	print(response.choices[0].message.content)
+```
+
+</CodeGroup>
+
+For server-side TypeScript, omit `dangerouslyAllowBrowser`. <InfoTooltip label="Browser requests">The OpenAI SDK requires this option for requests from a browser. Use only the current user's OAuth token there. Keep Business API keys and client secrets on your server.</InfoTooltip>
+
+</ClientTab>
+</ClientTabs>
+
+The response is funded by the account the user approved. Use each user's token only for that user. If their connection fails, ask them to reconnect rather than charging your own API key.
+
+## Next steps
+
+- [Disconnect a user](/oauth/revocation): Revoke access before removing the saved token.
+- [Reconnect a user](/oauth/reauthorization): Replace a revoked token or change the approved account, models, or limits.
+- [Register a backend app](/oauth/register-an-app): Use a confidential client when your server manages tokens. Keep its client secret on the server.
+
+Honor `expires_in` when present. Zorveus does not issue refresh tokens, so users reconnect when their token expires.

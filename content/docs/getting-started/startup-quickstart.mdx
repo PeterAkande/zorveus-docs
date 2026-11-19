@@ -1,9 +1,9 @@
 ---
-title: API quickstart
+title: Make your first API request
 description: Send your first model completion through Zorveus in five minutes.
 ---
 
-Learn how to create an API key, route completions across over 850 supported models (including OpenAI, Google Gemini, Anthropic, and Jev) through Zorveus, and optionally add per-customer spending controls.
+Create a Zorveus API key, choose a model, and get a response using the standard OpenAI SDK or cURL.
 
 <KeyInserter type="api" label="Your API Key" placeholder="zrv_your_api_key" />
 
@@ -16,8 +16,6 @@ Log in to the [Zorveus dashboard](https://app.zorveus.com) and create or select 
 1. Fund your organization wallet with a balance, or connect your upstream provider accounts under [Provider credentials](/startups/provider-credentials).
 2. Create an App for your project or service.
 3. Under Connection Settings, create an **Inference Key** (`zrv_...`). Copy the secret key to your environment store.
-
-If you want to cap monthly spend or allocate credits per customer in a multi-tenant app, you can configure connection caps and credit enforcement anytime. For details, see [Configure product-user allowances](/startups/configure-product-user-allowances).
 
 </Step>
 
@@ -146,61 +144,14 @@ Zorveus routes the request to the upstream provider, checks model availability, 
 
 </Step>
 
-<Step title="4. (Optional) Track customer usage and enforce allowances">
-
-When building a multi-tenant product, you can attribute requests to individual customers and enforce spending limits by adding the `X-Zorveus-External-User-ID` header:
-
-<CodeGroup titles={["Python", "TypeScript", "cURL"]}>
-
-```python
-response = client.chat.completions.create(
-    model="openai/gpt-4.1-mini",
-    messages=[{"role": "user", "content": "Write a one-sentence welcome message."}],
-    extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
-)
-```
-
-```typescript
-const response = await client.chat.completions.create(
-  {
-    model: "openai/gpt-4.1-mini",
-    messages: [{ role: "user", content: "Write a one-sentence welcome message." }],
-  },
-  {
-    headers: { "X-Zorveus-External-User-ID": "customer_42" },
-  }
-);
-```
-
-```bash
-curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
-	-H "Authorization: Bearer zrv_your_api_key" \
-	-H "Content-Type: application/json" \
-	-H "X-Zorveus-External-User-ID: customer_42" \
-	-d '{
-		"model": "openai/gpt-4.1-mini",
-		"messages": [{"role": "user", "content": "Write a one-sentence welcome message."}]
-	}'
-```
-
-</CodeGroup>
-
-When you pass this header:
-- Zorveus automatically creates or updates the customer profile in your dashboard.
-- If your connection cap enforces limits and the customer exhausts their monthly quota, Zorveus returns HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient`).
-- Without this header, requests run directly against your organization wallet with no per-user limits.
-
-For complete customer lifecycle management, see [Product-user metering](/getting-started/product-user-quickstart) and [Integrate your product](/getting-started/integrate-your-product).
-
-</Step>
-
 </Steps>
 
 ---
 
 ## Next steps
 
-- [Integrate your product](/getting-started/integrate-your-product): Set up customer allowances, plan mapping, and webhooks.
-- [Product-user metering](/getting-started/product-user-quickstart): Attribute requests and check user allowances with service keys.
+- [Add customer usage limits](/getting-started/product-user-quickstart): Set a spending allowance, attribute requests, and check the remaining allowance.
+- [Let users fund their AI usage](/getting-started/oauth-app-quickstart): Connect user accounts through OAuth for user-funded model requests.
+- [Build customer billing](/getting-started/integrate-your-product): Connect subscription plans, allowances, and payment webhooks.
 - [Provider credentials](/startups/provider-credentials): Connect your own OpenAI, Anthropic, or Google keys.
 - [Error handling](/platform/errors): Reference for status codes, rate limits, and allowance errors.

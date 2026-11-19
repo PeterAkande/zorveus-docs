@@ -2,27 +2,34 @@ import React from 'react';
 import { ThemedDiagram } from './ThemedDiagram';
 
 interface FlowDiagramProps {
-  flow: 'stripe-credits' | 'resource-hierarchy';
+  flow: 'payment-credits' | 'resource-hierarchy';
 }
 
 const FLOW_CONFIG = {
-  'stripe-credits': {
-    ariaLabel: 'Stripe payment to Zorveus credit grant flow',
-    lightSrc: '/diagrams/stripe-credits-light.jpg',
-    darkSrc: '/diagrams/stripe-credits-dark.jpg',
-    alt: 'Workflow diagram showing Customer Pays via Stripe Checkout, Stripe Webhook firing payment_intent.succeeded, Your Backend calling POST /credit-grants with an Idempotent Key, and Zorveus Ledger updating balance.',
+  'payment-credits': {
+    ariaLabel: 'Payment to Zorveus credit grant flow',
+    nodes: [
+      { title: 'Customer', detail: 'Completes a payment' },
+      { title: 'Payment provider', detail: 'Sends a payment webhook' },
+      { title: 'Your backend', detail: 'Verifies payment and grants credits' },
+      { title: 'Zorveus', detail: 'Updates customer credits', accent: true },
+    ],
+    caption: 'Use the payment ID as external_reference so retries do not grant duplicate credits.',
     steps: [
-      'Customer completes payment via Stripe Checkout.',
-      'Stripe sends a payment_intent.succeeded webhook to your backend.',
+      'Customer completes a payment through your payment provider.',
+      'The payment provider sends a successful-payment webhook to your backend, which verifies the event.',
       'Your backend calls POST /product-users/by-external-id/credit-grants using the payment ID as external_reference.',
-      'Zorveus Ledger updates the customer allowance immediately.',
+      'Zorveus records the credit grant and updates the customer credit balance.',
     ],
   },
   'resource-hierarchy': {
     ariaLabel: 'Zorveus resource hierarchy',
-    lightSrc: '/diagrams/resource-hierarchy-light.jpg',
-    darkSrc: '/diagrams/resource-hierarchy-dark.jpg',
-    alt: 'Hierarchy diagram showing Organization linking to App Connection (Policies & Spend Limits), which defines Allowed Models, Monthly Cap, and API Keys.',
+    nodes: [
+      { title: 'Organization + app', detail: 'Funding wallet and product identity' },
+      { title: 'App Connection', detail: 'Allowed models and spending limits', accent: true },
+      { title: 'API key', detail: 'Authenticates model requests' },
+    ],
+    caption: 'An app connection binds your app to the organization funding its AI usage.',
     steps: [
       'Organization owns the funding wallet and App identity.',
       'App Connection binds an App to a funding organization and sets Policies & Spend Limits.',
@@ -31,16 +38,15 @@ const FLOW_CONFIG = {
   },
 } as const;
 
-/** Renders theme-matched workflow and hierarchy diagrams inside MDX pages. */
+/** Renders payment and resource flows with readable, responsive text. */
 export function FlowDiagram({ flow }: FlowDiagramProps) {
   const config = FLOW_CONFIG[flow];
   return (
     <ThemedDiagram
       ariaLabel={config.ariaLabel}
-      lightSrc={config.lightSrc}
-      darkSrc={config.darkSrc}
-      alt={config.alt}
+      nodes={[...config.nodes]}
       steps={[...config.steps]}
+      caption={config.caption}
     />
   );
 }

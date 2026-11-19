@@ -1,9 +1,6 @@
 {
   "title": "Quickstarts",
   "pages": [
-    "overview",
-    "integrate-your-product",
-    "coding-agents",
     "startup-quickstart",
     "product-user-quickstart",
     "oauth-app-quickstart"

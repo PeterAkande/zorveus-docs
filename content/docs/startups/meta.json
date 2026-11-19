@@ -1,20 +1,15 @@
 {
-  "title": "Customer allowances",
+  "title": "Customer limits and billing",
   "pages": [
-    "apps",
-    "api-keys",
-    "routing-keys",
+    "../getting-started/integrate-your-product",
     "configure-product-user-allowances",
     "product-users",
+    "../inference/product-user-metadata",
     "check-allowance",
     "allowance-periods",
     "prorated-plan-changes",
     "credit-grants",
-    "product-user-activity",
     "billing-integration",
-    "service-keys",
-    "provider-credentials",
-    "automatic-routing",
-    "members"
+    "product-user-activity"
   ]
 }

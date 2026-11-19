@@ -22,13 +22,13 @@ interface Recommendation {
 
 const RECOMMENDATIONS: Record<Payer, Recommendation> = {
   product: {
-    title: 'Direct API and SaaS gateway',
+    title: 'Customer allowances and billing',
     workspace: 'Business organization',
-    credentials: 'API key (zrv_...)',
+    credentials: 'API key (zrv_...) and service key (zrv_svc_...)',
     summary:
-      'Your app or backend calls models through one unified API funded by your Business wallet. Add customer IDs anytime to track per-user spend or enforce allowances.',
-    href: '/getting-started/startup-quickstart',
-    ctaLabel: 'Open API quickstart',
+      'Your product funds AI usage for its customers. Track each customer\'s spend, set plan allowances, and grant credits after payments through your payment provider.',
+    href: '/getting-started/integrate-your-product',
+    ctaLabel: 'Build customer billing',
     nodes: [
       { title: 'Your app or backend', subtitle: 'Bearer zrv_...' },
       { title: 'Zorveus gateway', subtitle: 'Routes models, bills org' },
@@ -36,13 +36,13 @@ const RECOMMENDATIONS: Record<Payer, Recommendation> = {
     ],
   },
   users: {
-    title: 'Connectable app with OAuth 2.0 PKCE',
+    title: 'User-funded AI access',
     workspace: 'Developer organization',
     credentials: 'Client ID (zrv_client_...) and scoped user access token',
     summary:
       'End users authorize your app with Zorveus, choose their own spending limit, and pay from their own accounts.',
     href: '/getting-started/oauth-app-quickstart',
-    ctaLabel: 'Open OAuth quickstart',
+    ctaLabel: 'Let users fund their AI usage',
     nodes: [
       { title: 'User browser', subtitle: 'OAuth sign-in' },
       { title: 'Zorveus gateway', subtitle: 'Checks cap, bills user' },
@@ -148,7 +148,7 @@ export function IntegrationDecisionGuide() {
       <div className="zorveus-decision-controls">
         <div className="zorveus-decision-row">
           <span id="payer-label" className="zorveus-decision-label">
-            Who pays for requests?
+            Who pays for AI usage?
           </span>
           <div className="zorveus-segmented" role="radiogroup" aria-labelledby="payer-label">
             <button
@@ -158,7 +158,7 @@ export function IntegrationDecisionGuide() {
               className="zorveus-segmented-btn"
               onClick={() => setPayer('product')}
             >
-              My app or backend pays
+              My product pays
             </button>
             <button
               type="button"

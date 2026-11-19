@@ -53,6 +53,17 @@ function loadComponent(name, contextOverrides = {}) {
   return loadModule(filename, contextOverrides)[name];
 }
 
+test("inline setting help has a named button and stays hidden until requested", () => {
+  const InfoTooltip = loadComponent("InfoTooltip");
+  const html = renderToStaticMarkup(
+    React.createElement(InfoTooltip, { label: "Credit mode" }, "Checks the remaining allowance."),
+  );
+  assert.match(html, /type="button"/);
+  assert.match(html, /aria-label="About Credit mode"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.doesNotMatch(html, /Checks the remaining allowance\./);
+});
+
 test("key controls have a label, masked input, and named buttons", () => {
   const KeyInserter = loadComponent("KeyInserter");
   const html = renderToStaticMarkup(
@@ -140,51 +151,47 @@ test("page feedback has explicit divider spacing and a wrapping layout", () => {
   assert.match(rule, /flex-wrap:\s*wrap/);
 });
 
-test("architecture diagram labels the setup, inference, and service-key paths", () => {
+test("architecture diagram focuses on inference and the service-key path", () => {
   const ArchitectureDiagram = loadComponent("ArchitectureDiagram");
   const html = renderToStaticMarkup(React.createElement(ArchitectureDiagram));
   assert.match(html, /<figure[^>]+aria-label="Zorveus architecture"/);
-  assert.match(html, /src="\/diagrams\/architecture-light\.jpg"/);
-  assert.match(html, /src="\/diagrams\/architecture-dark\.jpg"/);
-  assert.match(html, /Zorveus dashboard/);
+  assert.doesNotMatch(html, /<img/);
+  assert.match(html, /Your backend/);
+  assert.match(html, /API key \+ customer ID/);
+  assert.match(html, /Zorveus gateway/);
+  assert.match(html, /Authorize, reserve, and settle/);
+  assert.doesNotMatch(html, /Zorveus dashboard|zorveus-diagram-setup/);
   assert.match(html, /Your application backend/);
   assert.match(html, /Model provider/);
   assert.match(html, /service key for supported product-user/);
   assert.equal((html.match(/<li>/g) || []).length, 3);
-  assert.ok(fs.existsSync("public/diagrams/architecture-light.jpg"));
-  assert.ok(fs.existsSync("public/diagrams/architecture-dark.jpg"));
   const css = fs.readFileSync("app/globals.css", "utf8");
-  assert.match(
-    css,
-    /\.zorveus-architecture-flow \{ grid-template-columns: 1fr; \}/,
-  );
+  assert.match(css, /@container \(max-width: 600px\)/);
+  assert.match(css, /grid-template-columns: 1fr; gap: 28px/);
 });
 
-test("flow diagram renders theme-matched stripe credit and resource hierarchy images", () => {
+test("flow diagrams preserve payment steps and resource relationships as live text", () => {
   const FlowDiagram = loadComponent("FlowDiagram");
-  const stripeHtml = renderToStaticMarkup(
-    React.createElement(FlowDiagram, { flow: "stripe-credits" }),
+  const paymentHtml = renderToStaticMarkup(
+    React.createElement(FlowDiagram, { flow: "payment-credits" }),
   );
-  assert.match(stripeHtml, /src="\/diagrams\/stripe-credits-light\.jpg"/);
-  assert.match(stripeHtml, /src="\/diagrams\/stripe-credits-dark\.jpg"/);
+  assert.doesNotMatch(paymentHtml, /<img|Stripe|stripe/);
+  assert.match(paymentHtml, /Payment provider/);
+  assert.match(paymentHtml, /Verifies payment and grants credits/);
+  assert.match(paymentHtml, /external_reference/);
+  assert.equal((paymentHtml.match(/<li>/g) || []).length, 4);
   assert.match(
-    stripeHtml,
+    paymentHtml,
     /POST \/product-users\/by-external-id\/credit-grants/,
   );
-  assert.ok(fs.existsSync("public/diagrams/stripe-credits-light.jpg"));
-  assert.ok(fs.existsSync("public/diagrams/stripe-credits-dark.jpg"));
 
   const hierarchyHtml = renderToStaticMarkup(
     React.createElement(FlowDiagram, { flow: "resource-hierarchy" }),
   );
-  assert.match(
-    hierarchyHtml,
-    /src="\/diagrams\/resource-hierarchy-light\.jpg"/,
-  );
-  assert.match(hierarchyHtml, /src="\/diagrams\/resource-hierarchy-dark\.jpg"/);
+  assert.doesNotMatch(hierarchyHtml, /<img/);
   assert.match(hierarchyHtml, /App Connection/);
-  assert.ok(fs.existsSync("public/diagrams/resource-hierarchy-light.jpg"));
-  assert.ok(fs.existsSync("public/diagrams/resource-hierarchy-dark.jpg"));
+  assert.match(hierarchyHtml, /Authenticates model requests/);
+  assert.equal((hierarchyHtml.match(/<li>/g) || []).length, 3);
 });
 
 test("endpoint methods have distinct pill styles and retain authentication labels", () => {
@@ -282,7 +289,7 @@ test("key replacement handles split Shiki spans and standalone MDX pre wiring", 
   assert.match(mdxComponents, /pre:\s*CodePre/);
 });
 
-test("integration decision guide uses accessible radio groups and live recommendation", () => {
+test("integration decision guide directs product-funded apps to customer billing", () => {
   const IntegrationDecisionGuide = loadComponent("IntegrationDecisionGuide");
   const html = renderToStaticMarkup(
     React.createElement(IntegrationDecisionGuide),
@@ -293,7 +300,10 @@ test("integration decision guide uses accessible radio groups and live recommend
   assert.match(html, /zorveus-decision-svg/);
   assert.match(html, /Routes models, bills org/);
   assert.match(html, /Business organization/);
-  assert.match(html, /href="\/getting-started\/startup-quickstart"/);
+  assert.match(html, /My product pays/);
+  assert.match(html, /Build customer billing/);
+  assert.match(html, /href="\/getting-started\/integrate-your-product"/);
+  assert.doesNotMatch(html, /href="\/getting-started\/startup-quickstart"/);
   assert.doesNotMatch(
     html,
     /Where do provider keys live\?|Bring your own key|byok-quickstart/,

@@ -18,6 +18,7 @@ import { ArchitectureDiagram } from '@/components/mdx/ArchitectureDiagram';
 import { FlowDiagram } from '@/components/mdx/FlowDiagram';
 import { IntegrationPromptPicker } from '@/components/mdx/IntegrationPromptPicker';
 import { IntegrationDecisionGuide } from '@/components/mdx/IntegrationDecisionGuide';
+import { InfoTooltip } from '@/components/mdx/InfoTooltip';
 
 export function useMDXComponents(components: MDXComponents = {}): MDXComponents {
   return {
@@ -45,6 +46,7 @@ export function useMDXComponents(components: MDXComponents = {}): MDXComponents 
     FlowDiagram,
     IntegrationPromptPicker,
     IntegrationDecisionGuide,
+    InfoTooltip,
     RequestExample: ({ children }: { children: React.ReactNode }) => (
       <div className="request-example my-4">{children}</div>
     ),

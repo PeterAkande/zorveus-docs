@@ -9,13 +9,13 @@ When customers pay for AI usage (such as buying a $10 top-up pack or upgrading t
 
 ## Architecture flow
 
-<FlowDiagram flow="stripe-credits" />
+<FlowDiagram flow="payment-credits" />
 
 ---
 
 ## 1. Issue an idempotent credit grant
 
-Always provide an `external_reference` corresponding to your payment provider's transaction ID (e.g. Stripe PaymentIntent ID). If your webhook receives duplicate events or experiences a network retry, Zorveus safely deduplicates the request and returns the existing grant without adding duplicate balance.
+Always provide an `external_reference` corresponding to your payment provider's transaction ID. If your webhook receives duplicate events or experiences a network retry, Zorveus safely deduplicates the request and returns the existing grant without adding duplicate balance.
 
 <CodeGroup titles={["TypeScript", "Python", "cURL"]}>
 
@@ -28,7 +28,7 @@ const receipt = await service.productUsers.grantCreditByExternalId({
   appId: "app_123",
   externalUserId: "customer_42",
   amount: "10.00",
-  externalReference: "stripe_pi_3N4v9B2eZvKYlo2C01234567",
+  externalReference: "payment_123",
   source: "purchase",
   reason: "100k token pack top-up",
 });
@@ -46,7 +46,7 @@ receipt = service.product_users.grant_credit_by_external_id(
     app_id="app_123",
     external_user_id="customer_42",
     amount="10.00",
-    external_reference="stripe_pi_3N4v9B2eZvKYlo2C01234567",
+    external_reference="payment_123",
     source="purchase",
     reason="100k token pack top-up",
 )
@@ -62,7 +62,7 @@ curl --fail-with-body https://api.zorveus.com/product-users/by-external-id/credi
 	-d '{
 		"app_id": "app_123",
 		"external_user_id": "customer_42",
-		"external_reference": "stripe_pi_3N4v9B2eZvKYlo2C01234567",
+		"external_reference": "payment_123",
 		"amount": "10.00",
 		"currency": "USD",
 		"source": "purchase",
@@ -83,7 +83,7 @@ curl --fail-with-body https://api.zorveus.com/product-users/by-external-id/credi
   },
   "credit_grant": {
     "credit_grant_id": "cgr_xyz789",
-    "external_reference": "stripe_pi_3N4v9B2eZvKYlo2C01234567",
+    "external_reference": "payment_123",
     "amount": "10.000000000000",
     "remaining_amount": "10.000000000000",
     "currency": "USD",
@@ -100,9 +100,13 @@ curl --fail-with-body https://api.zorveus.com/product-users/by-external-id/credi
 
 ---
 
-## 2. Stripe webhook handler example
+## 2. Connect your payment provider
 
-Here is how to handle Stripe's `payment_intent.succeeded` event in Next.js or Express:
+Use your provider's webhook signature verification and successful-payment event to confirm payment on your backend. Then map the payment to your customer and grant the purchased credits with a stable transaction reference. This flow works with any payment provider.
+
+### Example using Stripe
+
+The following examples verify Stripe's webhook signature and handle `payment_intent.succeeded` in Next.js or Express:
 
 <CodeGroup titles={["Next.js App Router (TypeScript)", "Express.js (TypeScript)"]}>
 
@@ -198,7 +202,7 @@ If you need to verify whether a customer was credited for a past transaction, qu
 const grant = await service.productUsers.getCreditGrantByExternalReference({
   appId: "app_123",
   externalUserId: "customer_42",
-  externalReference: "stripe_pi_3N4v9B2eZvKYlo2C01234567",
+  externalReference: "payment_123",
 });
 
 console.log(`Grant status: ${grant.status}, remaining: $${grant.remaining_amount}`);
@@ -208,7 +212,7 @@ console.log(`Grant status: ${grant.status}, remaining: $${grant.remaining_amount
 grant = service.product_users.get_credit_grant_by_external_reference(
     app_id="app_123",
     external_user_id="customer_42",
-    external_reference="stripe_pi_3N4v9B2eZvKYlo2C01234567",
+    external_reference="payment_123",
 )
 
 print(f"Grant status: {grant.status}, remaining: ${grant.remaining_amount}")
@@ -219,7 +223,7 @@ curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id
 	-H "Authorization: Bearer zrv_svc_your_service_key" \
 	--data-urlencode "app_id=app_123" \
 	--data-urlencode "external_user_id=customer_42" \
-	--data-urlencode "external_reference=stripe_pi_3N4v9B2eZvKYlo2C01234567"
+	--data-urlencode "external_reference=payment_123"
 ```
 
 </CodeGroup>

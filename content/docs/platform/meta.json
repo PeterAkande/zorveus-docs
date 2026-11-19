@@ -1,5 +1,5 @@
 {
-  "title": "Platform & errors",
+  "title": "API basics and errors",
   "pages": [
     "base-urls",
     "authentication",
