@@ -5,7 +5,12 @@ var { docs, meta } = defineDocs({
 });
 var source_config_default = defineConfig({
   mdxOptions: {
-    // Standard plugins if needed
+    rehypeCodeOptions: {
+      themes: {
+        light: "dracula",
+        dark: "dracula"
+      }
+    }
   }
 });
 export {

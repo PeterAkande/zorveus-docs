@@ -72,7 +72,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) (or the port specified in your console) to view the documentation.
+Open [http://localhost:3495](http://localhost:3495) (or the port specified in your console) to view the documentation.
 
 ### 4. Build for Production
 

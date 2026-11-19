@@ -3,11 +3,17 @@ title: Model catalog and discovery
 description: Inspect model capabilities and find IDs available to an inference key.
 ---
 
+Zorveus provides two model discovery endpoints: a public catalog listing supported models and pricing, and an authenticated endpoint that returns the concrete models your API key can route.
+
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
+
 ## Public catalog
 
 <ApiEndpoint method="GET" path="/models" />
 
-`GET https://api.zorveus.com/models` requires no key. The response is an object with an `items` array. Each item includes `model_name`, `provider`, `route_status`, task `mode`, input and output modalities, capabilities, limits, and available price fields
+Query all models available across providers without passing an API key. Filter by provider, modality, or task type.
+
+<CodeGroup titles={["cURL", "Python", "TypeScript"]}>
 
 ```bash
 curl --fail-with-body --get https://api.zorveus.com/models \
@@ -15,23 +21,168 @@ curl --fail-with-body --get https://api.zorveus.com/models \
 	--data-urlencode 'limit=10'
 ```
 
-| Query field | Meaning |
-| --- | --- |
-| `provider` | Filter by provider |
-| `route_status` | `available`, `pricing_only`, or `blocked`. Default is `available` |
-| `q` | Search model names |
-| `mode` | Filter by task mode |
-| `input_type`, `output_type` | Filter by input or output modality |
-| `capability` | Filter by a supported capability |
-| `min_context` | Minimum input context size, at least 1 |
-| `limit` | Maximum returned items, from 1 to 1000 |
+```python
+import httpx
 
-`pricing_only` means pricing information exists without an available route. Catalog inclusion does not grant your key permission to use a model
+response = httpx.get(
+    "https://api.zorveus.com/models",
+    params={"mode": "chat", "limit": 10},
+)
+models = response.json()
+print(f"Found {len(models['items'])} chat models")
+```
+
+```typescript
+const response = await fetch("https://api.zorveus.com/models?mode=chat&limit=10");
+const models = await response.json();
+console.log(`Found ${models.items.length} chat models`);
+```
+
+</CodeGroup>
+
+### Query parameters
+
+<ParamField name="mode" type="string">
+  Filter by task mode, such as `chat`, `embedding`, `image`, or `audio`.
+</ParamField>
+
+<ParamField name="provider" type="string">
+  Filter by upstream provider, such as `openai`, `anthropic`, or `google`.
+</ParamField>
+
+<ParamField name="route_status" type="string" default="available">
+  One of `available`, `pricing_only`, or `blocked`. `pricing_only` models have published rates but no active routing gateway.
+</ParamField>
+
+<ParamField name="q" type="string">
+  Search model names and identifiers with fuzzy matching.
+</ParamField>
+
+<ParamField name="input_type" type="string">
+  Filter by input modality, such as `text`, `image`, or `audio`.
+</ParamField>
+
+<ParamField name="output_type" type="string">
+  Filter by output modality.
+</ParamField>
+
+<ParamField name="capability" type="string">
+  Filter by feature support, such as `tools`, `streaming`, or `json_mode`.
+</ParamField>
+
+<ParamField name="min_context" type="integer">
+  Filter by minimum context window tokens, at least 1.
+</ParamField>
+
+<ParamField name="limit" type="integer" default="50">
+  Maximum items to return, between 1 and 1000.
+</ParamField>
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "model_name": "openai/gpt-4.1-mini",
+      "provider": "openai",
+      "route_status": "available",
+      "mode": "chat",
+      "input_modalities": ["text", "image"],
+      "output_modalities": ["text"],
+      "capabilities": ["tools", "streaming", "json_mode"],
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "pricing": {
+        "input_per_million": 0.15,
+        "output_per_million": 0.60
+      }
+    }
+  ],
+  "total": 1
+}
+```
+
+<ResponseField name="items" type="array" required>
+  Array of model objects containing name, provider, capabilities, and token pricing.
+</ResponseField>
+
+<ResponseField name="total" type="integer" required>
+  Total number of models matching the query filters.
+</ResponseField>
+
+---
 
 ## Key-scoped discovery
 
 <ApiEndpoint method="GET" path="/v1/models" auth="api_key" />
 
-Use an inference key or scoped OAuth token to retrieve concrete IDs permitted by the key's model policy. The OpenAI-compatible response uses `data`, and each model has an `id`. With a routing key, send `X-Zorveus-Key-Alias` to choose the member
+Returns the OpenAI-compatible list of concrete model IDs your specific API key is authorized to use based on your organization's connection policies.
 
-See [Model discovery](/inference/model-discovery) for SDK examples. Use the catalog to check task support, then verify the ID with the key that will make the request
+<CodeGroup titles={["cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+
+```bash
+curl --fail-with-body https://api.zorveus.com/v1/models \
+	-H "Authorization: Bearer zrv_your_api_key"
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="zrv_your_api_key",
+    base_url="https://api.zorveus.com/v1",
+)
+
+models = client.models.list()
+for model in models.data:
+    print(model.id)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "zrv_your_api_key",
+  baseURL: "https://api.zorveus.com/v1",
+});
+
+const models = await client.models.list();
+for (const model of models.data) {
+  console.log(model.id);
+}
+```
+
+</CodeGroup>
+
+<ApiRunner method="GET" path="/v1/models" />
+
+### Response
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "openai/gpt-4.1-mini",
+      "object": "model",
+      "created": 1715000000,
+      "owned_by": "openai"
+    },
+    {
+      "id": "anthropic/claude-3-5-sonnet",
+      "object": "model",
+      "created": 1715000000,
+      "owned_by": "anthropic"
+    }
+  ]
+}
+```
+
+<ResponseField name="object" type="string" required>
+  Always `list`.
+</ResponseField>
+
+<ResponseField name="data" type="array" required>
+  Array of model objects. Pass the returned `id` string directly into your chat or completion calls.
+</ResponseField>

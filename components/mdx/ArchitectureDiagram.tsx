@@ -1,17 +1,22 @@
+import React from 'react';
+import { ThemedDiagram } from './ThemedDiagram';
+
+const ARCHITECTURE_STEPS = [
+  'Zorveus dashboard configures apps, policies, caps, and provider credentials.',
+  'Your application backend sends model requests with a Zorveus API key and customer external user ID through Zorveus Gateway (Authorize, Reserve, Settle).',
+  'Model provider executes completions across OpenAI, Anthropic, or Gemini and returns responses through Zorveus.',
+];
+
+/** Renders the Zorveus architecture diagram with theme-matched light and dark assets. */
 export function ArchitectureDiagram() {
   return (
-    <figure className="zorveus-architecture not-prose" aria-label="Zorveus architecture">
-      <div className="zorveus-architecture-management">
-        <strong>Zorveus dashboard</strong>
-        <span>Configure apps, connections, model access, caps, provider credentials, and webhooks.</span>
-      </div>
-      <div className="zorveus-architecture-connector" aria-hidden="true">↓ Configures Zorveus</div>
-      <ol className="zorveus-architecture-flow">
-        <li><strong>Your application backend</strong><span>Sends a model request with a Zorveus API key and your customer’s external user ID.</span></li>
-        <li><strong>Zorveus</strong><span>Checks access, attribution, allowance, and funding. Routes the request and records usage.</span></li>
-        <li><strong>Model provider</strong><span>Runs the model. The response returns through Zorveus to your application.</span></li>
-      </ol>
-      <figcaption>Separate server-to-server path: your backend uses a service key for supported product-user reads, upserts, and credit grants by external user ID.</figcaption>
-    </figure>
+    <ThemedDiagram
+      ariaLabel="Zorveus architecture"
+      lightSrc="/diagrams/architecture-light.jpg"
+      darkSrc="/diagrams/architecture-dark.jpg"
+      alt="Zorveus architecture showing Zorveus Dashboard configuring policies, Your Backend sending Inference requests and Service Key calls through Zorveus Gateway (Authorize, Reserve, Settle) to OpenAI, Anthropic, and Gemini."
+      steps={ARCHITECTURE_STEPS}
+      caption="Separate server-to-server path: your backend uses a service key for supported product-user reads, upserts, and credit grants by external user ID."
+    />
   );
 }

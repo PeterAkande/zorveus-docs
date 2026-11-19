@@ -22,3 +22,12 @@ test('shared theme colors have light and dark definitions', () => {
   }
   assert.match(css, /body \{\s*background-color: var\(--docs-bg\)/);
 });
+
+test('code blocks use always-dark Dracula Shiki theme and dark container tokens', () => {
+  const sourceConfig = fs.readFileSync('source.config.ts', 'utf8');
+  const css = fs.readFileSync('app/globals.css', 'utf8');
+  assert.match(sourceConfig, /light:\s*['"]dracula['"]/);
+  assert.match(sourceConfig, /dark:\s*['"]dracula['"]/);
+  assert.match(css, /--docs-codeblock-bg:\s*#282a36;/);
+  assert.match(css, /--docs-codeblock-fg:\s*#f8f8f2;/);
+});

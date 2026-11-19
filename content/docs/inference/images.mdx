@@ -1,39 +1,17 @@
 ---
 title: Image generation
-description: Generate images through compatible model routes and handle returned image data.
+description: Generate images with DALL-E, Imagen, and open diffusion models through the unified Zorveus gateway.
 ---
+
+Generate, edit, and create variations of images with models that support image generation.
 
 <ApiEndpoint method="POST" path="/v1/images/generations" auth="api_key" />
 
-Choose an image-generation model from discovery. The example uses a configurable model ID and requests base64 output
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+## Code examples
 
----
-
-## Code example
-
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
-
-```python
-import os
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_api_key",
-)
-
-response = client.images.generate(
-    model=os.environ["ZORVEUS_IMAGE_MODEL"],
-    prompt="A modern minimalist geometric workspace with emerald mint lighting",
-    size="1024x1024",
-    response_format="b64_json",
-    n=1,
-)
-
-print("Received image:", bool(response.data and response.data[0].b64_json))
-```
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
 ```typescript
 import OpenAI from "openai";
@@ -43,29 +21,91 @@ const client = new OpenAI({
   apiKey: "zrv_your_api_key",
 });
 
-async function main() {
-  const image = await client.images.generate({
-    model: process.env.ZORVEUS_IMAGE_MODEL!,
-    prompt: "A modern minimalist geometric workspace with emerald mint lighting",
-    size: "1024x1024",
-    response_format: "b64_json",
-    n: 1,
-  });
+const response = await client.images.generate({
+  model: "openai/dall-e-3",
+  prompt: "A modern minimalist geometric workspace with emerald mint lighting",
+  size: "1024x1024",
+  response_format: "url",
+  n: 1,
+});
 
-  console.log("Received image:", Boolean(image.data?.[0]?.b64_json));
-}
+console.log("Image URL:", response.data?.[0]?.url);
+```
 
-main();
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_api_key",
+)
+
+response = client.images.generate(
+    model="openai/dall-e-3",
+    prompt="A modern minimalist geometric workspace with emerald mint lighting",
+    size="1024x1024",
+    response_format="url",
+    n=1,
+)
+
+print("Image URL:", response.data[0].url)
+```
+
+```bash
+curl https://api.zorveus.com/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  -d '{
+    "model": "openai/dall-e-3",
+    "prompt": "A modern minimalist geometric workspace with emerald mint lighting",
+    "size": "1024x1024",
+    "response_format": "url",
+    "n": 1
+  }'
 ```
 
 </CodeGroup>
 
-## Handle image data
+---
 
-Providers can return a temporary URL, base64 data, or another provider-specific result. Decode `b64_json` to save an image when the selected model supports that response format
+## Request parameters
 
-Check `GET /v1/models` before using the example model. Image size, quality, count, response format, and content-policy behavior depend on the selected model
+<ParamField name="prompt" type="string" required>
+  A text description of the desired image. Maximum length depends on the model.
+</ParamField>
 
-Do not log base64 image output or place provider URLs in long-lived records unless your data policy permits it
+<ParamField name="model" type="string" default="openai/dall-e-3">
+  The image generation model to use. Verify allowed models in your connection policy.
+</ParamField>
 
-Set `ZORVEUS_IMAGE_MODEL` to a returned model ID that supports image generation. Supported sizes and response-format options depend on that model
+<ParamField name="size" type="string" default="1024x1024">
+  Output dimensions: `1024x1024`, `1024x1792`, or `1792x1024`.
+</ParamField>
+
+<ParamField name="response_format" type="string" default="url">
+  `url` to receive a temporary download link, or `b64_json` to receive raw base64-encoded image data.
+</ParamField>
+
+<ParamField name="quality" type="string" default="standard">
+  `standard` or `hd` for models supporting high definition.
+</ParamField>
+
+---
+
+## Response format
+
+```json
+{
+  "created": 1715000000,
+  "data": [
+    {
+      "url": "https://oaidalleapiprodscus.blob.core.windows.net/private/image.png",
+      "revised_prompt": "A modern minimalist geometric workspace with emerald mint lighting..."
+    }
+  ]
+}
+```
+
+<ResponseField name="data" type="array" required>
+  Array of generated image objects containing `url` or `b64_json`.
+</ResponseField>

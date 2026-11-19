@@ -26,7 +26,8 @@ interface CardProps {
   title: string;
   icon?: string;
   href?: string;
-  children: ReactNode;
+  cta?: string;
+  children?: ReactNode;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -51,11 +52,23 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   sparkles: Sparkles,
 };
 
-export function CardGroup({ cols = 2, children }: { cols?: number; children: ReactNode }) {
-  return <div className="zorveus-card-grid" data-columns={cols}>{children}</div>;
+export function CardGroup({
+  cols = 2,
+  variant = 'cards',
+  children,
+}: {
+  cols?: number;
+  variant?: 'cards' | 'links';
+  children: ReactNode;
+}) {
+  return (
+    <div className="zorveus-card-grid" data-columns={cols} data-variant={variant}>
+      {children}
+    </div>
+  );
 }
 
-export function Card({ title, icon, href, children }: CardProps) {
+export function Card({ title, icon, href, cta, children }: CardProps) {
   const normalizedIcon = icon ? icon.toLowerCase().replace(/[^a-z0-9-]/g, '') : '';
   const Icon = normalizedIcon ? iconMap[normalizedIcon] : null;
   const content = (
@@ -63,9 +76,15 @@ export function Card({ title, icon, href, children }: CardProps) {
       <div className="zorveus-card-heading">
         {Icon && <Icon className="zorveus-card-icon" aria-hidden="true" />}
         <h3>{title}</h3>
-        {href && <ArrowUpRight className="zorveus-card-arrow" aria-hidden="true" />}
+        {href && !cta && <ArrowUpRight className="zorveus-card-arrow" aria-hidden="true" />}
       </div>
-      <div className="zorveus-rich-content">{children}</div>
+      {children && <div className="zorveus-rich-content">{children}</div>}
+      {cta && (
+        <div className="zorveus-card-cta">
+          <span>{cta}</span>
+          <ArrowUpRight aria-hidden="true" />
+        </div>
+      )}
     </>
   );
   if (href) return <Link href={href} className="zorveus-card-container not-prose">{content}</Link>;

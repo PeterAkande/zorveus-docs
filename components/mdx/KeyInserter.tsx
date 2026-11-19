@@ -40,7 +40,11 @@ export function KeyInserter({ type = 'api', label, placeholder }: KeyInserterPro
         <Key aria-hidden="true" />
         <div>
           <label htmlFor={inputId}>{title}</label>
-          <p id={`${inputId}-help`}>Optional key for interactive API requests. Stored in memory only.</p>
+          <p id={`${inputId}-help`}>
+            {isCustom
+              ? 'Active in page code snippets and live requests. Stored in memory only.'
+              : 'Paste your key to populate code snippets and live requests. Stored in memory only.'}
+          </p>
         </div>
       </div>
       <div className="zorveus-key-controls">
@@ -49,7 +53,7 @@ export function KeyInserter({ type = 'api', label, placeholder }: KeyInserterPro
           type={revealed || type === 'client' ? 'text' : 'password'}
           value={isCustom ? value : ''}
           placeholder={placeholder || defaultPlaceholder}
-          onChange={(event) => { setValue(event.target.value || defaultPlaceholder); setCopied(false); setCopyError(false); }}
+          onChange={(event) => { setValue(event.target.value.trim() || defaultPlaceholder); setCopied(false); setCopyError(false); }}
           aria-describedby={`${inputId}-help`}
           spellCheck={false}
           autoComplete="off"

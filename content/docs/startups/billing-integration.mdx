@@ -1,103 +1,233 @@
 ---
 title: Grant credits after a payment
-description: Connect verified customer payments to product-user credit grants without confusing them with wallet top-ups.
+description: Connect verified customer payments to product-user credit grants with automatic idempotency.
 ---
 
-Your payment provider owns the customer payment. Zorveus owns AI allowance enforcement. Product-user credits do not deposit money into the organization's wallet or pay upstream providers
+When customers pay for AI usage (such as buying a $10 top-up pack or upgrading their plan), your payment provider handles the money, and your backend grants credits in Zorveus using a service key.
 
-## Configure the product
+<KeyInserter type="service" label="Service Key" placeholder="zrv_svc_your_service_key" />
 
-1. Create an app and a capped inference key in the dashboard. Choose an enforcement mode.
-2. Create a service key with product-user write permission. Keep the key on your server.
-3. Define the AI credit amount and currency for each purchase. A payment price is not necessarily the AI allowance amount.
-4. Configure your payment provider's webhook. Zorveus [outbound webhooks](/platform/webhooks) are optional for this grant flow
+## Architecture flow
 
-## Process the verified payment
+<FlowDiagram flow="stripe-credits" />
 
-Verify the payment provider's signature before reading the event as trusted data. For Stripe, grant credits only after the relevant payment has succeeded. Do not assume checkout completion means an asynchronous payment has settled
+---
 
-Resolve the app and external user from your stored purchase. Do not trust a browser-supplied user ID or amount. Keep a durable purchase record and use its stable identifier as the grant's `external_reference`. Use one reference per authorized award, even when several payment events report the same purchase
+## 1. Issue an idempotent credit grant
 
-Call the service-key endpoint:
+Always provide an `external_reference` corresponding to your payment provider's transaction ID (e.g. Stripe PaymentIntent ID). If your webhook receives duplicate events or experiences a network retry, Zorveus safely deduplicates the request and returns the existing grant without adding duplicate balance.
+
+<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({ apiKey: "zrv_svc_your_service_key" });
+
+const receipt = await service.productUsers.grantCreditByExternalId({
+  appId: "app_123",
+  externalUserId: "customer_42",
+  amount: "10.00",
+  externalReference: "stripe_pi_3N4v9B2eZvKYlo2C01234567",
+  source: "purchase",
+  reason: "100k token pack top-up",
+});
+
+console.log(`Granted: $${receipt.credit_grant.amount}`);
+console.log(`New total available credits: $${receipt.credit_summary.available_credits}`);
+```
+
+```python
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
+
+receipt = service.product_users.grant_credit_by_external_id(
+    app_id="app_123",
+    external_user_id="customer_42",
+    amount="10.00",
+    external_reference="stripe_pi_3N4v9B2eZvKYlo2C01234567",
+    source="purchase",
+    reason="100k token pack top-up",
+)
+
+print(f"Granted: ${receipt.credit_grant.amount}")
+print(f"New total available credits: ${receipt.credit_summary.available_credits}")
+```
 
 ```bash
-curl https://api.zorveus.com/product-users/by-external-id/credit-grants \
+curl --fail-with-body https://api.zorveus.com/product-users/by-external-id/credit-grants \
 	-H "Authorization: Bearer zrv_svc_your_service_key" \
 	-H "Content-Type: application/json" \
 	-d '{
 		"app_id": "app_123",
 		"external_user_id": "customer_42",
-		"external_reference": "purchase:purchase_123",
+		"external_reference": "stripe_pi_3N4v9B2eZvKYlo2C01234567",
 		"amount": "10.00",
 		"currency": "USD",
 		"source": "purchase",
-		"reason": "Paid purchase purchase_123"
+		"reason": "100k token pack top-up"
 	}'
 ```
 
-Store the returned grant identifier against the purchase and mark the purchase fulfilled. Use decimal strings for monetary amounts
+</CodeGroup>
 
-## Recover from uncertain results
+### Response
 
-A timeout can occur after Zorveus creates the grant. Repeat the POST with the same `external_reference` and grant parameters to recover the original grant. This does not repeat credit issuance, debt repayment, or the grant webhook
-
-To retrieve the current grant without posting again:
-
-```bash
-curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id/credit-grants/by-reference \
-	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
-	--data-urlencode 'app_id=app_123' \
-	--data-urlencode 'external_user_id=customer_42' \
-	--data-urlencode 'external_reference=purchase:purchase_123'
+```json
+{
+  "product_user": {
+    "product_end_user_id": "usr_abc123",
+    "app_id": "app_123",
+    "external_user_id": "customer_42"
+  },
+  "credit_grant": {
+    "credit_grant_id": "cgr_xyz789",
+    "external_reference": "stripe_pi_3N4v9B2eZvKYlo2C01234567",
+    "amount": "10.000000000000",
+    "remaining_amount": "10.000000000000",
+    "currency": "USD",
+    "source": "purchase",
+    "status": "active",
+    "created_at": "2026-11-09T10:00:00Z"
+  },
+  "credit_summary": {
+    "available_credits": "25.000000000000",
+    "active_grant_count": 2
+  }
+}
 ```
 
-The lookup returns the grant directly. A 404 can race an unfinished creation and does not authorize a new reference. Repeat the original referenced POST if the outcome remains uncertain. HTTP 409 with `zorveus_product_user_credit_reference_conflict` means the reference was reused with different grant parameters. Investigate that conflict instead of issuing another award
+---
 
-Keep the purchase's accepted amount, currency, source, expiry, and metadata stable on retries. References survive key rotation and grant expiry, exhaustion, or revocation. Calls without a reference remain independent creations. See [Idempotency and retries](/platform/idempotency) for normalization and retention rules
+## 2. Stripe webhook handler example
 
-For refunds, define the policy for unused credits and already consumed allowance. Revoke unused grants in the dashboard when appropriate. Service keys do not expose a grant-revocation endpoint. Do not assume negative grants reverse a purchase
+Here is how to handle Stripe's `payment_intent.succeeded` event in Next.js or Express:
 
-## Update the customer experience
-
-Zorveus `wallet.payment_credited` means an organization wallet top-up. It is not proof that your customer paid your application
-
-For `product_user.credits_granted`, identify the customer with `data.external_user_id` and verify `data.app_id`. Refresh [available allowance](/startups/check-allowance) rather than assuming any grant guarantees the next request will succeed. Deduplicate webhook event IDs and tolerate delayed delivery
-
-
-## Credit units and conversion rates
-
-The app's `credit_units_per_usd` is the default for new USD grants. A grant can supply its own rate. Omit the override to save the app default on the new grant
+<CodeGroup titles={["Next.js App Router (TypeScript)", "Express.js (TypeScript)"]}>
 
 ```typescript
-const receipt = await service.productUsers.grantCreditByExternalId({
-	appId,
-	externalUserId: authenticatedUserId,
-	externalReference: `purchase:${verifiedPayment.id}`,
-	amount: "2.000000000000",
-	creditUnitsPerUsd: "1500",
-	source: "purchase",
+// app/api/webhooks/stripe/route.ts
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const zorveus = new ZorveusServiceClient({ apiKey: process.env.ZORVEUS_SERVICE_KEY! });
+
+export async function POST(req: Request) {
+  const body = await req.text();
+  const sig = req.headers.get("stripe-signature")!;
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch (err: unknown) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  if (event.type === "payment_intent.succeeded") {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    const userId = paymentIntent.metadata.userId;
+    const creditAmount = (paymentIntent.amount / 100).toFixed(2);
+
+    await zorveus.productUsers.grantCreditByExternalId({
+      appId: process.env.ZORVEUS_APP_ID!,
+      externalUserId: userId,
+      amount: creditAmount,
+      externalReference: paymentIntent.id,
+      source: "purchase",
+      reason: `Credit pack top-up (${paymentIntent.id})`,
+    });
+  }
+
+  return NextResponse.json({ received: true });
+}
+```
+
+```typescript
+// server.ts
+import express from "express";
+import Stripe from "stripe";
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const app = express();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const zorveus = new ZorveusServiceClient({ apiKey: process.env.ZORVEUS_SERVICE_KEY! });
+
+app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (req, res) => {
+  const sig = req.headers["stripe-signature"] as string;
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch (err) {
+    return res.status(400).send("Webhook signature verification failed");
+  }
+
+  if (event.type === "payment_intent.succeeded") {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    const userId = paymentIntent.metadata.userId;
+    const creditAmount = (paymentIntent.amount / 100).toFixed(2);
+
+    await zorveus.productUsers.grantCreditByExternalId({
+      appId: process.env.ZORVEUS_APP_ID!,
+      externalUserId: userId,
+      amount: creditAmount,
+      externalReference: paymentIntent.id,
+      source: "purchase",
+      reason: `Credit pack top-up (${paymentIntent.id})`,
+    });
+  }
+
+  res.json({ received: true });
 });
-console.log(receipt.credit_grant.remaining_credit_units);
+```
+
+</CodeGroup>
+
+---
+
+## 3. Verify an existing grant by reference
+
+If you need to verify whether a customer was credited for a past transaction, query by reference instead of creating a new grant:
+
+<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
+
+```typescript
+const grant = await service.productUsers.getCreditGrantByExternalReference({
+  appId: "app_123",
+  externalUserId: "customer_42",
+  externalReference: "stripe_pi_3N4v9B2eZvKYlo2C01234567",
+});
+
+console.log(`Grant status: ${grant.status}, remaining: $${grant.remaining_amount}`);
 ```
 
 ```python
-receipt = service.product_users.grant_credit_by_external_id(
-	app_id=app_id,
-	external_user_id=authenticated_user_id,
-	external_reference=f"purchase:{verified_payment.id}",
-	amount="2.000000000000",
-	credit_units_per_usd="1500",
-	source="purchase",
+grant = service.product_users.get_credit_grant_by_external_reference(
+    app_id="app_123",
+    external_user_id="customer_42",
+    external_reference="stripe_pi_3N4v9B2eZvKYlo2C01234567",
 )
-print(receipt.credit_grant.remaining_credit_units)
+
+print(f"Grant status: {grant.status}, remaining: ${grant.remaining_amount}")
 ```
 
-The $2 grant above starts with 3,000 credit units. Its saved rate stays fixed when the app default changes. Referenced retries preserve the original rate. Changing an explicitly supplied rate under the same reference returns HTTP 409
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id/credit-grants/by-reference \
+	-H "Authorization: Bearer zrv_svc_your_service_key" \
+	--data-urlencode "app_id=app_123" \
+	--data-urlencode "external_user_id=customer_42" \
+	--data-urlencode "external_reference=stripe_pi_3N4v9B2eZvKYlo2C01234567"
+```
 
-Grant creation, lists, reference lookup, and revocation return `credit_units_per_usd` and `remaining_credit_units`. An older grant without a saved rate uses the current app default. If neither rate exists, a positive balance has null credit units. Zero remaining USD returns zero units
+</CodeGroup>
 
-`credit_summary.remaining_credit_units` sums all usable grants at their respective rates, independently of the grant list limit. If any positive usable grant has no conversion, the total is null. USD fields such as `remaining_amount` and `available_credits` retain their existing meaning
+---
 
-`allowance.remaining_credit_units` includes the remaining base allowance at the current app rate plus grants permitted by the selected connection. It is the field to display for the customer's total remaining credit units. Credit units and rates are exact decimal strings. Keep their precision when displaying or processing them
+## Related reading
 
-Rates must be positive finite decimal values with at most 12 digits before and 12 digits after the decimal point. An explicit grant rate requires USD. Existing grants in other currencies remain supported without conversion
+- [Check customer allowance](/startups/check-allowance): Query spendable balances before admitting requests.
+- [Idempotency and retries](/platform/idempotency): Details on reference conflict detection and retry safety.
+- [Product users API reference](/api-reference/product-users): Complete request and response parameter specifications.

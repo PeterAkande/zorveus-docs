@@ -1,18 +1,228 @@
 ---
 title: OAuth endpoints
-description: Authorize a user, exchange a code, and revoke an inference token.
+description: Authorize users, exchange authorization codes, and revoke inference tokens.
 ---
 
-OAuth uses Authorization Code with S256 PKCE. Register the app in the dashboard, then use these endpoints from your application
+Zorveus OAuth 2.0 with PKCE allows end-users to grant your application access to run AI model requests funded by their own Zorveus accounts.
 
-| Operation | Endpoint | Contract |
+<KeyInserter type="client" label="Client ID" placeholder="zrv_client_your_client_id" />
+
+| Operation | Method and path | Protocol |
 | --- | --- | --- |
-| Start authorization | Browser navigation to `https://app.zorveus.com/oauth/authorize` | [Authorization request](/oauth/authorization-request) |
-| Exchange a code | `POST https://api.zorveus.com/oauth/token` | [Form fields and response](/oauth/token-exchange) |
-| Revoke a token | `POST https://api.zorveus.com/oauth/revoke` | [Revocation](/oauth/revocation) |
+| [Authorize user](#authorize-user) | `GET https://app.zorveus.com/oauth/authorize` | Browser redirect with PKCE |
+| [Exchange code for token](#exchange-code-for-token) | `POST https://api.zorveus.com/oauth/token` | Form-encoded server request |
+| [Revoke token](#revoke-token) | `POST https://api.zorveus.com/oauth/revoke` | Form-encoded server request |
 
-Token exchange and revocation accept `application/x-www-form-urlencoded`. Confidential clients include `client_secret` from their backend. Public clients omit it. Both client types use PKCE for authorization
+---
 
-The returned `access_token` is an inference credential. It does not grant dashboard access or product-user management permissions. There is no refresh-token grant. Use [reauthorization](/oauth/reauthorization) to replace a token or change consent
+## Authorize user
 
-Start with the [OAuth app quickstart](/getting-started/oauth-app-quickstart). See [OAuth errors](/oauth/errors) for the JSON error contract
+<ApiEndpoint method="GET" path="/oauth/authorize" />
+
+Redirect the user's browser to the Zorveus authorization consent page.
+
+```text
+https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fmyapp.com%2Fcallback&scope=inference%3Awrite%20models%3A*&code_challenge=YOUR_BASE64URL_CHALLENGE&code_challenge_method=S256&state=YOUR_RANDOM_STATE
+```
+
+### Query parameters
+
+<ParamField name="response_type" type="string" required>
+  Must be `code`.
+</ParamField>
+
+<ParamField name="client_id" type="string" required>
+  Your app's Client ID registered in your Developer organization.
+</ParamField>
+
+<ParamField name="redirect_uri" type="string" required>
+  Exact redirect URI matching your app's dashboard configuration.
+</ParamField>
+
+<ParamField name="scope" type="string" required>
+  Space-delimited scopes. Must include `inference:write` and model scopes such as `models:*` or `models:openai/*`.
+</ParamField>
+
+<ParamField name="code_challenge" type="string" required>
+  Base64URL-encoded SHA-256 hash of your plaintext PKCE verifier.
+</ParamField>
+
+<ParamField name="code_challenge_method" type="string" required>
+  Must be `S256`.
+</ParamField>
+
+<ParamField name="state" type="string" required>
+  Cryptographic random string to prevent cross-site request forgery.
+</ParamField>
+
+---
+
+## Exchange code for token
+
+<ApiEndpoint method="POST" path="/oauth/token" />
+
+Exchange the single-use authorization code and PKCE `code_verifier` for a scoped access token.
+
+<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
+
+```typescript
+import { ZorveusOAuth } from "@zorveus/sdk";
+
+const tokenData = await ZorveusOAuth.exchangeCode({
+  clientId: "zrv_client_your_client_id",
+  clientSecret: process.env.ZORVEUS_CLIENT_SECRET, // Omit for public clients
+  code: authCodeFromRedirect,
+  codeVerifier: originalVerifier,
+  redirectUri: "https://myapp.com/callback",
+});
+
+console.log("Token:", tokenData.access_token);
+```
+
+```python
+from zorveus import ZorveusOAuth
+
+token_data = ZorveusOAuth.exchange_code(
+    client_id="zrv_client_your_client_id",
+    client_secret=os.environ.get("ZORVEUS_CLIENT_SECRET"),
+    code=auth_code_from_redirect,
+    code_verifier=original_verifier,
+    redirect_uri="https://myapp.com/callback",
+)
+
+print("Token:", token_data.access_token)
+```
+
+```bash
+curl -X POST https://api.zorveus.com/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "client_id=zrv_client_your_client_id" \
+  -d "client_secret=zrv_client_secret_your_secret" \
+  -d "code=zorveus_code_abc123xyz" \
+  -d "code_verifier=original_plain_code_verifier" \
+  -d "redirect_uri=https://myapp.com/callback"
+```
+
+</CodeGroup>
+
+### Request body (Form URL-encoded)
+
+<ParamField name="grant_type" type="string" required>
+  Must be `authorization_code`.
+</ParamField>
+
+<ParamField name="client_id" type="string" required>
+  Your app's Client ID.
+</ParamField>
+
+<ParamField name="code" type="string" required>
+  Authorization code from the callback redirect query string.
+</ParamField>
+
+<ParamField name="code_verifier" type="string" required>
+  The plaintext string used to generate the original `code_challenge`.
+</ParamField>
+
+<ParamField name="redirect_uri" type="string" required>
+  The exact callback URL passed to `/oauth/authorize`.
+</ParamField>
+
+<ParamField name="client_secret" type="string">
+  Required for confidential server backends. Omitted by public web and mobile clients.
+</ParamField>
+
+### Response
+
+```json
+{
+  "access_token": "zrv_usr_9a8b7c6d5e4f3a2b1c0d",
+  "token_type": "Bearer",
+  "scope": "inference:write models:*",
+  "expires_in": 2592000,
+  "app_connection_id": "appcon_abc123",
+  "api_base": "https://api.zorveus.com/v1"
+}
+```
+
+<ResponseField name="access_token" type="string" required>
+  The user-scoped inference token used in `Authorization: Bearer ...` requests.
+</ResponseField>
+
+<ResponseField name="token_type" type="string" required>
+  Always `Bearer`.
+</ResponseField>
+
+<ResponseField name="expires_in" type="integer">
+  Validity period in seconds.
+</ResponseField>
+
+---
+
+## Revoke token
+
+<ApiEndpoint method="POST" path="/oauth/revoke" />
+
+Revoke an issued access token when a user disconnects their account.
+
+<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
+
+```typescript
+import { ZorveusOAuth } from "@zorveus/sdk";
+
+const result = await ZorveusOAuth.revokeToken({
+  clientId: "zrv_client_your_client_id",
+  clientSecret: process.env.ZORVEUS_CLIENT_SECRET,
+  token: userAccessToken,
+});
+
+console.log("Revoked:", result.revoked);
+```
+
+```python
+from zorveus import ZorveusOAuth
+
+result = ZorveusOAuth.revoke_token(
+    client_id="zrv_client_your_client_id",
+    client_secret=os.environ.get("ZORVEUS_CLIENT_SECRET"),
+    token=user_access_token,
+)
+
+print("Revoked:", result.revoked)
+```
+
+```bash
+curl -X POST https://api.zorveus.com/oauth/revoke \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=zrv_client_your_client_id" \
+  -d "client_secret=zrv_client_secret_your_secret" \
+  -d "token=zrv_usr_token_to_revoke"
+```
+
+</CodeGroup>
+
+### Request body
+
+<ParamField name="client_id" type="string" required>
+  Your app's Client ID.
+</ParamField>
+
+<ParamField name="token" type="string" required>
+  The access token to revoke.
+</ParamField>
+
+<ParamField name="client_secret" type="string">
+  Required for confidential clients.
+</ParamField>
+
+### Response
+
+```json
+{
+  "revoked": true
+}
+```
+
+<ResponseField name="revoked" type="boolean" required>
+  `true` if an active token was revoked. Subsequent attempts return `false`.
+</ResponseField>

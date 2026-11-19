@@ -3,41 +3,103 @@ title: Key usage
 description: Read the selected inference key’s connection cap and period spend.
 ---
 
+Check the current period spend, remaining balance, and active cap for an inference key.
+
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
+
+## Get key usage
+
 <ApiEndpoint method="GET" path="/inference-keys/usage" auth="api_key" />
 
-Authenticate with the inference key or scoped OAuth access token. With a routing key, include `X-Zorveus-Key-Alias` to select the member you want to inspect
+Send your inference key or scoped OAuth access token in the `Authorization` header. When using a routing key, add `X-Zorveus-Key-Alias` to inspect a specific member connection.
+
+<CodeGroup titles={["cURL", "Python", "TypeScript"]}>
 
 ```bash
 curl --fail-with-body https://api.zorveus.com/inference-keys/usage \
-	-H "Authorization: Bearer $ZORVEUS_API_KEY"
+	-H "Authorization: Bearer zrv_your_api_key"
 ```
+
+```python
+import httpx
+
+response = httpx.get(
+    "https://api.zorveus.com/inference-keys/usage",
+    headers={"Authorization": "Bearer zrv_your_api_key"},
+)
+usage = response.json()
+print(f"Spent: ${usage['spent_this_period']} / ${usage['spend_cap']}")
+```
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const zorveus = new Zorveus({ apiKey: "zrv_your_api_key" });
+const usage = await zorveus.getUsage();
+
+console.log(`Spent: $${usage.spent_this_period} of $${usage.spend_cap}`);
+```
+
+</CodeGroup>
+
+<ApiRunner method="GET" path="/inference-keys/usage" />
+
+### Response
 
 ```json
 {
-	"status": "active",
-	"app_id": "app_123",
-	"app_connection_id": "appcon_123",
-	"currency": "USD",
-	"period": "monthly",
-	"spend_cap": "50.000000000000",
-	"spent_this_period": "12.500000000000",
-	"remaining_balance": "37.500000000000",
-	"reset_at": "2026-11-01T00:00:00Z"
+  "status": "active",
+  "app_id": "app_123",
+  "app_connection_id": "appcon_123",
+  "currency": "USD",
+  "period": "monthly",
+  "spend_cap": "50.000000000000",
+  "spent_this_period": "12.500000000000",
+  "remaining_balance": "37.500000000000",
+  "reset_at": "2026-12-01T00:00:00Z"
 }
 ```
 
-Amounts and dates above illustrate the response. `spend_cap`, `remaining_balance`, and `reset_at` can be null. A null cap means that this summary has no finite connection cap, not that the wallet is empty
+<ResponseField name="status" type="string" required>
+  Status of the connection, such as `active` or `capped`.
+</ResponseField>
 
-This endpoint does not accept an external customer ID. Do not use it as a customer's allowance check. Use [the product-user profile](/startups/check-allowance), which includes their credits, anchor, and applicable connection
+<ResponseField name="app_id" type="string" required>
+  Unique identifier of the application this key belongs to.
+</ResponseField>
 
-The TypeScript SDK exposes this as `client.getUsage()`. Organization usage analytics and ledger inspection are available in the dashboard
+<ResponseField name="app_connection_id" type="string" required>
+  Unique identifier of the specific connection routing this key's requests.
+</ResponseField>
 
+<ResponseField name="currency" type="string" required>
+  Three-letter ISO currency code, typically `USD`.
+</ResponseField>
 
-## Request activity and detailed events
+<ResponseField name="period" type="string" required>
+  Cap period, such as `daily`, `monthly`, or `total`.
+</ResponseField>
 
-Attach business context during inference using [usage metadata](/inference/product-user-metadata#attach-business-context-to-usage-events). Detailed usage-event responses expose the captured `usage_metadata` object or `null` under their existing dashboard permissions
+<ResponseField name="spend_cap" type="string">
+  The configured spend limit as a decimal string, or `null` if uncapped.
+</ResponseField>
 
-`GET /inference-keys/usage` remains a connection-level summary. It does not return individual usage events or the metadata attached to them. Organization service keys do not grant access to dashboard finance-event APIs
+<ResponseField name="spent_this_period" type="string" required>
+  Total amount spent by this key in the current billing window.
+</ResponseField>
 
+<ResponseField name="remaining_balance" type="string">
+  Remaining spend before the key cap is reached, or `null` if uncapped.
+</ResponseField>
 
-Business backends can fetch a customer-scoped history through [Product-user activity](/startups/product-user-activity) with `product_users:read`. This is a separate endpoint from dashboard organization analytics
+<ResponseField name="reset_at" type="string">
+  ISO 8601 timestamp for when the spend counter resets.
+</ResponseField>
+
+---
+
+## Customer-level allowance vs key usage
+
+`GET /inference-keys/usage` reports aggregate spending across the entire API key.
+
+If you are tracking an individual customer's usage and quota, use [the product-user endpoint](/api-reference/product-users) with your server service key. That endpoint factors in customer-specific caps, one-time credits, and subscription anchor dates.

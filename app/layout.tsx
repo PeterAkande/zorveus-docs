@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: '%s | Zorveus Docs',
   },
   description:
-    'Zorveus is an AI infrastructure platform for model access, routing, customer allowances, usage tracking, spending controls, and billing',
+    'Zorveus provides unified access to over 850 AI models across providers, including OpenAI, Google Gemini, Anthropic, and Jev, with optional customer allowances, spending limits, and billing infrastructure.',
   icons: {
     icon: '/zorveus-mark.svg',
     shortcut: '/zorveus-mark.svg',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Zorveus Documentation',
     description:
-      'Access AI models across providers, track each user’s usage, and enforce spending limits. Fund requests through Zorveus or bring your own provider credentials.',
+      'Access over 850 AI models across providers, including OpenAI, Google Gemini, Anthropic, and Jev, through one unified endpoint. Optionally enforce customer spending limits, allocate credits, and track usage.',
     url: 'https://docs.zorveus.com',
     siteName: 'Zorveus Docs',
     type: 'website',
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Zorveus Documentation',
     description:
-      'Access AI models across providers, track each user’s usage, and enforce spending limits. Fund requests through Zorveus or bring your own provider credentials.',
+      'Access over 850 AI models across providers, including OpenAI, Google Gemini, Anthropic, and Jev, through one unified endpoint. Optionally enforce customer spending limits, allocate credits, and track usage.',
     images: ['/og-image.png'],
   },
 };

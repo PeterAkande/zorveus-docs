@@ -1,100 +1,206 @@
 ---
-title: Business quickstart
-description: Send your first customer-attributed request from your backend.
+title: API quickstart
+description: Send your first model completion through Zorveus in five minutes.
 ---
 
-Build a backend that sends a model request and records the usage against one of your customers. Your organization pays through its Zorveus wallet or a connected provider account
+Learn how to create an API key, route completions across over 850 supported models (including OpenAI, Google Gemini, Anthropic, and Jev) through Zorveus, and optionally add per-customer spending controls.
 
-## Create your credentials
+<KeyInserter type="api" label="Your API Key" placeholder="zrv_your_api_key" />
 
-In the [dashboard](https://app.zorveus.com), select or create a **Business** organization. Use Business even for a solo project. A Developer organization is for registering OAuth apps where users bring their own funding
+<Steps>
 
-Fund the wallet, or follow the [BYOK quickstart](/getting-started/byok-quickstart). Create an app, then create an inference API key in its connection settings. Save the app ID and store the `zrv_...` key on your server. The full secret is shown only when created or rotated
+<Step title="1. Create your API key">
 
-For a customer allowance, configure a daily or monthly connection cap and use `enforce`. For example, a $10 monthly cap gives each attributed product user a $10 base allowance. Your server must still attach a customer ID on every customer request. See [Configure product-user allowances](/startups/configure-product-user-allowances)
+Log in to the [Zorveus dashboard](https://app.zorveus.com) and create or select a **Business** organization.
 
-## Find a model your key can use
+1. Fund your organization wallet with a balance, or connect your upstream provider accounts under [Provider credentials](/startups/provider-credentials).
+2. Create an App for your project or service.
+3. Under Connection Settings, create an **Inference Key** (`zrv_...`). Copy the secret key to your environment store.
 
-Set your key in a local shell or your application's secret store:
+If you want to cap monthly spend or allocate credits per customer in a multi-tenant app, you can configure connection caps and credit enforcement anytime. For details, see [Configure product-user allowances](/startups/configure-product-user-allowances).
+
+</Step>
+
+<Step title="2. Pick a model">
+
+Browse available models in the [Zorveus model catalog](https://www.zorveus.com/models), or query available models using the OpenAI SDK (`client.models.list()`) or cURL:
+
+<CodeGroup titles={["cURL", "Python", "TypeScript"]}>
 
 ```bash
-export ZORVEUS_API_KEY='zrv_your_api_key'
-
 curl --fail-with-body https://api.zorveus.com/v1/models \
-	-H "Authorization: Bearer $ZORVEUS_API_KEY"
-```
-
-The response contains `data`, an array of model objects. Copy a chat model's `id` into `ZORVEUS_MODEL`. Use [the model catalog](https://www.zorveus.com/models) to check its task support. An embedding or audio model cannot serve a chat request just because it appears in the list
-
-```bash
-export ZORVEUS_MODEL='YOUR_CHAT_MODEL_ID'
-```
-
-If the list is empty, check the key's allowed models in the dashboard. A wildcard such as `openai/*` is a policy, not a model ID
-
-## Send the first request
-
-These examples run on your server. Install the package for the tab you use with `pip install openai` or `npm install openai`
-
-<CodeGroup titles={["cURL", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
-
-```bash
-curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
-	-H "Authorization: Bearer $ZORVEUS_API_KEY" \
-	-H "Content-Type: application/json" \
-	-H "X-Zorveus-External-User-ID: customer_42" \
-	-d "$(jq -n --arg model "$ZORVEUS_MODEL" '{model: $model, messages: [{role: "user", content: "Write a one-sentence welcome message."}]}')"
+	-H "Authorization: Bearer zrv_your_api_key"
 ```
 
 ```python
-import os
 from openai import OpenAI
 
-with OpenAI(
-	api_key=os.environ["ZORVEUS_API_KEY"],
-	base_url="https://api.zorveus.com/v1",
-) as client:
-	response = client.chat.completions.create(
-		model=os.environ["ZORVEUS_MODEL"],
-		messages=[{"role": "user", "content": "Write a one-sentence welcome message."}],
-		extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
-	)
-	print(response.choices[0].message.content)
+client = OpenAI(
+    api_key="zrv_your_api_key",
+    base_url="https://api.zorveus.com/v1",
+)
+
+models = client.models.list()
+for model in models.data:
+    print(model.id)
 ```
 
 ```typescript
 import OpenAI from "openai";
 
 const client = new OpenAI({
-	apiKey: process.env.ZORVEUS_API_KEY,
-	baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_api_key",
+  baseURL: "https://api.zorveus.com/v1",
 });
 
-const response = await client.chat.completions.create(
-	{
-		model: process.env.ZORVEUS_MODEL!,
-		messages: [{ role: "user", content: "Write a one-sentence welcome message." }],
-	},
-	{ headers: { "X-Zorveus-External-User-ID": "customer_42" } },
-);
-
-console.log(response.choices[0].message.content);
+const models = await client.models.list();
+for (const model of models.data) {
+  console.log(model.id);
+}
 ```
 
 </CodeGroup>
 
-The cURL example uses `jq` to build JSON. Replace `customer_42` with the ID from your authenticated application user when integrating this into your backend
+Pick an active model ID from the response, such as `openai/gpt-4.1-mini` or `anthropic/claude-3-5-sonnet`.
 
-A successful request returns HTTP `200` with generated text in `choices[0].message.content`. In the dashboard, the app's product users include `customer_42` and its usage. You do not need to create a product user before the first request
+</Step>
 
-## Check the result and handle a rejection
+<Step title="3. Send your first completion">
 
-A `401` means the inference key needs attention. A wallet shortfall returns `402`. An enforced allowance or model-policy rejection returns `403`. Read the structured Zorveus code as described in [Error handling](/platform/errors). Do not label every `403` as exhausted customer credits
+Zorveus provides an OpenAI-compatible gateway at `https://api.zorveus.com/v1`. You can use the standard OpenAI SDK in Python or TypeScript, or plain HTTP requests. Pass your Zorveus API key as the bearer token.
 
-To read this customer's allowance from your backend, create a [service key](/startups/service-keys) with `product_users:read` and follow the [product-user quickstart](/getting-started/product-user-quickstart). The inference key and service key have different jobs
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
-## Add your product's policies
+```python
+import os
+from openai import OpenAI
 
-For multiple subscription plans, configure separate plan connections and group their keys under [one routing key](/startups/routing-keys). Select the plan from trusted backend data and keep the same external user ID when a customer changes plans
+client = OpenAI(
+    api_key="zrv_your_api_key",
+    base_url="https://api.zorveus.com/v1",
+)
 
-Continue with [Integrate your product](/getting-started/integrate-your-product) for the production workflow, [credit grants](/startups/credit-grants) for extra allowance, or [OAuth](/getting-started/oauth-app-quickstart) when users should fund requests from their own accounts
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Write a one-sentence welcome message."}],
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "zrv_your_api_key",
+  baseURL: "https://api.zorveus.com/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Write a one-sentence welcome message." }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+	-H "Authorization: Bearer zrv_your_api_key" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"model": "openai/gpt-4.1-mini",
+		"messages": [{"role": "user", "content": "Write a one-sentence welcome message."}]
+	}'
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "id": "chatcmpl-9abc123",
+  "object": "chat.completion",
+  "created": 1715000000,
+  "model": "openai/gpt-4.1-mini",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Welcome to our AI platform!"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 14,
+    "completion_tokens": 7,
+    "total_tokens": 21
+  }
+}
+```
+
+Zorveus routes the request to the upstream provider, checks model availability, and logs the token spend to your Business wallet.
+
+</Step>
+
+<Step title="4. (Optional) Track customer usage and enforce allowances">
+
+When building a multi-tenant product, you can attribute requests to individual customers and enforce spending limits by adding the `X-Zorveus-External-User-ID` header:
+
+<CodeGroup titles={["Python", "TypeScript", "cURL"]}>
+
+```python
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Write a one-sentence welcome message."}],
+    extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
+)
+```
+
+```typescript
+const response = await client.chat.completions.create(
+  {
+    model: "openai/gpt-4.1-mini",
+    messages: [{ role: "user", content: "Write a one-sentence welcome message." }],
+  },
+  {
+    headers: { "X-Zorveus-External-User-ID": "customer_42" },
+  }
+);
+```
+
+```bash
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+	-H "Authorization: Bearer zrv_your_api_key" \
+	-H "Content-Type: application/json" \
+	-H "X-Zorveus-External-User-ID: customer_42" \
+	-d '{
+		"model": "openai/gpt-4.1-mini",
+		"messages": [{"role": "user", "content": "Write a one-sentence welcome message."}]
+	}'
+```
+
+</CodeGroup>
+
+When you pass this header:
+- Zorveus automatically creates or updates the customer profile in your dashboard.
+- If your connection cap enforces limits and the customer exhausts their monthly quota, Zorveus returns HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient`).
+- Without this header, requests run directly against your organization wallet with no per-user limits.
+
+For complete customer lifecycle management, see [Product-user metering](/getting-started/product-user-quickstart) and [Integrate your product](/getting-started/integrate-your-product).
+
+</Step>
+
+</Steps>
+
+---
+
+## Next steps
+
+- [Integrate your product](/getting-started/integrate-your-product): Set up customer allowances, plan mapping, and webhooks.
+- [Product-user metering](/getting-started/product-user-quickstart): Attribute requests and check user allowances with service keys.
+- [Provider credentials](/startups/provider-credentials): Connect your own OpenAI, Anthropic, or Google keys.
+- [Error handling](/platform/errors): Reference for status codes, rate limits, and allowance errors.

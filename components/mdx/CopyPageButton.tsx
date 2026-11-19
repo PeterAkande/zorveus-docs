@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Check, Loader2, FileText } from 'lucide-react';
+import { Check, Loader2, FileText } from 'lucide-react';
 
 interface CopyPageButtonProps {
   slug?: string[];
@@ -31,61 +31,37 @@ export function CopyPageButton({ slug }: CopyPageButtonProps) {
     }
   };
 
-  const activeStyle: React.CSSProperties = {
-    color: 'var(--docs-accent)',
-    backgroundColor: 'var(--docs-accent-bg)',
-    border: '2px solid var(--docs-accent)',
-    fontWeight: 700,
-    boxShadow: '0 0 6px rgba(77, 255, 180, 0.12)',
-  };
-
-  const inactiveStyle: React.CSSProperties = {
-    color: 'var(--docs-text)',
-    backgroundColor: 'var(--docs-hover)',
-    border: '1px solid var(--docs-border-strong)',
-    fontWeight: 600,
-    boxShadow: 'none',
-  };
-
-  const baseStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.4rem',
-    padding: '0.4rem 0.75rem',
-    fontSize: '0.8rem',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    outline: 'none',
-    transition: 'all 0.15s ease-in-out',
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
-  };
-
   return (
-    <button
-      onClick={handleCopyPage}
-      title="Copy page as Markdown"
-      style={{
-        ...baseStyle,
-        ...(copied ? activeStyle : inactiveStyle),
-      }}
-    >
-      {loading ? (
-        <>
-          <Loader2 style={{ width: '12px', height: '12px' }} className="animate-spin" />
-          <span>Copying...</span>
-        </>
-      ) : copied ? (
-        <>
-          <Check style={{ width: '12px', height: '12px', color: 'var(--docs-accent)' }} />
-          <span>Page Copied</span>
-        </>
-      ) : (
-        <>
-          <FileText style={{ width: '12px', height: '12px' }} />
-          <span>Copy Page</span>
-        </>
-      )}
-    </button>
+    <>
+      <button
+        onClick={handleCopyPage}
+        title="Copy page as Markdown for an LLM"
+        type="button"
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors cursor-pointer bg-transparent border-0 p-0 focus-visible:outline-2 focus-visible:outline-offset-2"
+        style={{
+          color: copied ? 'var(--docs-accent)' : 'var(--docs-muted)',
+        }}
+      >
+        {loading ? (
+          <>
+            <Loader2 style={{ width: '13px', height: '13px' }} className="animate-spin" aria-hidden="true" />
+            <span>Copying...</span>
+          </>
+        ) : copied ? (
+          <>
+            <Check style={{ width: '13px', height: '13px', color: 'var(--docs-accent)' }} aria-hidden="true" />
+            <span>Copied for LLM</span>
+          </>
+        ) : (
+          <>
+            <FileText style={{ width: '13px', height: '13px' }} aria-hidden="true" />
+            <span>Copy for LLM</span>
+          </>
+        )}
+      </button>
+      <span className="sr-only" aria-live="polite">
+        {copied ? 'Page copied as Markdown.' : ''}
+      </span>
+    </>
   );
 }

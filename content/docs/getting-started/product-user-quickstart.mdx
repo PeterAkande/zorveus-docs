@@ -3,7 +3,9 @@ title: Product-user quickstart
 description: Attribute a request, read the customer profile, and inspect available allowance.
 ---
 
-Send an attributed model request, then retrieve that customer's allowance with a service key. Complete the [Business quickstart](/getting-started/startup-quickstart) first so you have an app, a funded route, and an inference key
+A product user is an end user or customer in your application. When you tag requests with their external ID, Zorveus tracks their token spend, enforces monthly allowance caps, and lets you grant prepaid credits. You do not need to pre-register users. Sending their ID on a model request creates the profile automatically.
+
+Complete the [API quickstart](/getting-started/startup-quickstart) first so you have an app, a funded route, and an inference key.
 
 ## Attribute a request
 
@@ -46,7 +48,42 @@ For names, email, and custom metadata, see [Product-user metadata](/inference/pr
 
 ## Read the customer from your backend
 
-Create a service key in the dashboard with `product_users:read`. Store it as `ZORVEUS_SERVICE_KEY` and set `ZORVEUS_APP_ID` to the app that owns the inference key. Run this on your server:
+Create a service key in the dashboard with `product_users:read`. Store it as `ZORVEUS_SERVICE_KEY` and set `ZORVEUS_APP_ID` to the app that owns the inference key. You can read the profile with the Python SDK, TypeScript SDK, or cURL:
+
+<CodeGroup titles={["Python (zorveus)", "TypeScript (@zorveus/sdk)", "cURL"]}>
+
+```python
+import os
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(service_key=os.environ["ZORVEUS_SERVICE_KEY"])
+
+user = service.product_users.get_by_external_id(
+    app_id=os.environ["ZORVEUS_APP_ID"],
+    external_user_id="customer_42",
+)
+
+print("Usage this period:", user.usage.this_period)
+print("Allowance:", user.allowance)
+print("Credits:", user.credits)
+```
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+});
+
+const user = await service.productUsers.getByExternalId({
+  appId: process.env.ZORVEUS_APP_ID!,
+  externalUserId: "customer_42",
+});
+
+console.log("Usage this period:", user.usage.this_period);
+console.log("Allowance:", user.allowance);
+console.log("Credits:", user.credits);
+```
 
 ```bash
 curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
@@ -55,7 +92,9 @@ curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id
 	--data-urlencode "external_user_id=customer_42"
 ```
 
-HTTP `200` returns the profile directly. Confirm that `external_user_id` matches and inspect `usage.this_period`, `allowance`, and `credits`. HTTP `404` means the app and external ID have no product user yet. A read does not create one
+</CodeGroup>
+
+HTTP `200` (or the SDK user object) returns the profile directly. Confirm that `external_user_id` matches and inspect `usage.this_period`, `allowance`, and `credits`. HTTP `404` means the app and external ID have no product user yet. A read does not create one
 
 ## Interpret the allowance
 

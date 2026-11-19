@@ -1,19 +1,38 @@
 ---
 title: Streaming completions
-description: Stream completion events over Server-Sent Events through the Zorveus gateway.
+description: Stream tokens incrementally using Server-Sent Events with the OpenAI SDK or Vercel AI SDK.
 ---
+
+Stream responses token-by-token to display generated text in real time.
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
 
-Setting `"stream": true` streams tokens incrementally as Server-Sent Events (SSE) chunks, allowing your UI to display characters as they are generated
-
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
-
----
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
 ## Code examples
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "Vercel AI SDK", "cURL"]}>
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_api_key",
+});
+
+const stream = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Write a haiku about distributed systems." }],
+  stream: true,
+  stream_options: { include_usage: true },
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || "");
+}
+console.log();
+```
 
 ```python
 from openai import OpenAI
@@ -24,11 +43,10 @@ client = OpenAI(
 )
 
 stream = client.chat.completions.create(
-    model="openai/gpt-6-sol",
-    messages=[
-        {"role": "user", "content": "Write a haiku about distributed systems."}
-    ],
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Write a haiku about distributed systems."}],
     stream=True,
+    stream_options={"include_usage": True},
 )
 
 for chunk in stream:
@@ -39,41 +57,34 @@ print()
 ```
 
 ```typescript
-import OpenAI from "openai";
+// Next.js App Router route handler with Vercel AI SDK
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamText } from "ai";
 
-const client = new OpenAI({
+const zorveus = createOpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_api_key",
+  apiKey: process.env.ZORVEUS_API_KEY,
 });
 
-async function main() {
-  const stream = await client.chat.completions.create({
-    model: "openai/gpt-6-sol",
-    messages: [
-      { role: "user", content: "Write a haiku about distributed systems." },
-    ],
-    stream: true,
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: zorveus("openai/gpt-4.1-mini"),
+    messages,
   });
 
-  for await (const chunk of stream) {
-    process.stdout.write(chunk.choices[0]?.delta?.content || "");
-  }
-  process.stdout.write("\n");
+  return result.toDataStreamResponse();
 }
-
-main();
 ```
 
 ```bash
-curl https://api.zorveus.com/v1/chat/completions \
-  -N \
+curl -N https://api.zorveus.com/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
-    "model": "openai/gpt-6-sol",
-    "messages": [
-      {"role": "user", "content": "Write a haiku about distributed systems."}
-    ],
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role": "user", "content": "Write a haiku about distributed systems."}],
     "stream": true
   }'
 ```
@@ -82,10 +93,25 @@ curl https://api.zorveus.com/v1/chat/completions \
 
 ---
 
-## Usage accounting for streams
+## Server-sent events format
 
-Zorveus records the final provider outcome and available token usage after the stream completes or disconnects. A client disconnect does not guarantee that the upstream provider stopped before producing more billable output
+When streaming is enabled, Zorveus sends chunks in the standard SSE format. Each chunk begins with `data:` followed by a JSON completion delta:
 
-Preserve incomplete SSE lines between network chunks. Treat a stream as complete only after `data: [DONE]` or a documented terminal event. If you retry after a disconnect, the provider can bill both requests
+```text
+data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1715000000,"model":"openai/gpt-4.1-mini","choices":[{"index":0,"delta":{"content":"Nodes"},"finish_reason":null}]}
 
-Set customer attribution on the streaming request too. Catch errors while opening and consuming the stream, then end the frontend loading state on either completion or failure
+data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1715000000,"model":"openai/gpt-4.1-mini","choices":[{"index":0,"delta":{"content":" communicate"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1715000000,"model":"openai/gpt-4.1-mini","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":12,"completion_tokens":18,"total_tokens":30}}
+
+data: [DONE]
+```
+
+---
+
+## Usage and token accounting
+
+Zorveus settles the final token count and wallet or allowance charge after the stream completes or disconnects.
+
+- If you set `stream_options: { "include_usage": true }`, the final chunk includes the `usage` object.
+- If a customer's allowance is exhausted mid-generation, Zorveus enforces your connection's [overrun policy](/startups/configure-product-user-allowances#choose-the-overrun-policy). Under `limit_output`, the gateway safely concludes the stream when remaining funds reach zero.

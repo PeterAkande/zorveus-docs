@@ -6,6 +6,11 @@ export const { docs, meta } = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    // Standard plugins if needed
+    rehypeCodeOptions: {
+      themes: {
+        light: 'dracula',
+        dark: 'dracula',
+      },
+    },
   },
 });

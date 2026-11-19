@@ -9,17 +9,7 @@ A common point of confusion is the relationship between an **App**, an **App Con
 
 ## The resource hierarchy
 
-```text
-Business organization
-  └── App (your product)
-        └── App Connection (Binding App to Funding Org)
-              ├── Policy: Allowed Models (e.g. "openai/*", "anthropic/*")
-              ├── Policy: Spending Cap ($50.00 / month)
-              ├── Policy: Credit Mode (Enforce / Optional)
-              └── API Keys (Active & Historical)
-                    ├── zrv_live_key_918241... (Active)
-                    └── zrv_old_key_110948... (Revoked)
-```
+<FlowDiagram flow="resource-hierarchy" />
 
 ### 1. App
 An **App** is a registered product identity. It defines the application's public name, logo, allowed model catalog, OAuth scopes, and redirect URIs. An app is not a credential and cannot make inference calls on its own

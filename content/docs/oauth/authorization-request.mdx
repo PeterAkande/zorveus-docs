@@ -1,22 +1,110 @@
 ---
 title: Authorization request
-description: Build an OAuth authorization URL with PKCE, scopes, and state.
+description: Construct an OAuth 2.0 PKCE authorization URL to let users authorize your application.
 ---
+
+Redirect the user's browser to the Zorveus authorization screen to request model access permissions under their own funding account.
 
 <ApiEndpoint method="GET" path="/oauth/authorize" />
 
-Send the user’s browser to `https://app.zorveus.com/oauth/authorize` with these query parameters:
+<KeyInserter type="client" label="Client ID" placeholder="zrv_client_your_client_id" />
 
-<ParamField name="response_type" type="string" required>Use `code`.</ParamField>
-<ParamField name="client_id" type="string" required>Use the registered app client ID.</ParamField>
-<ParamField name="redirect_uri" type="string" required>Use an exact registered redirect URI.</ParamField>
-<ParamField name="scope" type="string" required>Provide space-separated scopes, including `inference:write` and at least one `models:` scope.</ParamField>
-<ParamField name="code_challenge" type="string" required>Provide the base64url-encoded SHA-256 digest of the PKCE verifier.</ParamField>
-<ParamField name="code_challenge_method" type="string" required>Use `S256`.</ParamField>
-<ParamField name="state" type="string">Provide a high-entropy value and verify it when the browser returns. Although the API permits omission, clients should use it for CSRF protection.</ParamField>
+## Query parameters
 
-```text
-https://app.zorveus.com/oauth/authorize?response_type=code&client_id=zrv_client_your_client_id&redirect_uri=https%3A%2F%2Fexample.com%2Fcallback&scope=inference%3Awrite%20models%3A*&code_challenge=YOUR_BASE64URL_CHALLENGE&code_challenge_method=S256&state=YOUR_RANDOM_STATE
+<ParamField name="response_type" type="string" required>
+  Must be `code`.
+</ParamField>
+
+<ParamField name="client_id" type="string" required>
+  Your app's registered Client ID (`zrv_client_...`).
+</ParamField>
+
+<ParamField name="redirect_uri" type="string" required>
+  The exact callback URL registered in your app settings in the dashboard.
+</ParamField>
+
+<ParamField name="scope" type="string" required>
+  Space-separated permission scopes. Must include `inference:write` and at least one model scope (e.g. `models:*` or `models:openai/*`).
+</ParamField>
+
+<ParamField name="code_challenge" type="string" required>
+  The Base64URL-encoded SHA-256 hash of your cryptographic code verifier.
+</ParamField>
+
+<ParamField name="code_challenge_method" type="string" required>
+  Must be `S256`.
+</ParamField>
+
+<ParamField name="state" type="string" required>
+  A cryptographically secure random string used to prevent CSRF attacks. Verify this string matches upon callback.
+</ParamField>
+
+---
+
+## Code example: Generating the authorization URL
+
+Use the SDK helper to generate your PKCE challenge and construct the authorization URL:
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import { ZorveusOAuth } from "@zorveus/sdk";
+
+// 1. Generate high-entropy PKCE verifier and S256 challenge
+const { codeVerifier, codeChallenge } = await ZorveusOAuth.generatePKCE();
+
+// Store codeVerifier in a secure, HTTP-only session cookie for the callback
+session.codeVerifier = codeVerifier;
+session.state = crypto.randomUUID();
+
+// 2. Construct authorization URL
+const authUrl = ZorveusOAuth.getAuthorizationUrl({
+  clientId: "zrv_client_your_client_id",
+  redirectUri: "https://myapp.com/api/auth/callback",
+  scope: "inference:write models:*",
+  codeChallenge,
+  state: session.state,
+});
+
+// 3. Redirect the user's browser
+res.redirect(authUrl);
 ```
 
-The requested scopes and models must fit the app’s registered policy. Do not put a client secret in this browser URL.
+```python
+import secrets
+from zorveus import ZorveusOAuth
+
+# 1. Generate PKCE verifier and challenge
+pkce = ZorveusOAuth.generate_pkce()
+
+# Store verifier in server-side session
+session["code_verifier"] = pkce.code_verifier
+session["state"] = secrets.token_urlsafe(32)
+
+# 2. Build redirect URL
+auth_url = ZorveusOAuth.get_authorization_url(
+    client_id="zrv_client_your_client_id",
+    redirect_uri="https://myapp.com/api/auth/callback",
+    scope="inference:write models:*",
+    code_challenge=pkce.code_challenge,
+    state=session["state"],
+)
+
+# 3. Redirect user
+return redirect(auth_url)
+```
+
+</CodeGroup>
+
+---
+
+## Redirect callback
+
+When the user grants consent, Zorveus redirects their browser back to your `redirect_uri` with a temporary code:
+
+```text
+https://myapp.com/api/auth/callback?code=zorveus_code_abc123xyz&state=YOUR_RANDOM_STATE
+```
+
+1. Verify that `state` matches the value you originally stored in your session.
+2. Exchange the single-use `code` and your saved `code_verifier` for an access token using [Token exchange](/oauth/token-exchange).

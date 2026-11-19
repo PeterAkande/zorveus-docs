@@ -1,6 +1,6 @@
 .PHONY: dev build start install typecheck clean help
 
-PORT ?= 3465
+PORT ?= 3495
 
 # Default target
 .DEFAULT_GOAL := help
@@ -8,7 +8,7 @@ PORT ?= 3465
 ## dev: Start development server
 dev:
 	@echo "Starting development server on port $(PORT)..."
-	PORT=$(PORT) npm run dev
+	npm run dev -- -p $(PORT)
 
 ## install: Install project dependencies
 install:
@@ -23,7 +23,7 @@ build:
 ## start: Start production server
 start:
 	@echo "Starting production server on port $(PORT)..."
-	PORT=$(PORT) npm run start
+	npm run start -- -p $(PORT)
 
 ## typecheck: Run TypeScript type check
 typecheck:
@@ -40,7 +40,7 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  dev        Start dev server (default port 3000, override with PORT=3001)"
+	@echo "  dev        Start dev server (default port 3495, override with PORT=3496)"
 	@echo "  install    Install dependencies"
 	@echo "  build      Build production bundle"
 	@echo "  start      Start production server"

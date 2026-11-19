@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, ReactNode, Children, isValidElement } from 'react';
 import { useKeyContext } from '../context/KeyContext';
+import { replaceKeysInNode } from '../../lib/key-replace.mjs';
 
 interface CodeGroupProps {
   children: ReactNode;
@@ -9,13 +10,12 @@ interface CodeGroupProps {
   label?: string;
 }
 
-export function CodeGroup({ children, titles, label = "Client SDK / Framework:" }: CodeGroupProps) {
-  const { activeLanguage, setActiveLanguage } = useKeyContext();
+export function CodeGroup({ children, titles }: CodeGroupProps) {
+  const { activeLanguage, setActiveLanguage, apiKey, serviceKey, clientId } = useKeyContext();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const rawChildren = Children.toArray(children).filter(Boolean);
 
-  // Extract titles from props, data-title, title, or code filename/language
   const tabs = rawChildren.map((child, idx) => {
     if (titles && titles[idx]) return titles[idx];
     if (isValidElement(child)) {
@@ -28,17 +28,15 @@ export function CodeGroup({ children, titles, label = "Client SDK / Framework:" 
     return `Tab ${idx + 1}`;
   });
 
-  // Sync selected index with active persistent language if title matches
   useEffect(() => {
     if (!activeLanguage) return;
     const langLower = activeLanguage.toLowerCase();
 
-    // 1. Try exact title match
     let matchingIdx = tabs.findIndex((t) => t.toLowerCase() === langLower);
-
-    // 2. Try substring match if exact match not found
     if (matchingIdx === -1) {
-      matchingIdx = tabs.findIndex((t) => t.toLowerCase().includes(langLower) || langLower.includes(t.toLowerCase()));
+      matchingIdx = tabs.findIndex(
+        (t) => t.toLowerCase().includes(langLower) || langLower.includes(t.toLowerCase())
+      );
     }
 
     if (matchingIdx !== -1) {
@@ -55,32 +53,34 @@ export function CodeGroup({ children, titles, label = "Client SDK / Framework:" 
 
   const currentChild = rawChildren[selectedIndex] || rawChildren[0];
 
+  const processedChild = replaceKeysInNode(currentChild, {
+    zrv_your_api_key: apiKey,
+    zrv_svc_your_service_key: serviceKey,
+    zrv_client_your_client_id: clientId,
+  });
+
   return (
-    <div className="my-6 space-y-2">
-      {/* Selector Bar */}
-      <div className="zorveus-selector-bar">
-        <span className="zorveus-selector-label">
-          {label}
-        </span>
-
-        <div className="zorveus-select-control">
-          <select
-            aria-label={label}
-            value={selectedIndex}
-            onChange={(e) => handleSelectOption(Number(e.target.value))}
-            className="zorveus-select"
-          >
-            {tabs.map((tab, idx) => (
-              <option key={idx} value={idx}>{tab}</option>
-            ))}
-          </select>
-        </div>
+    <div className="zorveus-tabs not-prose my-6 zorveus-codegroup">
+      <div className="zorveus-tabs-list" role="tablist">
+        {tabs.map((tab, idx) => {
+          const isSelected = idx === selectedIndex;
+          return (
+            <button
+              key={idx}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              aria-pressed={isSelected}
+              onClick={() => handleSelectOption(idx)}
+              className="zorveus-tabs-trigger"
+            >
+              {tab}
+            </button>
+          );
+        })}
       </div>
-
-      <div className="zorveus-codegroup-content overflow-hidden rounded-xl border border-zorveus-border bg-zorveus-dark shadow-md">
-        <div className="p-4 overflow-x-auto text-sm font-mono text-zinc-100">
-          {currentChild}
-        </div>
+      <div className="zorveus-tabs-content">
+        {processedChild}
       </div>
     </div>
   );

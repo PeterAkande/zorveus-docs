@@ -1,19 +1,39 @@
 ---
 title: Audio transcription and speech
-description: Transcribe audio files and synthesize speech through supported OpenAI-compatible routes.
+description: Convert text to audio speech and transcribe spoken audio recordings into text.
 ---
+
+Generate synthesized speech with text-to-speech models and transcribe voice recordings with Whisper models.
+
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
+
+## Generate speech (Text-to-speech)
 
 <ApiEndpoint method="POST" path="/v1/audio/speech" auth="api_key" />
 
-Zorveus routes text-to-speech (`/v1/audio/speech`) and audio transcription (`/v1/audio/transcriptions`) requests using OpenAI-compatible audio models.
+Synthesizes spoken audio from text input in formats like MP3, AAC, or Opus.
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
----
+```typescript
+import OpenAI from "openai";
+import fs from "fs";
 
-## Generate speech
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_api_key",
+});
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+const mp3 = await client.audio.speech.create({
+  model: "openai/tts-1",
+  voice: "alloy",
+  input: "Welcome to Zorveus. Your unified AI billing and gateway platform.",
+});
+
+const buffer = Buffer.from(await mp3.arrayBuffer());
+await fs.promises.writeFile("welcome.mp3", buffer);
+console.log("Saved audio to welcome.mp3");
+```
 
 ```python
 from openai import OpenAI
@@ -29,8 +49,51 @@ response = client.audio.speech.create(
     input="Welcome to Zorveus. Your unified AI billing and gateway platform.",
 )
 
-response.stream_to_file("output.mp3")
+response.stream_to_file("welcome.mp3")
+print("Saved audio to welcome.mp3")
 ```
+
+```bash
+curl https://api.zorveus.com/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  --output welcome.mp3 \
+  -d '{
+    "model": "openai/tts-1",
+    "voice": "alloy",
+    "input": "Welcome to Zorveus. Your unified AI billing and gateway platform."
+  }'
+```
+
+</CodeGroup>
+
+### Request parameters
+
+<ParamField name="model" type="string" required>
+  The speech synthesis model ID, such as `openai/tts-1` or `openai/tts-1-hd`.
+</ParamField>
+
+<ParamField name="input" type="string" required>
+  The text to speak. Maximum 4,096 characters per request.
+</ParamField>
+
+<ParamField name="voice" type="string" required>
+  Voice profile: `alloy`, `echo`, `fable`, `onyx`, `nova`, or `shimmer`.
+</ParamField>
+
+<ParamField name="response_format" type="string" default="mp3">
+  Audio format: `mp3`, `opus`, `aac`, `flac`, `wav`, or `pcm`.
+</ParamField>
+
+---
+
+## Transcribe audio (Speech-to-text)
+
+<ApiEndpoint method="POST" path="/v1/audio/transcriptions" auth="api_key" />
+
+Transcribe recorded audio into text.
+
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
 ```typescript
 import OpenAI from "openai";
@@ -41,27 +104,13 @@ const client = new OpenAI({
   apiKey: "zrv_your_api_key",
 });
 
-async function main() {
-  const mp3 = await client.audio.speech.create({
-    model: "openai/tts-1",
-    voice: "alloy",
-    input: "Welcome to Zorveus. Your unified AI billing and gateway platform.",
-  });
+const transcript = await client.audio.transcriptions.create({
+  model: "openai/whisper-1",
+  file: fs.createReadStream("meeting.wav"),
+});
 
-  const buffer = Buffer.from(await mp3.arrayBuffer());
-  await fs.promises.writeFile("output.mp3", buffer);
-}
-
-main();
+console.log("Transcript:", transcript.text);
 ```
-
-</CodeGroup>
-
-The response is binary audio. Write it to a file or stream it with the content type returned by the gateway. The selected model determines the available voices and response formats.
-
-## Transcribe audio
-
-<ApiEndpoint method="POST" path="/v1/audio/transcriptions" auth="api_key" />
 
 ```python
 from openai import OpenAI
@@ -77,9 +126,26 @@ with open("meeting.wav", "rb") as audio_file:
         file=audio_file,
     )
 
-print(transcript.text)
+print("Transcript:", transcript.text)
 ```
 
-Use `GET /v1/models` before selecting either model. Audio formats, file limits, voices, language options, and output formats depend on the provider route.
+```bash
+curl https://api.zorveus.com/v1/audio/transcriptions \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  -F "file=@meeting.wav" \
+  -F "model=openai/whisper-1"
+```
 
-Do not put the API key in browser or mobile code. Upload audio to your backend, or mint a purpose-built short-lived credential only when a documented flow supports it.
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "text": "Thank you everyone for joining today's sprint review. Let's start with the release status."
+}
+```
+
+<ResponseField name="text" type="string" required>
+  The transcribed audio text.
+</ResponseField>

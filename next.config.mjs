@@ -8,6 +8,20 @@ const config = {
   images: {
     unoptimized: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/resources/examples',
+        destination: '/code-labs/overview',
+        permanent: true,
+      },
+      {
+        source: '/getting-started/byok-quickstart',
+        destination: '/startups/provider-credentials',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withMDX(config);

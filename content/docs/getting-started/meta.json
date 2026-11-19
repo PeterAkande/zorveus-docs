@@ -1,12 +1,11 @@
 {
-  "title": "Getting Started",
+  "title": "Quickstarts",
   "pages": [
     "overview",
     "integrate-your-product",
     "coding-agents",
     "startup-quickstart",
     "product-user-quickstart",
-    "byok-quickstart",
     "oauth-app-quickstart"
   ]
 }

@@ -1,19 +1,86 @@
 ---
 title: Tool calling
-description: Execute structured function calls and JSON schema tools across supported models.
+description: Enable models to invoke external functions, query databases, and return structured JSON arguments.
 ---
+
+Give models access to external data and custom tools. Models choose when to call a tool, return structured arguments in JSON, and receive the execution result to generate a final answer.
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
 
-Zorveus passes OpenAI-compatible tool definitions and returned tool-call arguments through supported model routes. Your application executes the tool and sends the tool result in a later request
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+## End-to-end workflow
 
----
+Tool calling follows a three-step cycle:
+1. **Define tools**: You pass tool definitions and a user prompt to the model.
+2. **Model requests tool call**: The model responds with function names and arguments, rather than text.
+3. **Execute and respond**: Your backend runs the function, appends the result with `role: "tool"`, and calls the model again for the final response.
 
-## Code example
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_api_key",
+});
+
+const tools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "Get the current weather for a city",
+      parameters: {
+        type: "object",
+        properties: {
+          city: { type: "string", description: "City name, e.g. London" },
+        },
+        required: ["city"],
+      },
+    },
+  },
+];
+
+const messages: OpenAI.ChatCompletionMessageParam[] = [
+  { role: "user", content: "What is the weather in London right now?" },
+];
+
+// Step 1: Initial call
+const firstResponse = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages,
+  tools,
+});
+
+const responseMessage = firstResponse.choices[0].message;
+messages.push(responseMessage);
+
+// Step 2: Check for tool calls and execute
+if (responseMessage.tool_calls) {
+  for (const toolCall of responseMessage.tool_calls) {
+    if (toolCall.function.name === "get_weather") {
+      const args = JSON.parse(toolCall.function.arguments);
+      const weatherResult = JSON.stringify({ temp: "18C", condition: "Partly cloudy" });
+
+      messages.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        content: weatherResult,
+      });
+    }
+  }
+
+  // Step 3: Get final answer with tool outputs included
+  const finalResponse = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages,
+  });
+
+  console.log(finalResponse.choices[0].message.content);
+}
+```
 
 ```python
 import json
@@ -28,79 +95,111 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "get_stock_price",
-            "description": "Fetch real-time stock ticker price",
+            "name": "get_weather",
+            "description": "Get current weather for a city",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "symbol": {"type": "string", "description": "Ticker symbol, e.g. AAPL"},
+                    "city": {"type": "string", "description": "City name, e.g. London"},
                 },
-                "required": ["symbol"],
+                "required": ["city"],
             },
         },
     }
 ]
 
-response = client.chat.completions.create(
-    model="openai/gpt-6-sol",
-    messages=[{"role": "user", "content": "What is the stock price of NVDA?"}],
+messages = [{"role": "user", "content": "What is the weather in London right now?"}]
+
+# Step 1: Initial call
+first_response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=messages,
     tools=tools,
-    tool_choice="auto",
 )
 
-tool_calls = response.choices[0].message.tool_calls
-if tool_calls:
-    for tool_call in tool_calls:
-        print(f"Tool to invoke: {tool_call.function.name}")
-        print(f"Arguments: {tool_call.function.arguments}")
+response_message = first_response.choices[0].message
+messages.append(response_message)
+
+# Step 2: Execute tool if requested
+if response_message.tool_calls:
+    for tool_call in response_message.tool_calls:
+        if tool_call.function.name == "get_weather":
+            args = json.loads(tool_call.function.arguments)
+            weather_data = json.dumps({"temp": "18C", "condition": "Partly cloudy"})
+
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": weather_data,
+            })
+
+    # Step 3: Get final response with tool results
+    final_response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=messages,
+    )
+    print(final_response.choices[0].message.content)
 ```
 
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_api_key",
-});
-
-async function main() {
-  const response = await client.chat.completions.create({
-    model: "openai/gpt-6-sol",
-    messages: [{ role: "user", content: "What is the stock price of NVDA?" }],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "get_stock_price",
-          description: "Fetch real-time stock ticker price",
-          parameters: {
-            type: "object",
-            properties: {
-              symbol: { type: "string", description: "Ticker symbol, e.g. NVDA" },
-            },
-            required: ["symbol"],
-          },
-        },
-      },
-    ],
-  });
-
-  console.log(response.choices[0].message.tool_calls);
-}
-
-main();
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role": "user", "content": "What is the weather in London?"}],
+    "tools": [{
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "parameters": {
+          "type": "object",
+          "properties": {"city": {"type": "string"}},
+          "required": ["city"]
+        }
+      }
+    }]
+  }'
 ```
 
 </CodeGroup>
 
-## Complete the tool loop
+---
 
-1. Send the tool schema with the conversation.
-2. Validate the returned function name and JSON arguments.
-3. Execute only an allowlisted function with validated inputs.
-4. Append the assistant tool call and your `tool` result to the messages.
-5. Send another completion request to obtain the final answer
+## Tool call response format
 
-Do not execute a function name or argument solely because a model returned it. Apply the same authorization checks that you use for any other application input
+When a model chooses to call a tool, the message includes a `tool_calls` array with unique identifiers and serialized JSON arguments:
 
-Tool support varies by model. Check `GET /v1/models`, then run a small tool-call test before enabling a model in production
+```json
+{
+  "id": "chatcmpl-tool-123",
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_abc987",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"London\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ]
+}
+```
+
+---
+
+## Related reading
+
+- [Chat completions](/inference/chat-completions): Standard text and reasoning requests.
+- [Model discovery](/inference/model-discovery): Verify which models support tool calling before making requests.

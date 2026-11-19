@@ -1,19 +1,33 @@
 ---
 title: Embeddings
-description: Generate dense vector embeddings for semantic retrieval, similarity search, and RAG pipelines.
+description: Generate dense vector embeddings for semantic search, similarity matching, and RAG retrieval pipelines.
 ---
+
+Generate high-dimensional vector representations of text across models like `openai/text-embedding-3-small`, `openai/text-embedding-3-large`, and open-source embedding models.
 
 <ApiEndpoint method="POST" path="/v1/embeddings" auth="api_key" />
 
-The `/v1/embeddings` endpoint generates vector embeddings across supported embedding models (e.g. `openai/text-embedding-3-small`, `openai/text-embedding-3-large`).
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+## Code examples
 
----
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
-## Code example
+```typescript
+import OpenAI from "openai";
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: "zrv_your_api_key",
+});
+
+const response = await client.embeddings.create({
+  model: "openai/text-embedding-3-small",
+  input: "Vector databases index embeddings for approximate nearest neighbor search.",
+});
+
+console.log(`Generated embedding vector with ${response.data[0].embedding.length} dimensions.`);
+```
 
 ```python
 from openai import OpenAI
@@ -29,27 +43,7 @@ response = client.embeddings.create(
 )
 
 vector = response.data[0].embedding
-print(f"Generated embedding with {len(vector)} dimensions.")
-```
-
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://api.zorveus.com/v1",
-  apiKey: "zrv_your_api_key",
-});
-
-async function main() {
-  const response = await client.embeddings.create({
-    model: "openai/text-embedding-3-small",
-    input: "Vector databases index embeddings for approximate nearest neighbor search.",
-  });
-
-  console.log(`Generated embedding with ${response.data[0].embedding.length} dimensions.`);
-}
-
-main();
+print(f"Generated embedding vector with {len(vector)} dimensions.")
 ```
 
 ```bash
@@ -64,16 +58,83 @@ curl https://api.zorveus.com/v1/embeddings \
 
 </CodeGroup>
 
-## Inputs and output
+<ApiRunner
+  method="POST"
+  path="/v1/embeddings"
+  defaultBody='{\n  "model": "openai/text-embedding-3-small",\n  "input": "Vector search with embeddings."\n}'
+/>
 
-`input` can be one string or an array when the selected provider supports batching. The response contains one embedding item for each accepted input. Store the model ID and vector dimension with the vectors so that you do not compare incompatible embeddings.
+---
 
-Use `GET /v1/models` to find a routable embedding model. A model policy such as `openai/*` permits matching names, but it does not guarantee that a matching deployment is available.
+## Request parameters
 
-Batch limits, token limits, dimensions, and optional encoding formats come from the selected provider and model.
+<ParamField name="model" type="string" required>
+  The embedding model identifier, such as `openai/text-embedding-3-small` or `openai/text-embedding-3-large`.
+</ParamField>
 
-## Attach indexing activity
+<ParamField name="input" type="string or array" required>
+  A single text string or an array of strings to embed in a batch.
+</ParamField>
 
-Embeddings accept the same [usage metadata](/inference/product-user-metadata#attach-business-context-to-usage-events) as chat. Use `metadata.usage_metadata` in raw JSON, `usage_metadata` in the native Python SDK, or `zorveusMetadata.usageMetadata` in the native TypeScript SDK. `X-Zorveus-Usage-Metadata` can supply the context through a header
+<ParamField name="dimensions" type="integer">
+  Optional target dimension count for models supporting variable vector sizes.
+</ParamField>
 
-For example, attach `{"activity_id":"index_123","activity_label":"Indexed document","document_id":"doc_123"}` to connect the usage event to your indexing job
+<ParamField name="encoding_format" type="string" default="float">
+  Format to return embeddings in: `float` (default array of numbers) or `base64`.
+</ParamField>
+
+---
+
+## Response format
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": [
+        -0.0069292834,
+        -0.005336422,
+        -0.024047505,
+        0.008432145
+      ]
+    }
+  ],
+  "model": "openai/text-embedding-3-small",
+  "usage": {
+    "prompt_tokens": 10,
+    "total_tokens": 10
+  }
+}
+```
+
+<ResponseField name="data" type="array" required>
+  Array of embedding objects. Each object contains an `index` and the numerical `embedding` float array.
+</ResponseField>
+
+<ResponseField name="usage.total_tokens" type="integer" required>
+  The billable token count for the input text.
+</ResponseField>
+
+---
+
+## Attaching user attribution to indexing jobs
+
+Like chat completions, embedding requests accept customer IDs and metadata for usage tracking:
+
+```typescript
+const response = await client.embeddings.create(
+  {
+    model: "openai/text-embedding-3-small",
+    input: "Document text to index",
+  },
+  {
+    headers: { "X-Zorveus-External-User-ID": "customer_42" },
+  }
+);
+```
+
+Token costs are attributed to `customer_42`'s monthly allowance in your dashboard ledger.

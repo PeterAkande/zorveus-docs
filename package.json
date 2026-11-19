@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "dev": "next dev",
+    "dev": "next dev -p 3495",
     "build": "next build",
     "generate:api-reference": "node scripts/generate-api-reference.mjs",
     "audit:docs": "node scripts/audit-docs.mjs",
-    "start": "next start",
+    "start": "next start -p 3495",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,40 +1,45 @@
 ---
 title: Rerank
-description: Rerank document search results for optimized retrieval accuracy in RAG workflows.
+description: Reorder candidate documents by semantic relevance to improve RAG retrieval accuracy.
 ---
+
+Rerank models rescore and sort pre-retrieved text documents by their relevance to a user query, providing higher precision than vector similarity search alone.
 
 <ApiEndpoint method="POST" path="/v1/rerank" auth="api_key" />
 
-Reorder candidate documents by their relevance to a query through a supported reranking model
+<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+## Code examples
 
----
+<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
 
-## Code example
-
-<CodeGroup titles={["cURL", "Python"]}>
-
-```bash
-curl https://api.zorveus.com/v1/rerank \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_your_api_key" \
-  -d '{
-    "model": "cohere/rerank-v4.0-fast",
-    "query": "What is write-ahead logging?",
-    "documents": [
+```typescript
+const response = await fetch("https://api.zorveus.com/v1/rerank", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer zrv_your_api_key",
+  },
+  body: JSON.stringify({
+    model: "cohere/rerank-v4.0-fast",
+    query: "What is write-ahead logging?",
+    documents: [
       "Write-ahead logging records transactions sequentially before disk writes.",
       "Redis is an in-memory key-value data store.",
-      "PostgreSQL uses MVCC for concurrency control."
+      "PostgreSQL uses MVCC for concurrency control.",
     ],
-    "top_n": 2
-  }'
+    top_n: 2,
+  }),
+});
+
+const data = await response.json();
+console.log(data.results);
 ```
 
 ```python
-import requests
+import httpx
 
-response = requests.post(
+response = httpx.post(
     "https://api.zorveus.com/v1/rerank",
     headers={
         "Content-Type": "application/json",
@@ -52,15 +57,86 @@ response = requests.post(
     },
 )
 
-print(response.json())
+print(response.json()["results"])
+```
+
+```bash
+curl https://api.zorveus.com/v1/rerank \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  -d '{
+    "model": "cohere/rerank-v4.0-fast",
+    "query": "What is write-ahead logging?",
+    "documents": [
+      "Write-ahead logging records transactions sequentially before disk writes.",
+      "Redis is an in-memory key-value data store.",
+      "PostgreSQL uses MVCC for concurrency control."
+    ],
+    "top_n": 2
+  }'
 ```
 
 </CodeGroup>
 
-## Request and result
+---
 
-Send `query`, `documents`, and a routable `model`. Use `top_n` to limit returned results when the provider supports it. Each result identifies the original document position and includes a relevance score or provider-equivalent ranking value
+## Request parameters
 
-Reranking does not retrieve documents. Retrieve a candidate set first, then rerank only the number of documents that fits the model's limits and your latency budget
+<ParamField name="model" type="string" required>
+  The reranking model identifier, such as `cohere/rerank-v4.0-fast`.
+</ParamField>
 
-Check `GET /v1/models` before using the example model. Provider model IDs and response fields can differ
+<ParamField name="query" type="string" required>
+  The user search query or question to score candidate documents against.
+</ParamField>
+
+<ParamField name="documents" type="array" required>
+  List of document strings to score and reorder.
+</ParamField>
+
+<ParamField name="top_n" type="integer">
+  Number of most relevant documents to return. Defaults to the total number of documents.
+</ParamField>
+
+---
+
+## Response format
+
+```json
+{
+  "id": "rerank-01JABC123",
+  "results": [
+    {
+      "index": 0,
+      "relevance_score": 0.9824,
+      "document": {
+        "text": "Write-ahead logging records transactions sequentially before disk writes."
+      }
+    },
+    {
+      "index": 2,
+      "relevance_score": 0.3412,
+      "document": {
+        "text": "PostgreSQL uses MVCC for concurrency control."
+      }
+    }
+  ],
+  "meta": {
+    "billed_units": {
+      "search_units": 1
+    }
+  }
+}
+```
+
+<ResponseField name="results" type="array" required>
+  Ranked list of document objects sorted in descending order of `relevance_score`.
+</ResponseField>
+
+<ResponseField name="results[].index" type="integer" required>
+  The original 0-based position of the document in the request `documents` array.
+</ResponseField>
+
+<ResponseField name="results[].relevance_score" type="number" required>
+  Relevance confidence score between 0.0 and 1.0.
+</ResponseField>

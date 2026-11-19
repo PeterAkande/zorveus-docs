@@ -1,5 +1,5 @@
 import { source } from '@/lib/source';
-import { DocsPage, DocsBody, DocsTitle, DocsDescription } from 'fumadocs-ui/page';
+import { DocsPage, DocsBody, DocsTitle, DocsDescription } from 'fumadocs-ui/layouts/notebook/page';
 import { notFound } from 'next/navigation';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { useMDXComponents } from '@/mdx-components';
@@ -32,21 +32,27 @@ export default async function Page(props: {
         <DocsTitle className="zorveus-page-title">
           {page.data.title}
         </DocsTitle>
+        {page.data.description && (
+          <DocsDescription className="text-zinc-400 text-sm sm:text-base leading-relaxed mt-3 mb-0">
+            {page.data.description}
+          </DocsDescription>
+        )}
         <div className="zorveus-page-actions">
           <CopyPageButton slug={params.slug} />
           <a
             href={`/api/raw-doc?slug=${encodeURIComponent((params.slug ?? []).join('/'))}`}
             className="zorveus-markdown-link"
           >
-            View Markdown
+            View as Markdown
+          </a>
+          <a
+            href="/getting-started/coding-agents"
+            className="zorveus-markdown-link"
+          >
+            Set up coding agent
           </a>
         </div>
       </div>
-      {page.data.description && (
-        <DocsDescription className="text-zinc-400 text-sm sm:text-base leading-relaxed mt-2">
-          {page.data.description}
-        </DocsDescription>
-      )}
       <DocsBody>
         <MDX components={components} />
         <PageFeedback />

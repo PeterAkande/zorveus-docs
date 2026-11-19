@@ -1,66 +1,88 @@
 ---
-title: Zorveus documentation
-description: Build AI features with model access, customer allowances, usage tracking, and wallet or BYOK funding.
+title: Get started with Zorveus
+description: Access over 850 AI models through one API. Add customer billing or user-funded access to the products you build.
 ---
 
-Use Zorveus to send model requests, attribute usage to your customers, and enforce AI spending policies. Configure your app in the dashboard or [CLI](/cli/overview), then call Zorveus from your code
+## Make your first API request
 
-## Choose who pays
+Call models from OpenAI, Google Gemini, Anthropic, Jev, and more using the standard OpenAI SDK or cURL. Set your base URL to `https://api.zorveus.com/v1` and use your Zorveus API key (`zrv_...`).
+
+<CodeGroup titles={["Python", "TypeScript", "cURL"]}>
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="zrv_your_api_key",
+    base_url="https://api.zorveus.com/v1",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Say hello in five words."}],
+)
+
+print(response.choices[0].message.content)
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "zrv_your_api_key",
+  baseURL: "https://api.zorveus.com/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Say hello in five words." }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role": "user", "content": "Say hello in five words."}]
+  }'
+```
+
+</CodeGroup>
+
+A successful request returns HTTP `200` with the model's response. Follow the [API quickstart](/getting-started/startup-quickstart) to get an API key and run your first call, or browse the [available models](/api-reference/models).
+
+## Build your product on Zorveus
+
+The gateway also gives you two optional capabilities to build into your product: manage your customers' AI usage and billing, or let users fund their own usage.
 
 <CardGroup cols={2}>
-  <Card title="Your product pays" icon="rocket" href="/getting-started/startup-quickstart">
-    Create a Business organization and send your first request from your backend. Fund it with your wallet or your own provider credentials
+  <Card title="Customer allowances and billing" icon="layers" href="/getting-started/integrate-your-product" cta="Add customer billing">
+    Build AI into your free and paid plans. Track each customer's spend, set monthly allowances, and grant credits after payments through Stripe or your payment provider.
   </Card>
-  <Card title="Your users pay" icon="key" href="/getting-started/oauth-app-quickstart">
-    Register an OAuth app in a Developer organization. Users authorize your tool to use their own Zorveus funding account
+  <Card title="User-funded AI access" icon="shield" href="/getting-started/oauth-app-quickstart" cta="Add user-funded access">
+    Build an app where users pay for their own AI usage. Let them connect a Zorveus account through OAuth and authorize inference using their own funding account.
   </Card>
 </CardGroup>
 
-A solo developer building with an API key also starts with Business. BYOK changes the funding source, while your application still uses a Zorveus inference key
+For a comparison of funding and integration options, see [Choose your path](/getting-started/overview).
 
-## Use the client you already have
+## Explore the platform
 
-OpenAI-compatible clients use `https://api.zorveus.com/v1`. Native Anthropic clients use `https://api.zorveus.com`. Zorveus also provides Python and TypeScript SDKs, OpenAI adapters, a Vercel AI SDK adapter, and React OAuth components
-
-| Client | Install | Guide |
-| --- | --- | --- |
-| OpenAI Python or TypeScript | `pip install openai` or `npm install openai` | [Business quickstart](/getting-started/startup-quickstart) |
-| Zorveus Python | `pip install zorveus` | [Product users](/startups/product-users) |
-| Zorveus TypeScript | `npm install @zorveus/sdk` | [Product-user quickstart](/getting-started/product-user-quickstart) |
-| OpenAI adapters | `pip install 'zorveus[openai]'` or `npm install @zorveus/sdk openai` | [Inference](/inference/overview) |
-| Vercel AI SDK adapter | `npm install @zorveus/sdk ai @ai-sdk/openai` | [Streaming](/inference/streaming) |
-| React OAuth components | `npm install @zorveus/react @zorveus/sdk` | [OAuth quickstart](/getting-started/oauth-app-quickstart) |
-
-Choose a model from [the catalog](https://www.zorveus.com/models), then verify it with `GET /v1/models` using your inference key. Model access and task capabilities vary by route
-
-## Build the rest of your integration
-
-After the first response, follow [Integrate your product](/getting-started/integrate-your-product) to add customer attribution, plan selection, allowances, and payment handling. Use [Integrate with a coding agent](/getting-started/coding-agents) for a copyable implementation prompt
-
-<CardGroup cols={2}>
+<CardGroup cols={2} variant="links">
+  <Card title="Inference gateway" icon="cpu" href="/inference/overview">
+    Call OpenAI, Anthropic, and Gemini wire protocols through one API.
+  </Card>
   <Card title="Customer allowances" icon="layers" href="/startups/configure-product-user-allowances">
-    Give each attributed customer a base allowance and optional credits. Handle upgrades and subscription cycles
+    Set per-user spending caps, credit enforcement, and overrun policies.
   </Card>
-  <Card title="Inference API" icon="cpu" href="/inference/overview">
-    Use chat, Responses, streaming, tools, embeddings, images, and audio with compatible models
+  <Card title="Provider routing" icon="key" href="/providers/overview">
+    Connect upstream provider keys and control allowed model routes.
   </Card>
-  <Card title="Bring your own key" icon="key" href="/getting-started/byok-quickstart">
-    Connect your provider account and understand routing, wallet fallback, and platform fees
-  </Card>
-  <Card title="Application API reference" icon="terminal" href="/api-reference/overview">
-    Look up product-user, OAuth, model discovery, and key-usage endpoints
-  </Card>
-</CardGroup>
-
-Keep Business inference keys and service keys on your server. Configure apps, connections, spending caps, provider credentials, and webhooks in the [dashboard](https://app.zorveus.com)
-
-## Manage configuration from your tools
-
-<CardGroup cols={2}>
-  <Card title="Zorveus CLI" icon="terminal" href="/cli/quickstart">
-    Install the executable, describe an app in JSON, and review changes before applying them.
-  </Card>
-  <Card title="Local MCP server" icon="terminal" href="/cli/mcp">
-    Give a coding agent access to CLI-backed tools using your saved management login.
+  <Card title="Usage and analytics" icon="activity" href="/wallet-and-billing/usage">
+    Track token volume, prompt cache savings, and spend in real time.
   </Card>
 </CardGroup>

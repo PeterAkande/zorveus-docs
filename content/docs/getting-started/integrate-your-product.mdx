@@ -1,67 +1,254 @@
 ---
 title: Integrate an organization-funded product
-description: Connect inference, customer attribution, subscription allowances, payments, and limit handling in one workflow.
+description: Build a production backend workflow for inference, customer allowances, plan upgrades, and billing.
 ---
 
-Use this guide when your organization funds AI for your application's customers. If users pay with their own Zorveus wallets, use the [OAuth quickstart](/getting-started/oauth-app-quickstart) instead
+When your organization funds AI for your users, Zorveus acts as your AI gateway, cost accountant, and spending guardrail.
 
-## Set up the dashboard
+This guide walks through the complete end-to-end backend integration: mapping customer tiers, making attributed requests, checking balances, and granting credits upon payment.
 
-1. Select or create a Business organization at [app.zorveus.com](https://app.zorveus.com).
-2. Fund the wallet or configure [provider credentials](/startups/provider-credentials).
-3. Create an app. Keep the app ID for product-user management
-4. Create a connection and inference key for each plan policy. Configure the connection's cap, period, enforcement, and model access. Optionally group plan keys under [one routing key](/startups/routing-keys)
-5. Create a [service client](/startups/service-keys) if your backend manages customer profiles, credit grants, or allowance
-6. Configure a signed outbound webhook if your backend needs event notifications
+<ArchitectureDiagram />
 
-## Choose the client and models
+<Callout type="tip" title="Want a runnable starter example?">
+  See the [Write Room SaaS Code Lab](/code-labs/write-room-saas) for a full React, TypeScript, and Express app you can clone and provision with the Zorveus CLI.
+</Callout>
 
-Reuse the SDK or provider architecture your application already has. Configure credentials and the endpoint rather than adding a new hierarchy solely for Zorveus
+---
 
-| Request type | Integration |
-| --- | --- |
-| OpenAI Chat Completions and Responses | OpenAI-compatible client, base URL `https://api.zorveus.com/v1`. |
-| Anthropic Messages | Anthropic client, base URL `https://api.zorveus.com`. |
-| TypeSafe System One | TypeSafe client, base URL `https://api.zorveus.com/typesafe`. |
-| Embeddings, images, audio, and other supported tasks | Use the task's supported client and endpoint. Verify model capabilities before migrating. |
+## 1. Configure your plan keys
 
-Choose model IDs from [the model catalog](https://www.zorveus.com/models), then verify the selected key's access through [model discovery](/inference/model-discovery). Do not infer support for a task from a provider name alone
+In the [Zorveus dashboard](https://app.zorveus.com), configure separate connections for each subscription tier your product offers:
 
-## Attribute every customer request
+- **Free Tier connection**: Set a $2/month connection cap, allow lightweight models (e.g. `openai/gpt-4.1-mini`), and set credit mode to `enforce`.
+- **Pro Tier connection**: Set a $20/month connection cap, allow frontier models (e.g. `anthropic/claude-3-5-sonnet`), and set credit mode to `enforce`.
 
-Get the user ID and plan from authenticated server data. Preserve the same external user ID across plan changes and background jobs. Never mutate a shared client's user identity between concurrent requests
+Store your inference keys and your service key in your backend secrets:
 
-```python
-from openai import AsyncOpenAI
-
-async def complete_for_user(client: AsyncOpenAI, model_id: str, user_id: str, message: str):
-	return await client.chat.completions.create(
-		model=model_id,
-		messages=[{"role": "user", "content": message}],
-		extra_headers={"X-Zorveus-External-User-ID": user_id},
-	)
+```bash
+ZORVEUS_FREE_KEY="zrv_free_tier_key..."
+ZORVEUS_PRO_KEY="zrv_pro_tier_key..."
+ZORVEUS_SERVICE_KEY="zrv_svc_your_service_key..."
+ZORVEUS_APP_ID="app_123"
 ```
 
-Create and close the client through your application's client lifecycle, using the selected plan key and `https://api.zorveus.com/v1`. The header works without sending profile data on every request. For name, email, or custom metadata, follow [product-user attribution](/inference/product-user-metadata)
+---
 
-## Select the plan policy
+## 2. Complete backend service implementation
 
-For example, configure Free and Pro keys with different monthly caps and model access. Your server maps the authenticated plan to the corresponding secret or routing alias. Metadata such as `{"plan": "pro"}` records context; it does not select or authorize a plan key
+Here is a complete, copyable backend module in Python and TypeScript that ties together plan selection, user attribution, allowance checks, and error handling.
 
-Keep inference keys and service keys in your server's secret store. Do not expose either to customers. If your billing cycle is not a calendar month, set the subscription's [allowance anchor](/startups/allowance-periods)
+<CodeGroup titles={["TypeScript", "Python"]}>
 
-## Handle limits and billing
+```typescript
+import OpenAI, { APIError } from "openai";
+import { ZorveusServiceClient } from "@zorveus/sdk";
 
-Use the [total available allowance](/startups/check-allowance), not the credit-only balance, for an admission check under a known enforced cap. A positive amount permits an attempt; the gateway decides whether that request can be funded
+const service = new ZorveusServiceClient({
+  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+});
 
-Handle allowance errors in one shared backend service used by AI clients and webhook processing. Keep allowance database updates out of request-context objects. Decide whether your app rejects work before persistence or records a terminal failure. In either case, send an explicit failure to the frontend and end any loading or streaming state
+const planClients = {
+  free: new OpenAI({
+    apiKey: process.env.ZORVEUS_FREE_KEY!,
+    baseURL: "https://api.zorveus.com/v1",
+  }),
+  pro: new OpenAI({
+    apiKey: process.env.ZORVEUS_PRO_KEY!,
+    baseURL: "https://api.zorveus.com/v1",
+  }),
+};
 
-For customer purchases, follow [Grant credits after a payment](/startups/billing-integration). For recurring plans, use the selected key and allowance period. Do not grant a second copy of a plan's base allowance unless that is your intended product policy
+interface CompletionRequest {
+  userId: string;
+  userTier: "free" | "pro";
+  prompt: string;
+}
 
-## Verify the integration
+export async function runUserPrompt({ userId, userTier, prompt }: CompletionRequest) {
+  // 1. Optional pre-flight check: Verify customer has remaining allowance
+  const user = await service.productUsers.getByExternalId({
+    appId: process.env.ZORVEUS_APP_ID!,
+    externalUserId: userId,
+    upsertIfMissing: true,
+  });
 
-Test attributed inference, background jobs, streaming failure, embeddings and media, exhausted allowance, a new period, credit grants, duplicate webhooks, and plan changes. Test that missing attribution cannot silently bypass your intended policy
+  const available = parseFloat(user.allowance?.available_allowance || "0");
+  if (available <= 0) {
+    return {
+      status: "quota_exhausted",
+      message: "You have reached your monthly AI allowance. Please upgrade or buy credits.",
+    };
+  }
 
-Report any task or model that you did not migrate. Keep unsupported paths working until an equivalent supported path is verified
+  // 2. Select client for the user's tier
+  const client = planClients[userTier];
 
-See the [business quickstart](/getting-started/startup-quickstart) for language-specific examples and [coding-agent instructions](/getting-started/coding-agents) for repository integration
+  try {
+    // 3. Send request with customer attribution header
+    const response = await client.chat.completions.create(
+      {
+        model: userTier === "pro" ? "anthropic/claude-3-5-sonnet" : "openai/gpt-4.1-mini",
+        messages: [{ role: "user", content: prompt }],
+      },
+      {
+        headers: { "X-Zorveus-External-User-ID": userId },
+      }
+    );
+
+    return {
+      status: "success",
+      content: response.choices[0].message.content,
+    };
+  } catch (err: unknown) {
+    if (err instanceof APIError) {
+      if (err.status === 403) {
+        return {
+          status: "quota_exhausted",
+          message: "You have reached your monthly AI allowance. Please upgrade or buy credits.",
+        };
+      }
+      if (err.status === 402) {
+        return {
+          status: "system_error",
+          message: "AI service temporarily unavailable. Organization wallet requires funding.",
+        };
+      }
+    }
+    throw err;
+  }
+}
+```
+
+```python
+import os
+from openai import OpenAI, APIStatusError
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+app_id = os.environ["ZORVEUS_APP_ID"]
+
+plan_clients = {
+    "free": OpenAI(api_key=os.environ["ZORVEUS_FREE_KEY"], base_url="https://api.zorveus.com/v1"),
+    "pro": OpenAI(api_key=os.environ["ZORVEUS_PRO_KEY"], base_url="https://api.zorveus.com/v1"),
+}
+
+def run_user_prompt(user_id: str, user_tier: str, prompt: str):
+    # 1. Optional pre-flight check: Verify customer has remaining allowance
+    user = service.product_users.get_by_external_id(
+        app_id=app_id,
+        external_user_id=user_id,
+        upsert_if_missing=True,
+    )
+
+    available = float(user.allowance.available_allowance if user.allowance else 0)
+    if available <= 0:
+        return {
+            "status": "quota_exhausted",
+            "message": "You have reached your monthly AI allowance. Please upgrade or buy credits.",
+        }
+
+    # 2. Select client for the user's tier
+    client = plan_clients.get(user_tier, plan_clients["free"])
+    model = "anthropic/claude-3-5-sonnet" if user_tier == "pro" else "openai/gpt-4.1-mini"
+
+    try:
+        # 3. Send request with customer attribution header
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            extra_headers={"X-Zorveus-External-User-ID": user_id},
+        )
+        return {
+            "status": "success",
+            "content": response.choices[0].message.content,
+        }
+    except APIStatusError as err:
+        if err.status_code == 403:
+            return {
+                "status": "quota_exhausted",
+                "message": "You have reached your monthly AI allowance. Please upgrade or buy credits.",
+            }
+        if err.status_code == 402:
+            return {
+                "status": "system_error",
+                "message": "AI service temporarily unavailable. Organization wallet requires funding.",
+            }
+        raise err
+```
+
+</CodeGroup>
+
+---
+
+## 3. Selling credit top-ups with Stripe
+
+When customers run out of their monthly plan allowance, you can let them purchase one-time credit top-ups.
+
+When your Stripe webhook receives a `payment_intent.succeeded` event, use your Zorveus service key to grant credits. Passing Stripe's payment intent ID as `external_reference` guarantees idempotency:
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+import type Stripe from "stripe";
+
+const service = new ZorveusServiceClient({ apiKey: process.env.ZORVEUS_SERVICE_KEY! });
+
+export async function handleStripePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
+  const userId = paymentIntent.metadata.userId;
+  const packAmountUsd = (paymentIntent.amount / 100).toFixed(2); // e.g. "10.00"
+
+  // Idempotent grant: retries with the same reference return the existing receipt
+  const receipt = await service.productUsers.grantCreditByExternalId({
+    appId: process.env.ZORVEUS_APP_ID!,
+    externalUserId: userId,
+    amount: packAmountUsd,
+    externalReference: paymentIntent.id,
+    source: "purchase",
+    reason: `Stripe purchase ${paymentIntent.id}`,
+  });
+
+  console.log(`Granted $${receipt.credit_grant.amount} to user ${userId}`);
+}
+```
+
+```python
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+app_id = os.environ["ZORVEUS_APP_ID"]
+
+def handle_stripe_payment_success(payment_intent):
+    user_id = payment_intent["metadata"]["user_id"]
+    pack_amount_usd = f"{payment_intent['amount'] / 100:.2f}"
+
+    receipt = service.product_users.grant_credit_by_external_id(
+        app_id=app_id,
+        external_user_id=user_id,
+        amount=pack_amount_usd,
+        external_reference=payment_intent["id"],
+        source="purchase",
+        reason=f"Stripe purchase {payment_intent['id']}",
+    )
+
+    print(f"Granted ${receipt.credit_grant.amount} to user {user_id}")
+```
+
+</CodeGroup>
+
+---
+
+## 4. Key security and best practices
+
+- **Never share inference keys with frontends**: All requests to `https://api.zorveus.com` that use your business keys must come from your authenticated application backend.
+- **Always attach the external user ID**: The `X-Zorveus-External-User-ID` header is what connects an AI request to a customer's allowance and usage ledger.
+- **Match billing cycles with allowance anchors**: If a user subscribes on the 15th of the month, pass `allowance_starts_at` when creating their profile so their monthly cap resets on the 15th, rather than the 1st. See [Allowance periods](/startups/allowance-periods).
+
+---
+
+## Related guides
+
+- [Write Room SaaS Code Lab](/code-labs/write-room-saas): Complete runnable React, TypeScript, and Express starter wired with `@zorveus/sdk` and the CLI.
+- [Configure product-user allowances](/startups/configure-product-user-allowances): Deep dive into caps, overrun policies, and enforcement modes.
+- [Billing integration](/startups/billing-integration): Webhook setup and payment reconciliation.
+- [Product users API reference](/api-reference/product-users): Full parameters for reading customer allowances and credit histories.

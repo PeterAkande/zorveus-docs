@@ -1,69 +1,59 @@
 ---
 title: Token exchange
-description: Exchange short-lived authorization codes and PKCE verifiers for scoped inference tokens.
+description: Exchange authorization codes and PKCE verifiers for scoped inference tokens.
 ---
+
+Once the user approves your app, Zorveus redirects to your `redirect_uri` with a temporary `code`. Your backend exchanges this code and your PKCE `code_verifier` for a scoped access token.
 
 <ApiEndpoint method="POST" path="/oauth/token" />
 
-Once the user approves your app, Zorveus redirects to your `redirect_uri` with `?code=...&state=...`. A confidential client's backend makes a server-to-server POST request to exchange the code for an inference token
+<KeyInserter type="client" label="Client ID" placeholder="zrv_client_your_client_id" />
 
----
+## Code examples
 
-## Token request parameters
-
-| Parameter | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| **`grant_type`** | string | Yes | Must be `authorization_code`. |
-| **`client_id`** | string | Yes | Your application Client ID. |
-| **`client_secret`** | string | Yes, For confidential clients | Your confidential client secret. Public clients omit it. |
-| **`code`** | string | Yes | Single-use authorization code from redirect callback. |
-| **`code_verifier`** | string | Yes | Plaintext string used to generate `code_challenge`. |
-| **`redirect_uri`** | string | Yes | Exact URI sent in initial authorization request. |
-
----
-
-## Code example
-
-<CodeGroup titles={["Node.js (TypeScript)", "Python", "cURL"]}>
+<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
 
 ```typescript
-const response = await fetch("https://api.zorveus.com/oauth/token", {
-  method: "POST",
-  headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  body: new URLSearchParams({
-    grant_type: "authorization_code",
-    client_id: "zrv_client_your_client_id",
-    client_secret: "zrv_client_secret_your_client_secret",
-    code: authCodeFromRedirect,
-    code_verifier: codeVerifier,
-    redirect_uri: "https://myapp.com/callback",
-  }),
+import { ZorveusOAuth } from "@zorveus/sdk";
+
+// Retrieve codeVerifier and state from your user's session
+const { code, state } = req.query;
+if (state !== session.state) {
+  throw new Error("CSRF state mismatch");
+}
+
+const tokenData = await ZorveusOAuth.exchangeCode({
+  clientId: "zrv_client_your_client_id",
+  clientSecret: process.env.ZORVEUS_CLIENT_SECRET, // Omit for public clients
+  code: String(code),
+  codeVerifier: session.codeVerifier,
+  redirectUri: "https://myapp.com/api/auth/callback",
 });
 
-const tokenData = await response.json();
-if (!response.ok) throw new Error(tokenData.error?.code ?? "Token exchange failed");
-const accessToken = tokenData.access_token;
+// Save token securely against the user account
+await db.users.update({
+  where: { id: currentUserId },
+  data: { zorveusAccessToken: tokenData.access_token },
+});
 ```
 
 ```python
-import requests
+from zorveus import ZorveusOAuth
 
-response = requests.post(
-    "https://api.zorveus.com/oauth/token",
-    headers={"Content-Type": "application/x-www-form-urlencoded"},
-    data={
-        "grant_type": "authorization_code",
-        "client_id": "zrv_client_your_client_id",
-        "client_secret": "zrv_client_secret_your_client_secret",
-        "code": auth_code_from_redirect,
-        "code_verifier": code_verifier,
-        "redirect_uri": "https://myapp.com/callback",
-    },
+# Verify state from session
+if request.args.get("state") != session.get("state"):
+    raise ValueError("CSRF state mismatch")
+
+token_data = ZorveusOAuth.exchange_code(
+    client_id="zrv_client_your_client_id",
+    client_secret=os.environ.get("ZORVEUS_CLIENT_SECRET"),  # Omit for public clients
+    code=request.args["code"],
+    code_verifier=session["code_verifier"],
+    redirect_uri="https://myapp.com/api/auth/callback",
 )
 
-response.raise_for_status()
-token_data = response.json()
-access_token = token_data["access_token"]
+# Save token in database
+db.save_user_token(user_id=current_user_id, access_token=token_data.access_token)
 ```
 
 ```bash
@@ -71,19 +61,89 @@ curl -X POST https://api.zorveus.com/oauth/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=authorization_code" \
   -d "client_id=zrv_client_your_client_id" \
-  -d "client_secret=zrv_client_secret_your_client_secret" \
-  -d "code=auth_code_from_redirect" \
+  -d "client_secret=zrv_client_secret_your_secret" \
+  -d "code=zorveus_code_abc123xyz" \
   -d "code_verifier=original_plain_code_verifier" \
-  -d "redirect_uri=https://myapp.com/callback"
+  -d "redirect_uri=https://myapp.com/api/auth/callback"
 ```
 
 </CodeGroup>
 
+---
 
-## Token response
+## Request parameters
 
-HTTP `200` returns `access_token`, `token_type`, `scope`, `expires_in`, `app_connection_id`, and `api_base`. `expires_in` can be null. When it is a number, honor that lifetime. The token can also become invalid through revocation or reauthorization
+<ParamField name="grant_type" type="string" required>
+  Must be `authorization_code`.
+</ParamField>
 
-`api_base` is the inference base URL. Store the token against the user who initiated authorization. Do not log it. Public clients omit `client_secret`. Neither client type receives a refresh token
+<ParamField name="client_id" type="string" required>
+  Your app's Client ID.
+</ParamField>
 
-See [OAuth errors](/oauth/errors) for the structured error object and [Use the token](/oauth/use-the-token) for inference
+<ParamField name="code" type="string" required>
+  The single-use authorization code received from the callback redirect.
+</ParamField>
+
+<ParamField name="code_verifier" type="string" required>
+  The original plaintext PKCE verifier generated before the authorization request.
+</ParamField>
+
+<ParamField name="redirect_uri" type="string" required>
+  The exact redirect URI used in the authorization request.
+</ParamField>
+
+<ParamField name="client_secret" type="string">
+  Required for confidential backend apps. Public apps (mobile, single-page apps) omit this.
+</ParamField>
+
+---
+
+## Response format
+
+```json
+{
+  "access_token": "zrv_usr_9a8b7c6d5e4f3a2b1c0d",
+  "token_type": "Bearer",
+  "scope": "inference:write models:*",
+  "expires_in": 2592000,
+  "app_connection_id": "appcon_abc123",
+  "api_base": "https://api.zorveus.com/v1"
+}
+```
+
+<ResponseField name="access_token" type="string" required>
+  The scoped inference bearer token to use for model requests on behalf of this user.
+</ResponseField>
+
+<ResponseField name="token_type" type="string" required>
+  Always `Bearer`.
+</ResponseField>
+
+<ResponseField name="scope" type="string" required>
+  The granted scopes approved by the user.
+</ResponseField>
+
+<ResponseField name="api_base" type="string" required>
+  The base gateway endpoint for inference calls (typically `https://api.zorveus.com/v1`).
+</ResponseField>
+
+---
+
+## Making requests with the token
+
+Pass the returned `access_token` in the `Authorization` header on standard OpenAI or native SDK completions. Costs are billed directly to the authorizing user's Zorveus funding account:
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: tokenData.api_base,
+  apiKey: tokenData.access_token,
+});
+
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Hello from my OAuth app!" }],
+});
+```

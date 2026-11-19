@@ -1,0 +1,477 @@
+---
+title: Write Room SaaS starter
+description: Clone, provision, and inspect a complete React, TypeScript, and Express SaaS app powered by Zorveus.
+---
+
+Write Room is a complete AI drafting SaaS starter built on `@zorveus/sdk`. You can clone it from [`zorveus/zorveus-starter-app-write-room-saas`](https://github.com/zorveus/zorveus-starter-app-write-room-saas), provision its Zorveus app and keys with one CLI command, and inspect a full production backend pattern locally.
+
+If you want a shorter conceptual guide for an existing codebase, see [Integrate an organization-funded product](/getting-started/integrate-your-product).
+
+## What this lab demonstrates
+
+- **Three seeded accounts across two plans**: Alex Morgan and Jordan Lee on **Plus** ($10/month, 1,000 display credits) and Sam Rivera on **Plus Ultra** ($30/month, 3,000 display credits).
+- **Automated CLI provisioning**: A clean [`zorveus.json`](https://github.com/zorveus/zorveus-starter-app-write-room-saas) manifest declaring the app, `creditUnitsPerUsd: "100"`, enforced plan keys with `limit_output`, and a scoped customer service key.
+- **Allowance, inference, activity, and top-ups**: Complete Express routes backed by `Zorveus` and `ZorveusServiceClient`, plus a simulated checkout (`500` credits for `$5`, `1,000` for `$10`, `2,500` for `$25`) with retry-safe `externalReference` grants.
+- **Read-only preflight check**: `npm run preflight` checks key configuration, lists allowed models per plan, and performs a non-creating user lookup before starting the server.
+
+---
+
+## 1. Clone and install dependencies
+
+Requires Node.js `22.12` or later and the [Zorveus CLI](/cli/installation).
+
+```sh
+git clone https://github.com/zorveus/zorveus-starter-app-write-room-saas.git
+cd zorveus-starter-app-write-room-saas
+npm ci
+```
+
+---
+
+## 2. Provision the app with the CLI
+
+Sign in, confirm your target organization, validate the bundled `zorveus.json`, inspect the plan, and apply it:
+
+```sh
+zorveus login
+zorveus whoami
+zorveus validate
+zorveus plan
+zorveus apply --plan zorveus.plan.json --yes
+```
+
+Here is the unapplied `zorveus.json` manifest shipped in the starter repository:
+
+```json
+{
+  "app": {
+    "allowedModels": [
+      "*"
+    ],
+    "creditUnitsPerUsd": "100",
+    "name": "Write room"
+  },
+  "keys": {
+    "plus": {
+      "cap": {
+        "amount": "10",
+        "currency": "USD",
+        "period": "monthly"
+      },
+      "creditMode": "enforce",
+      "name": "Plus",
+      "overrunPolicy": "limit_output"
+    },
+    "plus_ultra": {
+      "cap": {
+        "amount": "30",
+        "currency": "USD",
+        "period": "monthly"
+      },
+      "creditMode": "enforce",
+      "name": "Plus Ultra",
+      "overrunPolicy": "limit_output"
+    }
+  },
+  "serviceKeys": {
+    "customers": {
+      "name": "Write room customer reads",
+      "scopes": [
+        "product_users:read",
+        "product_users:write"
+      ]
+    }
+  },
+  "version": 1
+}
+```
+
+`zorveus apply` writes the new resource IDs into `zorveus.json` and stores the generated secrets in your OS credential store (see [Review and apply changes](/cli/quickstart#review-and-apply-changes)). Ensure your Zorveus organization wallet has funds before running rewrites; customer plan credits do not fund the organization wallet.
+
+---
+
+## 3. Configure environment and run locally
+
+Copy `.env.example` to `.env` and fill in the applied `ZORVEUS_APP_ID`, your service key, and the two distinct plan keys:
+
+```sh
+cp .env.example .env
+```
+
+```bash
+ZORVEUS_API_BASE_URL=https://api.zorveus.com
+ZORVEUS_GATEWAY_URL=https://api.zorveus.com/v1
+ZORVEUS_APP_ID=""
+ZORVEUS_SERVICE_KEY=""
+ZORVEUS_PLUS_INFERENCE_KEY=""
+ZORVEUS_PLUS_ULTRA_INFERENCE_KEY=""
+ZORVEUS_MODEL_ID="gemini/gemini-3.5-flash-lite"
+```
+
+Run the read-only preflight check and start the local app:
+
+```sh
+npm run preflight
+npm run dev
+```
+
+Open `http://127.0.0.1:3000`. Sign in as Alex Morgan, Jordan Lee, or Sam Rivera, rewrite a draft, inspect Activity, and test **Add credits** to watch allowances and ledger entries update.
+
+---
+
+## 4. Walk through the backend integration
+
+All runtime Zorveus SDK calls live in `server/zorveus.ts`, while Express session checks, route validation, and safe error translation live in `server/api.ts`.
+
+### Initialize plan inference clients and service client
+
+Each subscription tier gets its own `Zorveus` inference client, while `ZorveusServiceClient` handles allowance reads, activity pagination, and credit grants.
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "TypeScript (OpenAI SDK)", "Python (zorveus)"]}>
+
+```typescript
+import { Zorveus, ZorveusServiceClient } from "@zorveus/sdk";
+
+type Plan = "plus" | "plus_ultra";
+
+const apiBaseURL = process.env.ZORVEUS_API_BASE_URL || "https://api.zorveus.com";
+const gatewayBaseURL = process.env.ZORVEUS_GATEWAY_URL || "https://api.zorveus.com/v1";
+
+const planKeys: Record<Plan, string> = {
+  plus: process.env.ZORVEUS_PLUS_INFERENCE_KEY!,
+  plus_ultra: process.env.ZORVEUS_PLUS_ULTRA_INFERENCE_KEY!,
+};
+
+const inferenceClients: Record<Plan, Zorveus> = {
+  plus: new Zorveus({
+    apiKey: planKeys.plus,
+    baseURL: apiBaseURL,
+    gatewayBaseURL,
+    maxRetries: 0,
+    timeout: 60_000,
+  }),
+  plus_ultra: new Zorveus({
+    apiKey: planKeys.plus_ultra,
+    baseURL: apiBaseURL,
+    gatewayBaseURL,
+    maxRetries: 0,
+    timeout: 60_000,
+  }),
+};
+
+const service = new ZorveusServiceClient({
+  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+  baseURL: apiBaseURL,
+  maxRetries: 1,
+  timeout: 15_000,
+});
+```
+
+```typescript
+// Drop-in option if your app already uses the official OpenAI SDK
+import OpenAI from "openai";
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const gatewayBaseURL = process.env.ZORVEUS_GATEWAY_URL || "https://api.zorveus.com/v1";
+
+const openAiClients = {
+  plus: new OpenAI({
+    apiKey: process.env.ZORVEUS_PLUS_INFERENCE_KEY!,
+    baseURL: gatewayBaseURL,
+    maxRetries: 0,
+  }),
+  plus_ultra: new OpenAI({
+    apiKey: process.env.ZORVEUS_PLUS_ULTRA_INFERENCE_KEY!,
+    baseURL: gatewayBaseURL,
+    maxRetries: 0,
+  }),
+};
+
+const service = new ZorveusServiceClient({
+  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+});
+```
+
+```python
+import os
+from zorveus import Zorveus, ZorveusServiceClient
+
+plan_keys = {
+    "plus": os.environ["ZORVEUS_PLUS_INFERENCE_KEY"],
+    "plus_ultra": os.environ["ZORVEUS_PLUS_ULTRA_INFERENCE_KEY"],
+}
+
+inference_clients = {
+    plan: Zorveus(api_key=key) for plan, key in plan_keys.items()
+}
+
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+```
+
+</CodeGroup>
+
+<Callout type="tip" title="Keeping your existing OpenAI SDK">
+  You do not have to replace `openai` in an existing codebase. Keep your `OpenAI` clients pointed at `https://api.zorveus.com/v1` with each plan's Zorveus key, send `X-Zorveus-External-User-ID` per request, and pair them with `ZorveusServiceClient` for allowance and credit management.
+</Callout>
+
+### Check customer allowance for the active plan
+
+Passing `inferenceKey` to `getByExternalId` returns the customer's effective allowance under their plan policy, converted to display credits (`remaining_credit_units`). Setting `upsertIfMissing: true` creates missing demo customers on their first dashboard load, while `scripts/preflight.ts` uses `upsertIfMissing: false` so checks do not create records.
+
+```typescript
+export async function readAllowance(externalUserId: string, plan: Plan) {
+  const user = await service.productUsers.getByExternalId({
+    appId: process.env.ZORVEUS_APP_ID!,
+    externalUserId,
+    inferenceKey: planKeys[plan],
+    upsertIfMissing: true,
+  });
+
+  const a = user.allowance;
+  return {
+    remaining: a?.remaining_credit_units ?? null,
+    capAmount: a?.cap_amount ?? null,
+    currency: a?.currency ?? null,
+    period: a?.period ?? null,
+    periodEnd: a?.period_end ?? null,
+    creditMode: a?.credit_mode ?? null,
+    overrunPolicy: a?.overrun_policy ?? null,
+  };
+}
+```
+
+### Run an attributed rewrite with activity metadata
+
+Write Room attaches `externalUserId` and `usageMetadata` via `zorveusMetadata` on each request. Setting `maxRetries: 0` avoids silent duplicate charges when an upstream timeout leaves settlement uncertain.
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "TypeScript (OpenAI SDK)", "Python (zorveus)"]}>
+
+```typescript
+export async function rewriteText(
+  externalUserId: string,
+  text: string,
+  activityId: string,
+  plan: Plan,
+) {
+  const completion = await inferenceClients[plan].chat.completions.create(
+    {
+      model: process.env.ZORVEUS_MODEL_ID || "gemini/gemini-3.5-flash-lite",
+      max_tokens: 700,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Rewrite the supplied text for clarity and concision. Preserve its meaning, facts, and voice. Do not invent facts. Return only the rewritten text.",
+        },
+        { role: "user", content: text },
+      ],
+      zorveusMetadata: {
+        externalUserId,
+        usageMetadata: {
+          activity_id: activityId,
+          activity_label: "Rewrote text",
+        },
+      },
+    },
+    { maxRetries: 0 },
+  );
+
+  const choice = completion.choices[0];
+  if (!choice?.message.content) throw new Error("empty_completion");
+
+  return {
+    text: choice.message.content,
+    activityId,
+    completionId: completion.id,
+    finishReason: choice.finish_reason,
+  };
+}
+```
+
+```typescript
+export async function rewriteWithOpenAi(
+  externalUserId: string,
+  text: string,
+  activityId: string,
+  plan: Plan,
+) {
+  const completion = await openAiClients[plan].chat.completions.create(
+    {
+      model: process.env.ZORVEUS_MODEL_ID || "gemini/gemini-3.5-flash-lite",
+      max_tokens: 700,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Rewrite the supplied text for clarity and concision. Preserve its meaning, facts, and voice. Do not invent facts. Return only the rewritten text.",
+        },
+        { role: "user", content: text },
+      ],
+      metadata: {
+        usage_metadata: {
+          activity_id: activityId,
+          activity_label: "Rewrote text",
+        },
+      },
+    } as OpenAI.ChatCompletionCreateParamsNonStreaming,
+    {
+      headers: { "X-Zorveus-External-User-ID": externalUserId },
+    },
+  );
+
+  return completion.choices[0]?.message.content ?? "";
+}
+```
+
+```python
+def rewrite_text(external_user_id: str, text: str, activity_id: str, plan: str):
+    completion = inference_clients[plan].chat.completions.create(
+        model=os.environ.get("ZORVEUS_MODEL_ID", "gemini/gemini-3.5-flash-lite"),
+        max_tokens=700,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Rewrite the supplied text for clarity and concision. "
+                    "Preserve its meaning, facts, and voice. Do not invent facts. "
+                    "Return only the rewritten text."
+                ),
+            },
+            {"role": "user", "content": text},
+        ],
+        user=external_user_id,
+        usage_metadata={
+            "activity_id": activity_id,
+            "activity_label": "Rewrote text",
+        },
+    )
+    return completion.choices[0].message.content
+```
+
+</CodeGroup>
+
+### Load paginated Activity history
+
+`listActivityByExternalId` returns both usage debits (with `charged_credit_units` and saved `usage_metadata.activity_id`) and credit purchases in one feed:
+
+```typescript
+export async function readActivity(externalUserId: string, cursor?: string) {
+  const page = await service.productUsers.listActivityByExternalId({
+    appId: process.env.ZORVEUS_APP_ID!,
+    externalUserId,
+    cursor,
+    limit: 10,
+    upsertIfMissing: false,
+  });
+
+  return {
+    items: page.items.map((item) => ({
+      id: item.id,
+      type: item.type,
+      label: item.label,
+      amount: item.amount,
+      currency: item.currency,
+      status: item.status,
+      createdAt: item.created_at,
+      model: item.type === "usage" ? item.model : null,
+      chargedUnits: item.type === "usage" ? (item.charged_credit_units ?? null) : null,
+      activityId:
+        item.type === "usage"
+          ? typeof item.usage_metadata?.activity_id === "string"
+            ? item.usage_metadata.activity_id
+            : null
+          : typeof item.metadata?.order_id === "string"
+            ? item.metadata.order_id
+            : null,
+    })),
+    nextCursor: page.next_cursor,
+    hasMore: page.has_more,
+  };
+}
+```
+
+### Grant credits with idempotent order references
+
+Write Room's `server/demo-checkout.ts` simulates checkout in memory locally, then calls `grantCreditByExternalId` with a stable `externalReference` (`write-room:${orderId}`) and `creditUnitsPerUsd: "100"`. In production, trigger this only after verifying a real payment webhook:
+
+```typescript
+export async function grantOrderCredits(
+  externalUserId: string,
+  amountUsd: string,
+  orderId: string,
+) {
+  await service.productUsers.grantCreditByExternalId(
+    {
+      appId: process.env.ZORVEUS_APP_ID!,
+      externalUserId,
+      externalReference: `write-room:${orderId}`,
+      amount: amountUsd,
+      currency: "USD",
+      creditUnitsPerUsd: "100",
+      source: "purchase",
+      reason: "Demo credit purchase",
+      metadata: { demo_payment: true, order_id: orderId },
+    },
+    { maxRetries: 0 },
+  );
+}
+```
+
+### Translate Zorveus errors safely for the UI
+
+`server/api.ts` catches `ZorveusError`, keeps upstream headers and credentials off the wire, separates organization funding failures (`zorveus_reservation_insufficient_balance`) from customer cap exhaustion, and warns users to check Activity before retrying uncertain failures:
+
+```typescript
+import { ZorveusError } from "@zorveus/sdk";
+
+export function upstreamFailure(error: unknown) {
+  const status = error instanceof ZorveusError ? (error.status ?? 502) : 502;
+  const candidate = error instanceof ZorveusError ? error.code : undefined;
+  const code =
+    candidate && /^[a-z][a-z0-9_]{0,79}$/.test(candidate)
+      ? candidate
+      : "upstream_unavailable";
+
+  const exhausted =
+    code.includes("allowance_insufficient") ||
+    code.includes("credits_insufficient") ||
+    code.includes("cap_exceeded");
+
+  if (code === "zorveus_reservation_insufficient_balance") {
+    return {
+      status,
+      code,
+      message: "Your Zorveus organization needs wallet funding before running inference.",
+    };
+  }
+  if (exhausted) {
+    return {
+      status,
+      code,
+      message: "Your AI allowance cannot cover this request. Refresh your allowance or add credits.",
+    };
+  }
+  if (status === 401 || status === 403 || status === 404) {
+    return {
+      status,
+      code,
+      message: "Check server credentials, service-key scopes, and customer profile state.",
+    };
+  }
+  return {
+    status: status >= 400 && status <= 599 ? status : 502,
+    code,
+    message: "Zorveus could not confirm this request. Refresh Activity before retrying.",
+  };
+}
+```
+
+---
+
+## Next steps
+
+- [Integrate an organization-funded product](/getting-started/integrate-your-product): Step-by-step architecture guide for adding Zorveus to an existing SaaS backend.
+- [Billing integration](/startups/billing-integration): Connect Stripe payment webhooks to idempotent credit grants.
+- [CLI quickstart](/cli/quickstart): Manage manifests, plans, and production promotion across environments.
+- [Error handling](/platform/errors): Full error catalog for gateway and service-key routes.
+
