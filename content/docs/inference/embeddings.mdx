@@ -1,13 +1,11 @@
 ---
 title: Embeddings
-description: Generate dense vector embeddings for semantic search, similarity matching, and RAG retrieval pipelines.
+description: Turn text into numbers you can use to find similar content and power search pipelines.
 ---
 
-Generate high-dimensional vector representations of text across models like `openai/text-embedding-3-small`, `openai/text-embedding-3-large`, and open-source embedding models.
+Turn text into numbers you can use to find similar content. Vector databases use these embeddings to power semantic search, recommendations, and retrieval-augmented generation (RAG).
 
 <ApiEndpoint method="POST" path="/v1/embeddings" auth="api_key" />
-
-<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
 ## Code examples
 
@@ -121,9 +119,9 @@ curl https://api.zorveus.com/v1/embeddings \
 
 ---
 
-## Attaching user attribution to indexing jobs
+## Customer user attribution
 
-Like chat completions, embedding requests accept customer IDs and metadata for usage tracking:
+Like chat completions, embedding requests accept customer IDs for per-user spending tracking:
 
 ```typescript
 const response = await client.embeddings.create(

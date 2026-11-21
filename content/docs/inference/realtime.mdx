@@ -1,15 +1,15 @@
 ---
-title: Realtime sessions
-description: Choose a gateway session or a short-lived provider credential for realtime inference.
+title: Realtime audio
+description: Connect to realtime voice and audio models over WebSockets or short-lived client sessions.
 ---
 
-Realtime uses a long-lived connection rather than a normal chat response. Choose a model that supports realtime in [the catalog](/api-reference/models), then verify it is available to your key
+Realtime models use a long-lived connection rather than a standard request-response cycle. Choose a model that supports realtime from [the model catalog](/api-reference/models), then verify it is available to your API key.
 
-## Keep the session on the gateway
+## Connect through the gateway
 
-Gateway routes include `WS /v1/realtime` and `POST /v1/realtime/calls`. Keep the long-lived Business key on your server. Attach the customer's external user ID when creating the gateway request so the session can be attributed
+Gateway routes include `WS /v1/realtime` and `POST /v1/realtime/calls`. Keep your long-lived service or inference key on your server. Attach the customer's external user ID so the session can be attributed.
 
-For a server-side WebSocket using the Node.js `ws` package:
+For a server-side WebSocket using Node.js:
 
 ```javascript
 import WebSocket from "ws";
@@ -18,43 +18,36 @@ const url = new URL("wss://api.zorveus.com/v1/realtime");
 url.searchParams.set("model", process.env.ZORVEUS_REALTIME_MODEL);
 
 const socket = new WebSocket(url, {
-	headers: {
-		Authorization: `Bearer ${process.env.ZORVEUS_API_KEY}`,
-		"X-Zorveus-External-User-ID": "customer_42",
-	},
+  headers: {
+    Authorization: `Bearer ${process.env.ZORVEUS_API_KEY}`,
+    "X-Zorveus-External-User-ID": "customer_42",
+  },
 });
 
 socket.on("message", (data) => {
-	const event = JSON.parse(data.toString());
-	console.log(event.type);
+  const event = JSON.parse(data.toString());
+  console.log(event.type);
 });
+
 socket.on("error", (error) => console.error(error.message));
 ```
 
-Set `ZORVEUS_REALTIME_MODEL` to the realtime model ID available to your key. This opens a session and prints event types. Send and handle the selected provider's realtime events to exchange text or audio. A chat model's message format does not define the realtime event contract
+Set `ZORVEUS_REALTIME_MODEL` to a realtime model ID available to your key.
 
 ## Create a provider client secret
 
 <ApiEndpoint method="POST" path="/v1/realtime/client_secrets" auth="api_key" />
 
-Your backend can request a short-lived provider secret for a browser or mobile session. The setup request does not itself represent model usage or reserve a session's future spend
+Your backend can request a short-lived provider secret for a browser or mobile session. The setup request does not represent model usage or reserve future spend:
 
 ```python
 import os
 import requests
 
 response = requests.post(
-	"https://api.zorveus.com/v1/realtime/client_secrets",
-	headers={"Authorization": f"Bearer {os.environ['ZORVEUS_API_KEY']}"},
-	json={"session": {"type": "realtime", "model": os.environ["ZORVEUS_REALTIME_MODEL"]}},
-	timeout=30,
+    "https://api.zorveus.com/v1/realtime/client_secrets",
+    headers={"Authorization": f"Bearer {os.environ['ZORVEUS_API_KEY']}"},
+    json={"session": {"type": "realtime", "model": os.environ["ZORVEUS_REALTIME_MODEL"]}},
+    timeout=30,
 )
-response.raise_for_status()
-secret_data = response.json()
 ```
-
-The provider can return a top-level `value` or a nested `client_secret.value`. Return only the short-lived value and needed expiry details to your client. Do not log it or return the Business key
-
-If the client connects directly to the upstream provider with that secret, the media and usage bypass the Zorveus gateway. Do not assume that issuing the secret applies Zorveus product-user caps, wallet settlement, or per-response accounting to that direct session
-
-Test the chosen transport, model, funding, and disconnect behavior in your deployment before using realtime in production. Available routes alone do not guarantee every provider or realtime API version works

@@ -2,11 +2,11 @@
   "title": "Call AI models",
   "pages": [
     "overview",
-    "model-discovery",
     "chat-completions",
-    "responses",
+    "model-discovery",
     "streaming",
     "tool-calling",
+    "responses",
     "embeddings",
     "images",
     "audio",

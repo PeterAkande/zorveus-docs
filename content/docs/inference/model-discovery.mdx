@@ -1,25 +1,15 @@
 ---
-title: Model discovery
-description: Query the models endpoint to discover live available models permitted for your API key.
+title: Choose a model
+description: Explore over 850 AI models in the catalog or query the models endpoint with your API key.
 ---
+
+Browse all supported models in the [Zorveus model catalog](https://www.zorveus.com/models), or query the `/v1/models` endpoint from your app to see which models your API key is authorized to route.
 
 <ApiEndpoint method="GET" path="/v1/models" auth="api_key" />
 
-The `/v1/models` endpoint returns the dynamic list of concrete model IDs your API key is currently authorized to route
+## List available models
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
-
----
-
-## Policy expansion
-
-When your App Connection defines wildcard policies like `*` or `openai/*`, the `/v1/models` endpoint **expands those wildcards into concrete routable model IDs** (e.g. `openai/gpt-6-sol`, `openai/gpt-6-sol`, `anthropic/claude-sonnet-5`)
-
-Wildcard strings are policy configurations. They are not valid target model identifiers in chat completion requests
-
----
-
-## Code example
+Send a `GET` request to `/v1/models` using the OpenAI SDK or cURL.
 
 <CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
@@ -33,7 +23,7 @@ client = OpenAI(
 
 models = client.models.list()
 for model in models.data:
-    print(f"Available Model: {model.id} (Owner: {model.owned_by})")
+    print(f"{model.id} (Owner: {model.owned_by})")
 ```
 
 ```typescript
@@ -44,14 +34,10 @@ const client = new OpenAI({
   apiKey: "zrv_your_api_key",
 });
 
-async function main() {
-  const models = await client.models.list();
-  for (const model of models.data) {
-    console.log(`Available Model: ${model.id} (Owner: ${model.owned_by})`);
-  }
+const models = await client.models.list();
+for (const model of models.data) {
+  console.log(`${model.id} (Owner: ${model.owned_by})`);
 }
-
-main();
 ```
 
 ```bash
@@ -61,14 +47,36 @@ curl https://api.zorveus.com/v1/models \
 
 </CodeGroup>
 
-<ApiRunner method="GET" path="/v1/models" />
+## Policy expansion
 
----
+When your app connection defines wildcard policies like `*` or `openai/*`, the `/v1/models` endpoint expands those wildcards into concrete routable model IDs, such as `openai/gpt-4.1-mini`, `anthropic/claude-sonnet-5`, and `gemini/gemini-2.5-flash`.
+
+Wildcard strings are policy configurations. They are not valid model identifiers in inference requests. Use the exact `id` strings returned by this endpoint.
 
 ## Read the response
 
-A successful response has `object: "list"` and a `data` array. Each item contains a concrete `id`, `object: "model"`, and ownership metadata. Use the returned `id` unchanged in inference requests
+A successful response has `object: "list"` and a `data` array:
 
-With a routing key, send `X-Zorveus-Key-Alias` to discover the chosen member's allowed models. If no alias is sent, a configured default member is required
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "openai/gpt-4.1-mini",
+      "object": "model",
+      "created": 1715000000,
+      "owned_by": "openai"
+    },
+    {
+      "id": "anthropic/claude-sonnet-5",
+      "object": "model",
+      "created": 1715000000,
+      "owned_by": "anthropic"
+    }
+  ]
+}
+```
 
-Use the [public catalog](/api-reference/models) for task capabilities and pricing fields. A key-scoped list is an access check, not proof that every endpoint or optional parameter works with every listed model
+With a routing key, send `X-Zorveus-Key-Alias` to discover the chosen member's allowed models. If no alias is sent, a configured default member is required.
+
+To check pricing, context limits, and capabilities across all 850+ models, browse the [Zorveus model catalog](https://www.zorveus.com/models) or the [Models API reference](/api-reference/models). A key-scoped list from `/v1/models` checks access for your specific credentials.

@@ -1,13 +1,11 @@
 ---
-title: Rerank
-description: Reorder candidate documents by semantic relevance to improve RAG retrieval accuracy.
+title: Rank search results
+description: Reorder search results by relevance to improve retrieval accuracy.
 ---
 
-Rerank models rescore and sort pre-retrieved text documents by their relevance to a user query, providing higher precision than vector similarity search alone.
+Reorder search results by relevance. Rerank models take an initial list of documents and rescore them against the user's query, giving you higher precision than vector similarity search alone.
 
 <ApiEndpoint method="POST" path="/v1/rerank" auth="api_key" />
-
-<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
 ## Code examples
 

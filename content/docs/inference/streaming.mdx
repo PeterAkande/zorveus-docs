@@ -1,13 +1,11 @@
 ---
-title: Streaming completions
+title: Stream a response
 description: Stream tokens incrementally using Server-Sent Events with the OpenAI SDK or Vercel AI SDK.
 ---
 
 Stream responses token-by-token to display generated text in real time.
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
-
-<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
 ## Code examples
 
@@ -91,8 +89,6 @@ curl -N https://api.zorveus.com/v1/chat/completions \
 
 </CodeGroup>
 
----
-
 ## Server-sent events format
 
 When streaming is enabled, Zorveus sends chunks in the standard SSE format. Each chunk begins with `data:` followed by a JSON completion delta:
@@ -106,8 +102,6 @@ data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1715000000
 
 data: [DONE]
 ```
-
----
 
 ## Usage and token accounting
 

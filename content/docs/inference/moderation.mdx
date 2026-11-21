@@ -3,17 +3,13 @@ title: Content moderation
 description: Check inputs and outputs against safety and content moderation models.
 ---
 
+Screen text inputs against safety policies using moderation endpoints.
+
 <ApiEndpoint method="POST" path="/v1/moderations" auth="api_key" />
-
-Screen text inputs against safety policies using moderation endpoints
-
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
-
----
 
 ## Code example
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
 
 ```python
 from openai import OpenAI
@@ -53,12 +49,18 @@ async function main() {
 main();
 ```
 
+```bash
+curl https://api.zorveus.com/v1/moderations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  -d '{
+    "model": "openai/omni-moderation-latest",
+    "input": "Sample text content for automated compliance screening."
+  }'
+```
+
 </CodeGroup>
 
-## Use the result
+## Read the result
 
-Read `results[0].flagged` for the provider's overall decision and inspect category fields when your policy needs them. Category names and scores can change between moderation models, so store the model ID with any audit decision
-
-Moderation is a model call. The request still passes through API-key, model-policy, wallet, cap, and credit checks
-
-Use `GET /v1/models` to verify that the moderation model is routable. Do not present a moderation result as a legal or compliance determination
+Read `results[0].flagged` for the provider's overall safety decision, and inspect category fields when your policy needs them. Category names and scores vary between moderation models, so store the model ID with any audit decision.

@@ -1,69 +1,15 @@
 ---
-title: Inference overview
-description: Overview of multi-provider wire protocols and inference capabilities supported on api.zorveus.com.
+title: Overview
+description: Call AI models from your app with a single API key using standard SDKs.
 ---
 
-Zorveus sits between your applications and AI model providers, natively supporting the **Anthropic `/v1/messages`** wire protocol, standard **OpenAI `/v1/chat/completions`**, **Google Gemini**, and specialized audio, embedding, and realtime endpoints
+Use Zorveus to call AI models from your app. Choose a model, send a request, and use the response. You can generate text, stream replies, create images, and work with audio.
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+Send requests to over 850 models across OpenAI, Anthropic, Google Gemini, and Jev through one endpoint. Browse the full list in the [model catalog](https://www.zorveus.com/models). Keep using your existing OpenAI or Anthropic SDKs by pointing the base URL to Zorveus.
 
----
+## Make a request
 
-## Supported wire protocols and endpoints
-
-| Provider format | Endpoints | Example SDK usage |
-| :--- | :--- | :--- |
-| **Anthropic Native** | `POST /v1/messages`<br />`POST /v1/messages/count_tokens` | Standard Anthropic SDK (`@anthropic-ai/sdk`, `anthropic-python`) |
-| **OpenAI Chat Format** | `POST /v1/chat/completions`<br />`POST /chat/completions` | Standard OpenAI SDK (`openai`), Vercel AI SDK, LangChain |
-| **OpenAI Responses API** | `POST /v1/responses`<br />`POST /responses` | OpenAI Responses API format |
-| **Google Gemini Native** | `POST /v1beta/models/*`<br />`POST /vertex_ai/live` | Google GenAI SDK and Vertex AI live stream |
-| **Embeddings and Rerank** | `POST /v1/embeddings`<br />`POST /v1/rerank`, `POST /v2/rerank` | Cohere, Voyage, Jina, OpenAI embeddings and rerankers |
-| **Audio and Speech** | `POST /v1/audio/speech`<br />`POST /v1/audio/transcriptions` | OpenAI Whisper, TTS, Gemini Audio |
-| **Realtime Voice / WebSockets** | `POST /v1/realtime/calls`<br />`POST /v1/realtime/client_secrets`<br />`WS /v1/realtime` | OpenAI Realtime API, WebRTC, and WebSocket client sessions |
-
----
-
-## Inference modalities
-
-<CardGroup cols={2}>
-  <Card title="Chat Completions" icon="terminal" href="/inference/chat-completions">
-    Standard and reasoning completions across OpenAI, Anthropic, Gemini, and open models
-  </Card>
-  <Card title="Streaming Completions" icon="zap" href="/inference/streaming">
-    Server-Sent Events (SSE) token streaming
-  </Card>
-  <Card title="Tool Calling & Function Calling" icon="code" href="/inference/tool-calling">
-    Structured schema execution and agentic tool invocation
-  </Card>
-  <Card title="Responses API" icon="layers" href="/inference/responses">
-    OpenAI-compatible response items for supported provider routes
-  </Card>
-  <Card title="Embeddings" icon="cpu" href="/inference/embeddings">
-    Dense text embeddings for semantic search and retrieval (RAG)
-  </Card>
-  <Card title="Model Discovery" icon="key" href="/inference/model-discovery">
-    Inspect dynamically available models and routing policy status
-  </Card>
-</CardGroup>
-
----
-
-## SDK configuration
-
-Different SDK clients append different default path prefixes. Configure the exact base URL matching your SDK:
-
-| SDK Client | Base URL parameter | Notes |
-| :--- | :--- | :--- |
-| **OpenAI Python / TypeScript** | `https://api.zorveus.com/v1` | OpenAI clients automatically append `/chat/completions`. |
-| **Anthropic Python / TypeScript** | `https://api.zorveus.com` | Anthropic clients automatically append `/v1/messages`. Do not add `/v1`. |
-| **Zorveus SDK (@zorveus/sdk)** | Default preconfigured | Connects automatically to `https://api.zorveus.com`. |
-| **Direct HTTP / cURL** | Full route path | Use `https://api.zorveus.com/v1/chat/completions` or `https://api.zorveus.com/v1/messages`. |
-
-<Callout type="warning" title="Avoid Anthropic base URL 404s">
-  Do not append `/v1` to the base URL when using the official Anthropic SDK (`@anthropic-ai/sdk` or `anthropic-python`). The Anthropic client appends `/v1/messages` on its own. Setting `baseURL: "https://api.zorveus.com/v1"` results in an invalid `https://api.zorveus.com/v1/v1/messages` request
-</Callout>
-
-Point the base URL to Zorveus in your client initialization:
+Point your client to Zorveus and pass your API key.
 
 <CodeGroup titles={["Anthropic (Python)", "Anthropic (TypeScript)", "OpenAI (Python)", "OpenAI (TypeScript)", "cURL"]}>
 
@@ -99,7 +45,7 @@ const message = await anthropic.messages.create({
   messages: [{ role: "user", content: "Explain quantum computing in one sentence." }],
 });
 
-console.log(message.content);
+console.log(message.content[0].text);
 ```
 
 ```python
@@ -111,7 +57,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="openai/gpt-6-sol",
+    model="openai/gpt-4.1-mini",
     messages=[{"role": "user", "content": "Explain quantum computing in one sentence."}],
 )
 print(response.choices[0].message.content)
@@ -126,7 +72,7 @@ const client = new OpenAI({
 });
 
 const completion = await client.chat.completions.create({
-  model: "openai/gpt-6-sol",
+  model: "openai/gpt-4.1-mini",
   messages: [{ role: "user", content: "Explain quantum computing in one sentence." }],
 });
 
@@ -134,18 +80,63 @@ console.log(completion.choices[0].message.content);
 ```
 
 ```bash
-curl https://api.zorveus.com/v1/models \
-  -H "Authorization: Bearer zrv_your_api_key"
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer zrv_your_api_key" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role": "user", "content": "Explain quantum computing in one sentence."}]
+  }'
 ```
 
 </CodeGroup>
 
----
+## Base URL rules
 
-## How Zorveus handles requests under the hood
+Different SDK clients append different default path prefixes. Configure the base URL matching your client:
 
-1. **Authentication and metering**: The gateway intercepts your request (`x-api-key: zrv_...` or `Authorization: Bearer zrv_...`), validates the API key, and verifies active balance and credit caps.
-2. **BYOK injection and system routing**: If your organization configured custom provider credentials (e.g. Anthropic or OpenAI API keys), Zorveus securely injects them under your routing and fallback policy. Wallet fallback requires configuration and funding. Otherwise, requests route through Zorveus system credentials.
-3. **Usage settlement**: The gateway records provider-reported usage and settles the request. Interrupted requests can require later reconciliation
+| Client | Base URL | What the SDK appends |
+| :--- | :--- | :--- |
+| **OpenAI Python / TypeScript** | `https://api.zorveus.com/v1` | Automatically appends `/chat/completions`. |
+| **Anthropic Python / TypeScript** | `https://api.zorveus.com` | Automatically appends `/v1/messages`. Do not add `/v1`. |
+| **Zorveus SDK (@zorveus/sdk)** | Preconfigured | Connects to `https://api.zorveus.com`. |
+| **Direct HTTP / cURL** | Full endpoint URL | Use `https://api.zorveus.com/v1/chat/completions` or `https://api.zorveus.com/v1/messages`. |
 
-Use the [public catalog](/api-reference/models) to check task capabilities and `GET /v1/models` to verify access for your key. A route name does not mean every model supports that endpoint
+<Callout type="warning" title="Avoid Anthropic base URL 404 errors">
+  Do not append `/v1` to the base URL when using the official Anthropic SDK (`@anthropic-ai/sdk` or `anthropic-python`). The Anthropic client appends `/v1/messages` on its own. Setting `baseURL: "https://api.zorveus.com/v1"` results in an invalid `https://api.zorveus.com/v1/v1/messages` request.
+</Callout>
+
+## What do you want to build?
+
+<CardGroup cols={2}>
+  <Card title="Chat completions" icon="terminal" href="/inference/chat-completions">
+    Generate text, code, and answers across models from OpenAI, Anthropic, Gemini, and Jev.
+  </Card>
+  <Card title="Stream a response" icon="zap" href="/inference/streaming">
+    Display tokens in real time as the model generates them using Server-Sent Events.
+  </Card>
+  <Card title="Choose a model" icon="key" href="/inference/model-discovery">
+    Browse over 850 models in the catalog or query the models permitted for your key.
+  </Card>
+  <Card title="Tool calling" icon="code" href="/inference/tool-calling">
+    Let models ask to run external functions and send structured JSON arguments back.
+  </Card>
+  <Card title="Responses API" icon="layers" href="/inference/responses">
+    Use the unified OpenAI-compatible Responses API interface.
+  </Card>
+  <Card title="Embeddings" icon="cpu" href="/inference/embeddings">
+    Turn text into numbers you can use to find similar content and power search pipelines.
+  </Card>
+  <Card title="Rank search results" icon="layers" href="/inference/rerank">
+    Rescore and reorder retrieved documents to improve search and retrieval accuracy.
+  </Card>
+  <Card title="Image generation" icon="image" href="/inference/images">
+    Create and edit images with DALL-E and open diffusion models.
+  </Card>
+  <Card title="Audio and speech" icon="mic" href="/inference/audio">
+    Transcribe spoken voice recordings into text or synthesize speech from text.
+  </Card>
+  <Card title="Realtime audio" icon="radio" href="/inference/realtime">
+    Low-latency two-way voice streaming over WebSockets and WebRTC.
+  </Card>
+</CardGroup>

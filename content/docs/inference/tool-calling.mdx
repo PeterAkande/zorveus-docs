@@ -3,11 +3,9 @@ title: Tool calling
 description: Enable models to invoke external functions, query databases, and return structured JSON arguments.
 ---
 
-Give models access to external data and custom tools. Models choose when to call a tool, return structured arguments in JSON, and receive the execution result to generate a final answer.
+The model asks to use a function. Your code runs that function and sends the result back.
 
 <ApiEndpoint method="POST" path="/v1/chat/completions" auth="api_key" />
-
-<KeyInserter type="api" label="API Key" placeholder="zrv_your_api_key" />
 
 ## End-to-end workflow
 
@@ -147,7 +145,7 @@ curl https://api.zorveus.com/v1/chat/completions \
   -H "Authorization: Bearer zrv_your_api_key" \
   -d '{
     "model": "openai/gpt-4.1-mini",
-    "messages": [{"role": "user", "content": "What is the weather in London?"}],
+    "messages": [{"role": "user", "content": "What is the weather in London right now?"}],
     "tools": [{
       "type": "function",
       "function": {
@@ -202,4 +200,4 @@ When a model chooses to call a tool, the message includes a `tool_calls` array w
 ## Related reading
 
 - [Chat completions](/inference/chat-completions): Standard text and reasoning requests.
-- [Model discovery](/inference/model-discovery): Verify which models support tool calling before making requests.
+- [Choose a model](/inference/model-discovery): Verify which models support tool calling before making requests.
