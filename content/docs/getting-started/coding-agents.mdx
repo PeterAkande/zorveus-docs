@@ -1,29 +1,30 @@
 ---
-title: Integrate with a coding agent
-description: Copy an integration prompt tailored to Business or Developer OAuth.
+title: Build with a coding agent
+description: Choose what to build and give your coding agent the instructions to add Zorveus to your app.
 ---
 
-Choose how your application uses Zorveus, then copy the full prompt into your coding agent. The prompts apply to any project.
+Let your coding agent add Zorveus to your app. Choose what you need, copy the prompt, and paste it into your agent.
 
-- **Business**: Your product pays for customer AI usage. Includes attribution, allowances, plan-specific keys, and billing or webhook work when your product uses those features.
-- **Developer OAuth**: Users connect their own Zorveus accounts and authorize your tool to use their funding context. Includes consent, PKCE, token ownership, and revocation.
+## 1. Copy a prompt
 
 <IntegrationPromptPicker />
 
-## Before you give the prompt to an agent
+## 2. Give your agent a task
 
-Tell the agent which AI features to integrate and any models you have selected from [the model catalog](https://www.zorveus.com/models). Keep secrets in your project's approved secret store. Do not paste keys into the prompt.
+In your coding agent, describe what you want to build. For example:
 
-The Business prompt adapts the full Zorveus integration-agent prompt. The OAuth version uses a separate workflow so the agent does not apply Business credit management to user-funded connections.
+> Add a chat feature to this app using Zorveus. Follow the integration instructions below and use the project's existing framework.
 
-## Connect the agent to your Zorveus account
+Paste the copied prompt underneath your task. Tell the agent which model to use, or ask it to help you choose from the [model catalog](https://www.zorveus.com/models).
 
-The [local MCP server](/cli/mcp) lets your coding agent inspect apps, prepare manifests, plan changes, apply approved plans, and manage service keys. It uses the same saved login as the CLI. Complete `zorveus login` in a terminal first; management tokens and generated secrets stay in your OS credential store.
+Store API keys in environment variables. Keep secret values out of chat.
 
-Use the integration prompts above to implement your application. Use MCP to configure its Zorveus resources and inspect the result.
+Ask the agent to run a test request and show you the response to check that the integration works.
 
-## Documentation for agents
+## Optional: let your agent configure Zorveus
 
-Use [/llms.txt](https://docs.zorveus.com/llms.txt) for the page index and Markdown source links. The complete prompts are also available as [Business Markdown](/api/integration-prompt?route=business) and [Developer OAuth Markdown](/api/integration-prompt?route=oauth), without the picker UI.
+Your agent can also inspect your Zorveus apps and prepare configuration changes for you to review using the [CLI](/cli/quickstart) and the [MCP server](/cli/mcp). Follow [Connect a coding agent with MCP](/cli/mcp) to set this up.
 
-Continue with [Build customer billing](/getting-started/integrate-your-product) for Business or [Let users fund their AI usage](/getting-started/oauth-app-quickstart) for Developer OAuth.
+You can use the integration prompts without MCP setup.
+
+Your agent can use the [documentation index](https://docs.zorveus.com/llms.txt) to find guides and their Markdown sources.

@@ -215,15 +215,20 @@ test("endpoint methods have distinct pill styles and retain authentication label
   assert.match(css, /\.zorveus-endpoint-method \{[^}]*border-radius: 999px/);
 });
 
-test("integration picker offers two routes and hides the preview initially", () => {
+test("integration picker offers three routes and collapses the full prompt initially", () => {
   const Picker = loadComponent("IntegrationPromptPicker");
   const html = renderToStaticMarkup(React.createElement(Picker));
+  assert.match(html, /value="gateway"/);
   assert.match(html, /value="business"/);
   assert.match(html, /value="oauth"/);
-  assert.match(html, /Copy Business prompt/);
+  assert.match(html, /Copy prompt<\/button>/);
   assert.match(html, /Download Markdown/);
-  assert.match(html, /<details><summary>Preview the full prompt/);
-  assert.doesNotMatch(html, /<details open/);
+  const gatewayRadio = html.match(/<input[^>]*value="gateway"[^>]*>/)?.[0];
+  assert.ok(gatewayRadio);
+  assert.match(gatewayRadio, /type="radio"/);
+  assert.match(gatewayRadio, /checked=""/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.doesNotMatch(html, /<select|<textarea/);
 });
 
 test("code group renders tab triggers and replaces key placeholders in child code", () => {

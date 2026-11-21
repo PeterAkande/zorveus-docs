@@ -28,6 +28,15 @@ test('OAuth prompt separates user authorization from Business credit management'
   assert.match(prompts.oauth, /createOpenAI/);
 });
 
+test('Gateway prompt focuses on direct model access without customer billing', () => {
+  assert.match(prompts.gateway, /Direct AI Gateway/);
+  assert.match(prompts.gateway, /api\.zorveus\.com\/v1/);
+  assert.match(prompts.gateway, /ZORVEUS_API_KEY/);
+  assert.doesNotMatch(prompts.gateway, /grant_credit_by_external_id/);
+  assert.doesNotMatch(prompts.gateway, /product_user\.cap_reached/);
+  assert.doesNotMatch(prompts.gateway, /allowance_starts_at/);
+});
+
 test('prompt downloads return the selected text and reject unknown routes', async () => {
   const source = fs.readFileSync('app/api/integration-prompt/route.ts', 'utf8');
   const compiled = ts.transpileModule(source, {
@@ -35,7 +44,7 @@ test('prompt downloads return the selected text and reject unknown routes', asyn
   }).outputText;
   const exports = {};
   vm.runInNewContext(compiled, { exports, require: () => prompts, URL, Response });
-  for (const route of ['business', 'oauth']) {
+  for (const route of ['gateway', 'business', 'oauth']) {
     const response = exports.GET({ url: `https://docs.zorveus.com/api/integration-prompt?route=${route}` });
     assert.equal(response.status, 200);
     assert.equal(await response.text(), prompts[route]);

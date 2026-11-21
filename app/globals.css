@@ -611,18 +611,32 @@ button[aria-label="Copy Code"] {
 }
 
 /* Component spacing is separate from document paragraph spacing. */
-.zorveus-prompt-picker { margin: 20px 0; padding: 16px; border: 1px solid var(--docs-border); border-radius: 10px; background: var(--docs-surface); color: var(--docs-text); font-size: 14px; line-height: 1.6; }
-.zorveus-prompt-picker label { display: block; margin-bottom: 8px; color: var(--docs-heading); font-weight: 600; }
-.zorveus-prompt-picker select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--docs-border-strong); border-radius: 6px; color: var(--docs-text); font-size: 14px; appearance: auto !important; }
-.zorveus-prompt-picker p { margin: 12px 0; }
-.zorveus-prompt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.zorveus-prompt-actions button { padding: 8px 12px; border: 1px solid var(--docs-accent); border-radius: 6px; background: var(--docs-accent-bg); color: var(--docs-accent); font-weight: 600; cursor: pointer; }
-.zorveus-prompt-actions a { color: var(--docs-accent); text-decoration: underline; text-underline-offset: 3px; }
+.zorveus-prompt-picker { margin: 20px 0; color: var(--docs-text); font-size: 14px; line-height: 1.6; }
+.zorveus-prompt-routes { display: flex; border-bottom: 1px solid var(--docs-border); }
+.zorveus-prompt-route { position: relative; flex: 1; min-width: 0; padding: 12px 8px; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--docs-muted); text-align: center; font-weight: 500; cursor: pointer; }
+.zorveus-prompt-route:hover { color: var(--docs-heading); }
+.zorveus-prompt-route[data-selected="true"] { border-bottom-color: var(--docs-accent); color: var(--docs-heading); font-weight: 600; }
+.zorveus-prompt-route:has(input:focus-visible) { outline: 2px solid var(--docs-accent); outline-offset: -3px; border-radius: 4px; }
+.zorveus-prompt-description { margin: 16px 0 20px; color: var(--docs-muted); }
+.zorveus-prompt-document { overflow: hidden; border: 1px solid var(--docs-border); border-radius: 8px; background: var(--docs-bg); }
+.zorveus-prompt-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--docs-border); }
+.zorveus-prompt-toolbar > span { display: inline-flex; align-items: center; gap: 8px; color: var(--docs-muted); font-size: 13px; }
+.zorveus-prompt-picker svg { width: 15px; height: 15px; flex-shrink: 0; }
+.zorveus-prompt-copy { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 116px; padding: 7px 11px; border: 1px solid var(--docs-heading); border-radius: 5px; background: var(--docs-heading); color: var(--docs-bg); font-size: 13px; font-weight: 500; cursor: pointer; }
+.zorveus-prompt-copy:hover { opacity: 0.85; }
+.zorveus-prompt-excerpt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 20px; color: var(--docs-muted); font-family: var(--font-mono); font-size: 12px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.zorveus-prompt-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--docs-border); }
+.zorveus-prompt-footer :is(button, a) { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: var(--docs-muted); font-size: 12px; text-decoration: none; cursor: pointer; }
+.zorveus-prompt-footer :is(button, a):hover { color: var(--docs-heading); }
+.zorveus-prompt-footer [data-expanded="true"] { transform: rotate(180deg); }
 .zorveus-prompt-picker [role="status"]:not(:empty) { margin-top: 10px; color: var(--docs-muted); }
-.zorveus-prompt-picker details { margin-top: 16px; }
-.zorveus-prompt-picker summary { cursor: pointer; }
-.zorveus-prompt-picker textarea { display: block; width: 100%; height: 320px; margin-top: 10px; padding: 12px; border: 1px solid var(--docs-border); border-radius: 6px; background: var(--docs-input); color: var(--docs-text); font-family: var(--font-mono); font-size: 12px; line-height: 1.6; resize: vertical; }
-.zorveus-prompt-picker :is(select, button, a, summary, textarea):focus-visible { outline: 2px solid var(--docs-accent); outline-offset: 3px; }
+.zorveus-prompt-picker textarea { display: block; width: 100%; height: 360px; padding: 20px; border: 0; border-radius: 0; background: var(--docs-bg); color: var(--docs-text); font-family: var(--font-mono); font-size: 12px; line-height: 1.8; resize: vertical; }
+.zorveus-prompt-picker :is(button, a, textarea):focus-visible { outline: 2px solid var(--docs-accent); outline-offset: -3px; }
+@media (max-width: 480px) {
+  .zorveus-prompt-route { padding: 10px 4px; font-size: 12px; }
+  .zorveus-prompt-toolbar, .zorveus-prompt-footer { padding: 12px; }
+  .zorveus-prompt-excerpt { margin: 16px; }
+}
 .zorveus-architecture { margin: 24px 0; color: var(--docs-text); font-size: 14px; line-height: 1.6; }
 .zorveus-architecture figcaption { margin-top: 14px; color: var(--docs-muted); font-size: 13px; }
 .zorveus-page-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 48px 0 32px; padding-top: 24px; border-top: 1px solid var(--docs-border); color: var(--docs-muted); font-size: 13px; line-height: 1.5; }
