@@ -11,15 +11,29 @@ Generate text, code, or structured answers from AI models with one endpoint.
 
 Pass your API key in the `Authorization` header and send a message.
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_api_key",
+});
+
+const completion = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [
+    { role: "user", content: "Explain write-ahead logging (WAL) concisely." },
+  ],
+});
+
+console.log(completion.choices[0].message.content);
+```
 
 ```python
-from openai import OpenAI
+from zorveus import Zorveus
 
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_api_key",
-)
+client = Zorveus(api_key="zrv_your_api_key")
 
 response = client.chat.completions.create(
     model="openai/gpt-4.1-mini",
@@ -47,6 +61,24 @@ const completion = await client.chat.completions.create({
 });
 
 console.log(completion.choices[0].message.content);
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_api_key",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[
+        {"role": "user", "content": "Explain write-ahead logging (WAL) concisely."}
+    ],
+)
+
+print(response.choices[0].message.content)
 ```
 
 ```bash
@@ -117,13 +149,15 @@ The `usage` block reports the tokens consumed. Zorveus calculates cost from thes
 
 ## Customer spending limits
 
-If your application tracks spending per user, attach your customer's ID to the request. You can pass the header:
+If your application gives each customer their own AI allowance, you must attach the customer's ID to the request. Zorveus requires this ID to look up their balance and enforce their limit.
+
+You can pass the customer ID as a header:
 
 ```http
 X-Zorveus-External-User-ID: customer_42
 ```
 
-Or send it inside the body:
+Or pass it in the request body:
 
 ```json
 {
@@ -135,4 +169,86 @@ Or send it inside the body:
 }
 ```
 
-Follow [Add customer usage limits](/getting-started/product-user-quickstart) to set up per-user monthly or daily spending caps.
+In the Zorveus SDK:
+- **TypeScript**: `zorveusMetadata: { externalUserId: "customer_42" }`
+- **Python**: `user="customer_42"`
+
+### Optional: attach custom usage metadata and customer names
+
+You can pass custom keys inside `usage_metadata` (such as `activity_label`, `project_id`, or `feature`). When your backend fetches customer usage through [Product-user activity](/startups/product-user-activity), Zorveus returns these saved fields with each activity item so you can display an itemized breakdown to your users.
+
+You can pass them using HTTP headers:
+
+```http
+X-Zorveus-External-User-ID: customer_42
+X-Zorveus-Product-User-Display-Name: Alex Rivera
+X-Zorveus-Usage-Metadata: {"activity_label": "Drafting assistant", "project_id": "proj_123"}
+```
+
+Or include them in the request body under `metadata`:
+
+```json
+{
+  "model": "openai/gpt-4.1-mini",
+  "messages": [{"role": "user", "content": "Hello"}],
+  "metadata": {
+    "external_user_id": "customer_42",
+    "product_user": {
+      "display_name": "Alex Rivera",
+      "email": "alex@example.com"
+    },
+    "usage_metadata": {
+      "activity_label": "Drafting assistant",
+      "project_id": "proj_123"
+    }
+  }
+}
+```
+
+| Field | Header alternative | Required? | Purpose |
+| :--- | :--- | :--- | :--- |
+| `external_user_id` | `X-Zorveus-External-User-ID: customer_42` | **Required** | Identifies the customer and settles against their allowance. |
+| `product_user.display_name` | `X-Zorveus-Product-User-Display-Name: Alex Rivera` | *Optional* | Shows the customer's readable name in your dashboard. |
+| `product_user.email` | `X-Zorveus-Product-User-Email: alex@example.com` | *Optional* | Shows the customer's email in your dashboard. |
+| `usage_metadata` | `X-Zorveus-Usage-Metadata: {...}` | *Optional* | Custom JSON data (up to 4 KB) returned when you fetch customer usage through [Product-user activity](/startups/product-user-activity). |
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({ apiKey: process.env.ZORVEUS_API_KEY! });
+
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Hello" }],
+  zorveusMetadata: {
+    externalUserId: "customer_42",
+    displayName: "Alex Rivera",
+    usageMetadata: {
+      activity_label: "Drafting assistant",
+      project_id: "proj_123",
+    },
+  },
+});
+```
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(api_key="zrv_your_api_key")
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Hello"}],
+    user="customer_42",
+    usage_metadata={
+        "activity_label": "Drafting assistant",
+        "project_id": "proj_123",
+    },
+)
+```
+
+</CodeGroup>
+
+Follow [Add customer usage limits](/getting-started/product-user-quickstart) to set up per-user spending caps, [Product-user activity](/startups/product-user-activity) to fetch customer usage feeds, or [Product-user metadata](/inference/product-user-metadata) for the full metadata schema.

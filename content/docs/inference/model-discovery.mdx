@@ -11,15 +11,25 @@ Browse all supported models in the [Zorveus model catalog](https://www.zorveus.c
 
 Send a `GET` request to `/v1/models` using the OpenAI SDK or cURL.
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "cURL"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_api_key",
+});
+
+const models = await client.models.list();
+for (const model of models.data) {
+  console.log(`${model.id} (Owner: ${model.owned_by})`);
+}
+```
 
 ```python
-from openai import OpenAI
+from zorveus import Zorveus
 
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key="zrv_your_api_key",
-)
+client = Zorveus(api_key="zrv_your_api_key")
 
 models = client.models.list()
 for model in models.data:
@@ -38,6 +48,19 @@ const models = await client.models.list();
 for (const model of models.data) {
   console.log(`${model.id} (Owner: ${model.owned_by})`);
 }
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key="zrv_your_api_key",
+)
+
+models = client.models.list()
+for model in models.data:
+    print(f"{model.id} (Owner: {model.owned_by})")
 ```
 
 ```bash

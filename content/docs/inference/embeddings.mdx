@@ -119,9 +119,23 @@ curl https://api.zorveus.com/v1/embeddings \
 
 ---
 
-## Customer user attribution
+## Customer spending limits
 
-Like chat completions, embedding requests accept customer IDs for per-user spending tracking:
+If you generate embeddings on behalf of individual customers (such as private document search or RAG indexing), attach their customer ID:
+
+```http
+X-Zorveus-External-User-ID: customer_42
+```
+
+If you fetch customer activity lists or show usage history in your product, attach an optional activity label:
+
+```http
+X-Zorveus-Usage-Metadata: {"activity_label": "Document indexing"}
+```
+
+`X-Zorveus-Usage-Metadata` accepts any custom JSON object up to 4 KB. When your backend fetches your customer's usage list through [Product-user activity](/startups/product-user-activity), Zorveus returns these saved fields with each request item.
+
+In the Zorveus SDK:
 
 ```typescript
 const response = await client.embeddings.create(
@@ -130,9 +144,12 @@ const response = await client.embeddings.create(
     input: "Document text to index",
   },
   {
-    headers: { "X-Zorveus-External-User-ID": "customer_42" },
+    headers: {
+      "X-Zorveus-External-User-ID": "customer_42",
+      "X-Zorveus-Usage-Metadata": JSON.stringify({ activity_label: "Document indexing" }),
+    },
   }
 );
 ```
 
-Token costs are attributed to `customer_42`'s monthly allowance in your dashboard ledger.
+Token costs are settled against `customer_42`'s active allowance. Follow [Add customer usage limits](/getting-started/product-user-quickstart) to set up per-user spending caps.

@@ -9,7 +9,46 @@ Stream responses token-by-token to display generated text in real time.
 
 ## Code examples
 
-<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "Vercel AI SDK", "cURL"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "Vercel AI SDK", "cURL"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_api_key",
+});
+
+const stream = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Write a haiku about distributed systems." }],
+  stream: true,
+  stream_options: { include_usage: true },
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || "");
+}
+console.log();
+```
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(api_key="zrv_your_api_key")
+
+stream = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Write a haiku about distributed systems."}],
+    stream=True,
+    stream_options={"include_usage": True},
+)
+
+for chunk in stream:
+    content = chunk.choices[0].delta.content if chunk.choices else None
+    print(content or "", end="", flush=True)
+
+print()
+```
 
 ```typescript
 import OpenAI from "openai";
@@ -109,3 +148,41 @@ Zorveus settles the final token count and wallet or allowance charge after the s
 
 - If you set `stream_options: { "include_usage": true }`, the final chunk includes the `usage` object.
 - If a customer's allowance is exhausted mid-generation, Zorveus enforces your connection's [overrun policy](/startups/configure-product-user-allowances#choose-the-overrun-policy). Under `limit_output`, the gateway safely concludes the stream when remaining funds reach zero.
+
+## Customer spending limits
+
+If your application gives each customer their own AI allowance, attach the customer ID to the request. You can pass the header:
+
+```http
+X-Zorveus-External-User-ID: customer_42
+```
+
+If you fetch customer activity lists or show usage history in your product, send an optional activity label header:
+
+```http
+X-Zorveus-Usage-Metadata: {"activity_label": "Streaming assistant"}
+```
+
+`X-Zorveus-Usage-Metadata` accepts any custom JSON object up to 4 KB. When your backend fetches your customer's usage list through [Product-user activity](/startups/product-user-activity), Zorveus returns these saved fields with each request item.
+
+Or pass them in the request body under `"metadata"`:
+
+```json
+{
+  "model": "openai/gpt-4.1-mini",
+  "messages": [{"role": "user", "content": "Write a haiku"}],
+  "stream": true,
+  "metadata": {
+    "external_user_id": "customer_42",
+    "usage_metadata": {
+      "activity_label": "Streaming assistant"
+    }
+  }
+}
+```
+
+In the Zorveus SDK:
+- **TypeScript**: `zorveusMetadata: { externalUserId: "customer_42", usageMetadata: { activity_label: "Streaming assistant" } }`
+- **Python**: `user="customer_42", usage_metadata={"activity_label": "Streaming assistant"}`
+
+When a customer's remaining allowance cannot cover the next streaming token, Zorveus cuts off the stream according to your app connection's [overrun policy](/startups/configure-product-user-allowances#choose-the-overrun-policy). Under `limit_output`, the stream concludes gracefully without error. Follow [Add customer usage limits](/getting-started/product-user-quickstart) to set up per-user monthly or daily spending caps.

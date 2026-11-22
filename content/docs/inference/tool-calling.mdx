@@ -14,7 +14,126 @@ Tool calling follows a three-step cycle:
 2. **Model requests tool call**: The model responds with function names and arguments, rather than text.
 3. **Execute and respond**: Your backend runs the function, appends the result with `role: "tool"`, and calls the model again for the final response.
 
-<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: "zrv_your_api_key",
+});
+
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "Get the current weather for a city",
+      parameters: {
+        type: "object",
+        properties: {
+          city: { type: "string", description: "City name, e.g. London" },
+        },
+        required: ["city"],
+      },
+    },
+  },
+];
+
+const messages = [
+  { role: "user", content: "What is the weather in London right now?" },
+];
+
+// Step 1: Initial call
+const firstResponse = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages,
+  tools,
+});
+
+const responseMessage = firstResponse.choices[0].message;
+messages.push(responseMessage);
+
+// Step 2: Check for tool calls and execute
+if (responseMessage.tool_calls) {
+  for (const toolCall of responseMessage.tool_calls) {
+    if (toolCall.function.name === "get_weather") {
+      const args = JSON.parse(toolCall.function.arguments);
+      const weatherResult = JSON.stringify({ temp: "18C", condition: "Partly cloudy" });
+
+      messages.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        content: weatherResult,
+      });
+    }
+  }
+
+  // Step 3: Get final answer with tool outputs included
+  const finalResponse = await client.chat.completions.create({
+    model: "openai/gpt-4.1-mini",
+    messages,
+  });
+
+  console.log(finalResponse.choices[0].message.content);
+}
+```
+
+```python
+import json
+from zorveus import Zorveus
+
+client = Zorveus(api_key="zrv_your_api_key")
+
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get current weather for a city",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city": {"type": "string", "description": "City name, e.g. London"},
+                },
+                "required": ["city"],
+            },
+        },
+    }
+]
+
+messages = [{"role": "user", "content": "What is the weather in London right now?"}]
+
+# Step 1: Initial call
+first_response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=messages,
+    tools=tools,
+)
+
+response_message = first_response.choices[0].message
+messages.append(response_message)
+
+# Step 2: Execute tool if requested
+if response_message.tool_calls:
+    for tool_call in response_message.tool_calls:
+        if tool_call.function.name == "get_weather":
+            args = json.loads(tool_call.function.arguments)
+            weather_data = json.dumps({"temp": "18C", "condition": "Partly cloudy"})
+
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": weather_data,
+            })
+
+    # Step 3: Get final response with tool results
+    final_response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=messages,
+    )
+    print(final_response.choices[0].message.content)
+```
 
 ```typescript
 import OpenAI from "openai";
@@ -194,6 +313,28 @@ When a model chooses to call a tool, the message includes a `tool_calls` array w
   ]
 }
 ```
+
+## Customer spending limits
+
+To enforce customer limits across tool calling loops, attach the same customer ID to every request in the cycle:
+
+```http
+X-Zorveus-External-User-ID: customer_42
+```
+
+If you fetch customer activity lists or show usage history in your product, send an optional activity label:
+
+```http
+X-Zorveus-Usage-Metadata: {"activity_label": "Weather agent"}
+```
+
+`X-Zorveus-Usage-Metadata` accepts any custom JSON object up to 4 KB. When your backend fetches your customer's usage list through [Product-user activity](/startups/product-user-activity), Zorveus returns these saved fields with each request item.
+
+In the Zorveus SDK:
+- **TypeScript**: `zorveusMetadata: { externalUserId: "customer_42", usageMetadata: { activity_label: "Weather agent" } }`
+- **Python**: `user="customer_42", usage_metadata={"activity_label": "Weather agent"}`
+
+All requests in the loop settle against `customer_42`'s active allowance. Follow [Add customer usage limits](/getting-started/product-user-quickstart) to configure per-user allowances.
 
 ---
 
