@@ -9,7 +9,7 @@ If you haven't made a model request yet, follow the [API quickstart](/getting-st
 
 ## 1. Set the plan's allowance
 
-In the [dashboard](https://app.zorveus.com), open your app's connection settings.
+In the [dashboard](https://app.zorveus.com), open your inference key's settings.
 
 - Set **Cap amount** to `$2` and **Period** to `monthly`. <InfoTooltip label="Cap amount and period">Each customer gets their own $2 allowance every month.</InfoTooltip>
 - Set **Credit mode** to `enforce`. <InfoTooltip label="Credit mode">Zorveus checks the customer's remaining allowance before accepting a request.</InfoTooltip>
@@ -129,4 +129,4 @@ Zorveus tracks the customer's spending. Read their allowance again after the req
 
 If the allowance cannot cover a request, Zorveus returns HTTP `403` with `zorveus_product_user_allowance_insufficient`. The customer can retry after the allowance resets.
 
-When you're ready to connect limits to subscriptions and customer payments, follow [Build customer billing](/getting-started/integrate-your-product).
+For more ways to manage allowances and add optional payment features, follow [Manage customer AI usage](/getting-started/integrate-your-product).

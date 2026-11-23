@@ -1,160 +1,322 @@
 ---
-title: Product-user credit grants
-description: Allocate consumable credit to one product user and configure connection credit modes.
+title: Grant customer credits
+description: Give customers extra AI allowance for a welcome bonus, a purchase, or a support adjustment.
 ---
 
-Credit grants allocate spendable virtual credit to a product user in your application. They are distinct from organization wallet balances and spending caps.
+Give a customer extra AI allowance for a welcome bonus, a purchase, or a support adjustment. Use the same grant call in each case. For purchases, verify the payment on your backend first.
 
-For admission checks, read [total available allowance](/startups/check-allowance). For purchased credits, follow [Grant credits after a payment](/startups/billing-integration).
+If your app uses credits, choose how many credits equal $1 of AI allowance. The examples below use 100 credits per $1. Zorveus keeps the allowance in USD and returns the remaining credit units. [Set your app's conversion rate](/getting-started/integrate-your-product#use-credits-in-your-product) to `"100"` so recurring allowances use the same units.
 
-Create or resolve the user and grant credit in one service key request:
+## Grant 50 welcome credits
 
-<ApiEndpoint method="POST" path="/product-users/by-external-id/credit-grants" auth="service_key" />
+Before you start:
 
-```bash
-curl -X POST https://api.zorveus.com/product-users/by-external-id/credit-grants \
-  -H "Authorization: Bearer zrv_svc_your_service_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "app_id": "app_123",
-    "external_user_id": "customer_42",
-    "external_reference": "welcome:customer_42",
-    "amount": "10.00",
-    "currency": "USD",
-    "source": "promotion",
-    "reason": "Welcome credit",
-    "expires_at": "2026-12-31T23:59:59Z"
-  }'
-```
+- Create a [service key](/startups/service-keys) with `product_users:write` permission. Save it as `ZORVEUS_SERVICE_KEY` on your backend.
+- Copy your app's ID from the [dashboard](https://app.zorveus.com) into `ZORVEUS_APP_ID`.
+- [Set a customer limit](/startups/configure-product-user-allowances) so requests can use the extra credits. Without an applicable spending cap, requests do not consume credit grants.
 
----
+Install `@zorveus/sdk` with `npm install @zorveus/sdk`, or `zorveus` with `pip install zorveus`.
 
-## Connection credit enforcement modes
+Run this on your backend. It gives `customer_42` a 50-credit bonus by granting `"0.50"` USD at 100 credits per $1. **The `amount` field is USD, not the number of credits.** Replace `customer_42` with the customer's ID from your own database.
 
-The app connection defines a `credit_mode` that governs allowance enforcement:
+Keep `welcome:customer_42` as the reference for this bonus. If the request times out, retry with the same reference and details to avoid granting twice.
 
-| Mode | Request with product user | Request without product user | Behavior |
-| :--- | :--- | :--- | :--- |
-| `enforce_if_present` (default) | Enforces base cap plus credits | Bypasses cap checks, records virtual spend | Recommended for keys serving both user traffic and internal jobs. |
-| `enforce` | Enforces base cap plus credits | Enforces key-level cap | Strict enforcement across all traffic. |
-| `track_only` | Allocates cap and credits without blocking | Allocates cap without blocking | Never rejects for allowance. Records `uncovered_virtual_spend`. |
-| `disabled` | Bypasses cap checks and credits | Bypasses cap checks | Records virtual spend for reporting without quota limits. |
+<span id="grant-with-a-service-client" />
 
-User OAuth app connections always return `credit_mode: "enforce"`. The update endpoint rejects any other value for user OAuth connections.
-
----
-
-## Allowance formula and deduction order
-
-When a product user sends an inference request on a capped key, Zorveus consumes allowance in this order:
-
-1. **Remaining base allowance**: Zorveus checks the inference key spending cap. If base allowance remains, usage is applied to the cap first.
-2. **Active credit grants (earliest expiration first)**: If the request exceeds remaining base allowance, the excess is deducted from active unexpired credit grants.
-3. **Uncovered virtual spend**: In non-blocking `track_only` mode or when overruns occur, spend beyond the cap and credits is recorded as uncovered virtual spend.
-
-If an inference key has no cap rule, virtual allowance is unlimited across all credit modes. The request succeeds, virtual spend is recorded, and zero product-user credits are consumed. Credits extend an existing cap; they do not enforce a quota where no cap is configured.
-
-When the configured policy blocks an unfunded request, the gateway rejects the request with HTTP `403 Forbidden` (`zorveus_product_user_allowance_insufficient`). Overrun behavior also depends on the connection's policy.
-
-## Grant with a service client
-
-Create the [service client](/startups/service-keys#create-the-client) with `product_users:write`. After verifying the purchase in your payment provider, grant the amount your product assigns to it
-
-<CodeGroup titles={["TypeScript", "Python"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
 ```typescript
-const result = await service.productUsers.grantCreditByExternalId({
-	appId: "app_123", externalUserId: "customer_42",
-	amount: "10.00", currency: "USD", source: "purchase",
-	reason: "Paid purchase purchase_123",
-	externalReference: "purchase:purchase_123",
-	metadata: { purchase_id: "purchase_123" },
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
 });
-console.log(result.credit_grant.credit_grant_id);
-console.log(result.product_user.getTotalAvailableToSpend());
+
+const receipt = await service.productUsers.grantCreditByExternalId({
+  appId: process.env.ZORVEUS_APP_ID!,
+  externalUserId: "customer_42",
+  amount: "0.50",
+  currency: "USD",
+  creditUnitsPerUsd: "100",
+  externalReference: "welcome:customer_42",
+  source: "promotion",
+  reason: "Welcome bonus",
+});
+
+console.log(`Grant ID: ${receipt.credit_grant.credit_grant_id}`);
+const remaining = receipt.credit_grant.remaining_credit_units ?? null;
+console.log(remaining === null ? "Balance unavailable" : `${remaining} credits left on this grant`);
 ```
 
 ```python
-result = service.product_users.grant_credit_by_external_id(
-	app_id="app_123", external_user_id="customer_42",
-	amount="10.00", currency="USD", source="purchase",
-	reason="Paid purchase purchase_123",
-	external_reference="purchase:purchase_123",
-	metadata={"purchase_id": "purchase_123"},
-)
-print(result.credit_grant.credit_grant_id)
-print(result.product_user.get_total_available_to_spend())
+import os
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+try:
+    receipt = service.product_users.grant_credit_by_external_id(
+        app_id=os.environ["ZORVEUS_APP_ID"],
+        external_user_id="customer_42",
+        amount="0.50",
+        currency="USD",
+        credit_units_per_usd="100",
+        external_reference="welcome:customer_42",
+        source="promotion",
+        reason="Welcome bonus",
+    )
+
+    print(f"Grant ID: {receipt.credit_grant.credit_grant_id}")
+    remaining = receipt.credit_grant.remaining_credit_units
+    print("Balance unavailable" if remaining is None else f"{remaining} credits left on this grant")
+finally:
+    service.close()
+```
+
+```bash
+curl --fail-with-body https://api.zorveus.com/product-users/by-external-id/credit-grants \
+  -H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "app_id": "'"$ZORVEUS_APP_ID"'",
+    "external_user_id": "customer_42",
+    "amount": "0.50",
+    "currency": "USD",
+    "credit_units_per_usd": "100",
+    "external_reference": "welcome:customer_42",
+    "source": "promotion",
+    "reason": "Welcome bonus"
+  }'
 ```
 
 </CodeGroup>
 
-Store the returned grant ID against your purchase. `external_reference` makes retries safe for the same grant parameters. Metadata alone does not deduplicate. Changed parameters return HTTP 409 with `zorveus_product_user_credit_reference_conflict`
+For a customer with no carried allowance debt, the receipt shows 50 credits left on this grant before any usage. Save its `credit_grant_id` if you need to refer to the grant later.
 
-Recover a grant with `service.productUsers.getCreditGrantByExternalReference({ appId, externalUserId, externalReference })` or `service.product_users.get_credit_grant_by_external_reference(app_id=app_id, external_user_id=user_id, external_reference=reference)`. The lookup returns the grant directly, including its current balance and status. Python also supports the asynchronous method with `await`
+## Grant credits after a payment
 
-The lookup requires `product_users:read` or a scope that includes it. A 404 can race an unfinished creation. Repeat the original POST with the same reference and parameters if the outcome remains uncertain. See [Billing integration](/startups/billing-integration) and [retry rules](/platform/idempotency) before enabling retries
+For example, you can sell a 300-credit pack for $5. At the same conversion rate, grant `"3.00"` USD of AI allowance. The price your customer pays and the allowance you give them are separate values.
 
-To inspect existing grants, call `service.productUsers.listCreditGrantsByExternalId({ appId, externalUserId, limit: 100 })` or `service.product_users.list_credit_grants_by_external_id(app_id=app_id, external_user_id=user_id, limit=100)`. The result contains `credit_grants`. It has no cursor
+The payment flow is:
 
-## Read carried allowance debt
+<FlowDiagram flow="payment-credits" />
 
-With `product_users:read`, retrieve debt created by `carry_overrun_forward`. This is customer allowance debt, separate from wallet funding
+1. Verify the webhook signature and confirm payment succeeded using your payment provider's instructions.
+2. Look up the purchase in your database. Use that record's customer ID, app ID, purchased allowance, and conversion rate. Check that the paid amount and currency match the purchase.
+3. Use the grant call above with these values:
 
-<CodeGroup titles={["TypeScript", "Python"]}>
+| Field in TypeScript | Field in Python and cURL | Value for this purchase |
+| --- | --- | --- |
+| `amount` | `amount` | `"3.00"` |
+| `creditUnitsPerUsd` | `credit_units_per_usd` | `"100"` |
+| `externalReference` | `external_reference` | `"payment:txn_123"` |
+| `source` | `source` | `"purchase"` |
+| `reason` | `reason` | `"Extra AI allowance purchase"` |
+
+Replace `txn_123` with the provider's payment ID. Keep that reference and the saved grant details for every retry. Save the returned grant ID with your purchase record.
+
+Confirm fulfillment only after the grant succeeds or a retry confirms the original grant. If the call fails, let your provider retry the webhook or use your backend's saved retry process.
+
+A recurring allowance resets on its configured schedule. Grant extra credits on a renewal only if your product includes a separate credit purchase with that renewal.
+
+<details>
+<summary>Example: Stripe webhook handler</summary>
+
+This Next.js route handles `payment_intent.succeeded`. Follow [Stripe's webhook setup](https://docs.stripe.com/webhooks) to register the endpoint and get `STRIPE_WEBHOOK_SECRET`. Install `stripe` with `npm install stripe` and set `STRIPE_SECRET_KEY` on your backend.
+
+Implement `findCreditPurchaseByPaymentId` in your app's `lib/purchases` module. It must look up a purchase saved by your backend when checkout starts, using the Stripe PaymentIntent ID. Return `null` if it is missing, or an object with these fields:
+
+- `customerId`: Your customer's ID, such as `"customer_42"`.
+- `paidAmountMinor` and `currency`: The expected payment, such as `500` and `"usd"`.
+- `allowanceUsd` and `creditUnitsPerUsd`: The purchased allowance, such as `"3.00"` and `"100"`.
+
+These values come from your saved purchase, not the browser's checkout-success response. The database lookup is the app-specific part of this example.
+
+```typescript
+// app/api/webhooks/stripe/route.ts
+import Stripe from "stripe";
+import { ZorveusServiceClient } from "@zorveus/sdk";
+import { findCreditPurchaseByPaymentId } from "@/lib/purchases";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const service = new ZorveusServiceClient({ apiKey: process.env.ZORVEUS_SERVICE_KEY! });
+
+export async function POST(request: Request) {
+  const signature = request.headers.get("stripe-signature");
+  if (!signature) return new Response("Missing signature", { status: 400 });
+
+  const rawBody = await request.text();
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET!,
+    );
+  } catch {
+    return new Response("Invalid signature", { status: 400 });
+  }
+
+  if (event.type !== "payment_intent.succeeded") {
+    return Response.json({ received: true });
+  }
+
+  const payment = event.data.object;
+  const purchase = await findCreditPurchaseByPaymentId(payment.id);
+  if (!purchase || payment.amount_received !== purchase.paidAmountMinor ||
+      payment.currency !== purchase.currency) {
+    return new Response("Purchase could not be verified", { status: 500 });
+  }
+
+  const receipt = await service.productUsers.grantCreditByExternalId({
+    appId: process.env.ZORVEUS_APP_ID!,
+    externalUserId: purchase.customerId,
+    amount: purchase.allowanceUsd,
+    currency: "USD",
+    creditUnitsPerUsd: purchase.creditUnitsPerUsd,
+    externalReference: `payment:${payment.id}`,
+    source: "purchase",
+    reason: "Extra AI allowance purchase",
+  });
+
+  console.log("Grant ID:", receipt.credit_grant.credit_grant_id);
+  return Response.json({ received: true });
+}
+```
+
+The route returns success after the grant completes. An unhandled database or grant error returns an error response, allowing Stripe to retry. If the grant succeeded before a timeout, the same payment reference returns that grant on the next delivery.
+
+</details>
+
+Granting credits adds customer allowance. Your gateway funding still pays for the actual model requests. Refunding a payment does not automatically revoke the Zorveus grant. Manage grant revocation in the Zorveus dashboard.
+
+## Retry without granting twice
+
+Reuse the original reference and grant details when retrying. Zorveus returns the existing grant instead of adding more credits. Changing the amount, customer, or other grant details under the same reference returns HTTP `409`. Check the saved purchase rather than generating a new reference to get past the conflict.
+
+<span id="check-an-existing-grant" />
+
+If you want to check whether a grant already exists, look it up by reference. This requires `product_users:read` permission. These examples look up the welcome bonus. For the purchase above, use `"payment:txn_123"` instead.
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({ apiKey: process.env.ZORVEUS_SERVICE_KEY! });
+const grant = await service.productUsers.getCreditGrantByExternalReference({
+  appId: process.env.ZORVEUS_APP_ID!,
+  externalUserId: "customer_42",
+  externalReference: "welcome:customer_42",
+});
+
+const remaining = grant.remaining_credit_units ?? null;
+console.log(remaining === null ? "Balance unavailable" : `${remaining} credits left on this grant`);
+```
+
+```python
+import os
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+try:
+    grant = service.product_users.get_credit_grant_by_external_reference(
+        app_id=os.environ["ZORVEUS_APP_ID"],
+        external_user_id="customer_42",
+        external_reference="welcome:customer_42",
+    )
+
+    remaining = grant.remaining_credit_units
+    print("Balance unavailable" if remaining is None else f"{remaining} credits left on this grant")
+finally:
+    service.close()
+```
+
+</CodeGroup>
+
+If the lookup returns HTTP `404`, retry the grant with its original reference and details. For other errors, resolve the lookup failure or retry the original grant. Do not assume an error means the grant was never created. See [Idempotency and retries](/platform/idempotency) for the full rules.
+
+## Check the updated balance
+
+[Read the customer's balance](/startups/check-allowance#show-the-balance-in-credits) with their current inference key. Use `allowance.remaining_credit_units` for the total, including recurring allowance and usable extra credits. The grant receipt's `remaining_credit_units` covers only that grant.
+
+Zorveus uses the recurring allowance first, then extra credits. Read access requires `product_users:read` permission. If a balance is unavailable, keep it unavailable rather than showing zero.
+
+## More options
+
+<details>
+<summary>Choose when credits expire</summary>
+
+Add `expiresAt` in TypeScript or `expires_at` in Python and cURL, using a future UTC timestamp such as `"2026-12-31T23:59:59Z"`. Omit it for credits with no expiry date. Keep the same expiry when retrying the grant.
+
+</details>
+
+<details>
+<summary>Choose a conversion rate</summary>
+
+<span id="choose-a-conversion-rate" />
+
+Set `app.creditUnitsPerUsd` in your [CLI manifest](/cli/manifest) and [apply the change](/cli/quickstart) to choose the default for your app. New USD grants save that rate when you omit the rate from the grant request.
+
+To set a rate for one grant, pass `creditUnitsPerUsd` in TypeScript or `credit_units_per_usd` in Python and cURL, as above. The rate must be a positive decimal string and requires `currency: "USD"`. Keep the same rate across your app and grants unless you intend to give them different conversions.
+
+A new grant keeps its saved rate if you later change the app default. Retrying the same reference and parameters keeps the original grant. Changing an explicitly supplied rate under that reference returns HTTP `409`.
+
+Keep amounts and credit units as decimal strings. The conversion sets how many credit units equal $1 of allowance; the [customer charge multiplier](/cli/manifest) separately controls how much allowance a model request uses.
+
+</details>
+
+<details>
+<summary>Understand how credits are used</summary>
+
+<span id="understand-how-credits-are-used" />
+
+When a customer sends an AI request with an inference key that has a spending cap, Zorveus consumes funds in this order:
+
+1. **Recurring plan allowance**: Usage is deducted from the current cycle's plan allowance first.
+2. **Active credit grants (earliest expiration first)**: If the request exceeds remaining base allowance, the excess is deducted from unexpired extra credits.
+3. **Uncovered spend or debt**: If total allowance reaches zero, behavior follows the overrun policy in the inference key's settings (`limit_output`, `allow_overrun`, or `carry_overrun_forward`).
+
+Without an applicable spending cap, customer requests do not consume credit grants. For enforcement mode details, see [Set customer limits](/startups/configure-product-user-allowances).
+
+</details>
+
+<details>
+<summary>Read carried allowance debt</summary>
+
+<span id="read-carried-allowance-debt" />
+
+If your inference key's settings use `carry_overrun_forward`, requests that overrun remaining allowance create allowance debt. When a customer receives new credits, Zorveus repays outstanding carried debt before increasing spendable balance.
+
+Use the [service client](/startups/service-keys#create-the-client) with `product_users:read` permission on your backend:
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
 
 ```typescript
 const debt = await service.productUsers.getAllowanceDebtByExternalId({
-	appId: "app_123", externalUserId: "customer_42", currency: "USD",
+  appId: process.env.ZORVEUS_APP_ID!,
+  externalUserId: "customer_42",
+  currency: "USD",
 });
-console.log(debt.outstanding_amount, debt.repaid_by_credits_total);
+
+console.log(`Outstanding debt: $${debt.outstanding_amount}`);
 ```
 
 ```python
 debt = service.product_users.get_allowance_debt_by_external_id(
-	app_id="app_123", external_user_id="customer_42", currency="USD",
+    app_id=os.environ["ZORVEUS_APP_ID"],
+    external_user_id="customer_42",
+    currency="USD",
 )
-print(debt.outstanding_amount, debt.repaid_by_credits_total)
+
+print(f"Outstanding debt: ${debt.outstanding_amount}")
 ```
 
 </CodeGroup>
 
-Use decimal strings when displaying the values, or an exact decimal library for arithmetic. Credits can repay carried debt before adding spendable allowance
+Carried allowance debt is customer-level allowance debt. It is separate from your organization's wallet balance.
 
+</details>
 
-## Credit units and conversion rates
+## Next steps
 
-The app's `credit_units_per_usd` is the default for new USD grants. A grant can supply its own rate. Omit the override to save the app default on the new grant
-
-```typescript
-const receipt = await service.productUsers.grantCreditByExternalId({
-	appId,
-	externalUserId: authenticatedUserId,
-	externalReference: `purchase:${verifiedPayment.id}`,
-	amount: "2.000000000000",
-	creditUnitsPerUsd: "1500",
-	source: "purchase",
-});
-console.log(receipt.credit_grant.remaining_credit_units);
-```
-
-```python
-receipt = service.product_users.grant_credit_by_external_id(
-	app_id=app_id,
-	external_user_id=authenticated_user_id,
-	external_reference=f"purchase:{verified_payment.id}",
-	amount="2.000000000000",
-	credit_units_per_usd="1500",
-	source="purchase",
-)
-print(receipt.credit_grant.remaining_credit_units)
-```
-
-The $2 grant above starts with 3,000 credit units. Its saved rate stays fixed when the app default changes. Referenced retries preserve the original rate. Changing an explicitly supplied rate under the same reference returns HTTP 409
-
-Grant creation, lists, reference lookup, and revocation return `credit_units_per_usd` and `remaining_credit_units`. An older grant without a saved rate uses the current app default. If neither rate exists, a positive balance has null credit units. Zero remaining USD returns zero units
-
-`credit_summary.remaining_credit_units` sums all usable grants at their respective rates, independently of the grant list limit. If any positive usable grant has no conversion, the total is null. USD fields such as `remaining_amount` and `available_credits` retain their existing meaning
-
-`allowance.remaining_credit_units` includes the remaining base allowance at the current app rate plus grants permitted by the selected connection. It is the field to display for the customer's total remaining credit units. Credit units and rates are exact decimal strings. Keep their precision when displaying or processing them
-
-Rates must be positive finite decimal values with at most 12 digits before and 12 digits after the decimal point. An explicit grant rate requires USD. Existing grants in other currencies remain supported without conversion
+- [Show a customer's balance](/startups/check-allowance): Display the total remaining allowance.
+- [Show customer activity](/startups/product-user-activity): Show AI usage and credit changes.
+- [Set customer limits](/startups/configure-product-user-allowances): Choose how requests use the allowance.

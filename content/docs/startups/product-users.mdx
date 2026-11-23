@@ -1,21 +1,17 @@
 ---
-title: Manage product users
-description: Look up and update your customers, then read their usage, credits, and allowance.
+title: Manage customer profiles
+description: Look up a customer's profile or save their name, email, and account metadata from your backend.
 ---
 
-Product Users are your customers. You can create or update them automatically inline during inference or manage them explicitly using your Organization Service Key (`zrv_svc_...`)
+Keep customer details in Zorveus up to date, such as their name and account metadata. Use the same customer ID you send with their AI requests.
 
-<KeyInserter type="service" label="Service Key Inserter" placeholder="zrv_svc_your_service_key" />
+Zorveus creates a record on their first AI request when you include their customer ID. You can also create or update the record from your backend. The SDK calls these records `productUsers` in TypeScript and `product_users` in Python.
 
-<Callout type="tip" title="Automatic Inline User Provisioning">
-  You do not need to create product users through the Management API before inference. Send `X-Zorveus-External-User-ID` in the headers or `metadata.external_user_id` in the body. Either creates the product user on their first request and attributes subsequent requests to that user. Include the same identifier on every request
-</Callout>
+## Look up a customer
 
----
+Create a [service key](/startups/service-keys) with `product_users:read` permission and save it as `ZORVEUS_SERVICE_KEY`. Copy your app ID from the [dashboard](https://app.zorveus.com) and save it as `ZORVEUS_APP_ID`. Keep the service key on your server.
 
-## Look up a product user
-
-Read a product user's live profile, configured spending cap, available credits, and monthly token usage. Reads return HTTP 404 for missing users by default. To create a missing user during a read, send `X-Zorveus-Upsert-Product-User: true`. See [the header contract](/api-reference/product-users#create-a-missing-user-during-a-read) for SDK and raw HTTP examples
+Install `@zorveus/sdk` with `npm install @zorveus/sdk` for TypeScript or `zorveus` with `pip install zorveus` for Python. Replace `customer_42` below with the ID from your backend's signed-in user session.
 
 <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
@@ -23,53 +19,63 @@ Read a product user's live profile, configured spending cap, available credits, 
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
 const service = new ZorveusServiceClient({
-  apiKey: "zrv_svc_your_service_key",
+	apiKey: process.env.ZORVEUS_SERVICE_KEY!,
 });
 
-// Fetch full user profile, active cap, credits, and monthly usage
 const user = await service.productUsers.getByExternalId({
-  appId: "app_support_123",
-  externalUserId: "usr_sara_101",
+	appId: process.env.ZORVEUS_APP_ID!,
+	externalUserId: "customer_42",
 });
 
-console.log("Display name:", user.display_name);
-console.log("Available allowance:", user.getTotalAvailableToSpend());
+console.log(user.external_user_id);
+console.log(user.display_name ?? "Name not set");
 ```
 
 ```python
+import os
 from zorveus import ZorveusServiceClient
 
-service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
-
-# Fetch full user profile, active cap, credits, and monthly usage
-user = service.product_users.get_by_external_id(
-    app_id="app_support_123",
-    external_user_id="usr_sara_101",
-)
-
-print("Display name:", user.display_name)
-print("Available allowance:", user.get_total_available_to_spend())
-service.close()
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+try:
+	user = service.product_users.get_by_external_id(
+		app_id=os.environ["ZORVEUS_APP_ID"],
+		external_user_id="customer_42",
+	)
+	print(user.external_user_id)
+	print(user.display_name if user.display_name is not None else "Name not set")
+finally:
+	service.close()
 ```
 
 ```bash
-curl -X GET "https://api.zorveus.com/product-users/by-external-id?app_id=app_support_123&external_user_id=usr_sara_101" \
-  -H "Authorization: Bearer zrv_svc_your_service_key"
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
+	--data-urlencode "external_user_id=customer_42"
 ```
 
 </CodeGroup>
 
----
+For an existing record without a saved name, the SDK examples print:
 
-## Check whether a user has money to spend
+```text
+customer_42
+Name not set
+```
 
-For an active user under a known enforced cap, use `user.has_available_allowance()` in Python or `user.hasAvailableAllowance()` in TypeScript. Both check whether total available allowance is greater than zero without another API call
+The read returns the profile directly. It includes `external_user_id`, `display_name`, `status`, and `metadata`. Email is returned as `email_hash`, so keep the original email address in your app. cURL returns the full JSON profile.
 
-To get the amount as well, use `user.get_total_available_to_spend_decimal()` in Python or `user.getTotalAvailableToSpend()` in TypeScript. See [the amount check and SDK shortcuts](/startups/check-allowance#check-whether-the-user-has-any-amount-to-spend) for examples and the uncapped-key rules
+If the record does not exist, lookup returns HTTP `404`. Create it with the example below. To create a record during a balance read and show its starting allowance, follow [Show a customer's balance](/startups/check-allowance).
 
-## Read credits separately
+<span id="update-a-product-user" />
 
-The credit summary contains credit grants only. It does not include remaining base allowance. To decide whether a capped user can attempt inference, follow [Check available allowance](/startups/check-allowance)
+## Create or update a customer
+
+Use a service key with `product_users:write` permission. This also permits reads. The same call creates a missing customer record or updates an existing one with the same app ID and customer ID.
+
+Include the name, email, and metadata values you want to keep. Omitting one of these fields clears its saved value. Metadata is replaced rather than merged. Read these values from your app's customer record, including the original email address.
+
+This example saves Alex's profile with an `account_type` value in metadata. Use metadata for your own account details. It does not change model access or authorize a paid plan.
 
 <CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
@@ -77,130 +83,67 @@ The credit summary contains credit grants only. It does not include remaining ba
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
 const service = new ZorveusServiceClient({
-  apiKey: "zrv_svc_your_service_key",
-});
-
-const creditSummary = await service.productUsers.getCreditSummaryByExternalId({
-  appId: "app_support_123",
-  externalUserId: "usr_sara_101",
-});
-
-console.log("Available Credits:", creditSummary.available_credits);
-```
-
-```python
-from zorveus import ZorveusServiceClient
-
-service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
-
-credits = service.product_users.get_credit_summary_by_external_id(
-    app_id="app_support_123",
-    external_user_id="usr_sara_101",
-)
-
-print("Available credits:", credits.available_credits)
-service.close()
-```
-
-```bash
-curl -X GET "https://api.zorveus.com/product-users/by-external-id/credit-summary?app_id=app_support_123&external_user_id=usr_sara_101" \
-  -H "Authorization: Bearer zrv_svc_your_service_key"
-```
-
-</CodeGroup>
-
----
-
-## Update a product user
-
-To update user profile details outside of inference requests:
-
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
-
-```typescript
-import { ZorveusServiceClient } from "@zorveus/sdk";
-
-const service = new ZorveusServiceClient({
-  apiKey: "zrv_svc_your_service_key",
+	apiKey: process.env.ZORVEUS_SERVICE_KEY!,
 });
 
 const result = await service.productUsers.createOrUpdate({
-  appId: "app_support_123",
-  externalUserId: "usr_sara_101",
-  displayName: "Sara Connor",
-  email: "sara@example.com",
+	appId: process.env.ZORVEUS_APP_ID!,
+	externalUserId: "customer_42",
+	displayName: "Alex Rivera",
+	email: "alex@example.com",
+	metadata: { account_type: "individual" },
 });
+
+console.log(result.created ? "Customer created" : "Customer updated");
+console.log(result.product_user.display_name);
 ```
 
 ```python
+import os
 from zorveus import ZorveusServiceClient
 
-service = ZorveusServiceClient(api_key="zrv_svc_your_service_key")
-
-result = service.product_users.create_or_update(
-    app_id="app_support_123",
-    external_user_id="usr_sara_101",
-    display_name="Sara Connor",
-    email="sara@example.com",
-)
-service.close()
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+try:
+	result = service.product_users.create_or_update(
+		app_id=os.environ["ZORVEUS_APP_ID"],
+		external_user_id="customer_42",
+		display_name="Alex Rivera",
+		email="alex@example.com",
+		metadata={"account_type": "individual"},
+	)
+	print("Customer created" if result.created else "Customer updated")
+	print(result.product_user.display_name)
+finally:
+	service.close()
 ```
 
 ```bash
-curl -X PUT https://api.zorveus.com/product-users/by-external-id \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer zrv_svc_your_service_key" \
-  -d '{
-    "app_id": "app_support_123",
-    "external_user_id": "usr_sara_101",
-    "display_name": "Sara Connor",
-    "email": "sara@example.com"
-  }'
+curl --fail-with-body -X PUT https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"app_id": "app_123",
+		"external_user_id": "customer_42",
+		"display_name": "Alex Rivera",
+		"email": "alex@example.com",
+		"metadata": {"account_type": "individual"}
+	}'
 ```
 
 </CodeGroup>
 
-Upsert returns an envelope. Read `result.product_user` for the profile and `result.created` to tell whether the user was new
+Replace `app_123` in the cURL body with your app ID. Each example saves the same profile. For an existing record, the SDK examples print:
 
-
-## Read allowance before the first AI request
-
-Use the service client and pass the inference key selected by your application's subscription logic. For a routing key, supply its member alias or use its configured default. Your database remains the source of the customer's plan
-
-```typescript
-const user = await service.productUsers.getByExternalId({
-	appId,
-	externalUserId: authenticatedUserId,
-	inferenceKey: selectedInferenceOrRoutingKey,
-	keyAlias: selectedRoutingAlias,
-	upsertIfMissing: true,
-});
-console.log(user.allowance?.remaining_credit_units);
+```text
+Customer updated
+Alex Rivera
 ```
 
-```python
-user = service.product_users.get_by_external_id(
-	app_id=app_id,
-	external_user_id=authenticated_user_id,
-	inference_key=selected_inference_or_routing_key,
-	key_alias=selected_routing_alias,
-	upsert_if_missing=True,
-)
-print(user.allowance.remaining_credit_units if user.allowance else None)
-```
+`result.created` is `true` for a new record and `false` for an existing one. The saved profile is in `result.product_user`. Sending the same app ID and customer ID again updates that record rather than creating a duplicate.
 
-Python supports the same arguments on the asynchronous service client. Omit the alias for a direct inference key. Both SDKs send the selection in headers, keeping the service key in `Authorization`
+## Next steps
 
-```http
-GET /product-users/by-external-id?app_id=app_example&external_user_id=shop_123
-Authorization: Bearer <organization-service-key>
-X-Zorveus-Inference-Key: <inference-or-routing-key>
-X-Zorveus-Key-Alias: pro
-X-Zorveus-Upsert-Product-User: true
-```
-
-Use an active Business inference key or routing key from the service key's app and organization. OAuth user tokens do not select a product-user policy. An invalid selection returns an error without falling back or creating a user. Read-only product-user permission is sufficient. Keep both credentials on your backend
-
-For a $5 monthly allowance at 1,000 credit units per USD, a first read with no usage or grants returns `allowance.remaining_credit_units: "5000"`. Selecting a new plan key on the next read reflects that policy immediately, using the customer's shared usage and grants. The read saves the validated connection as `last_app_connection_id`, so later reads without a key use it as their fallback. The business still owns the customer's subscription state
-
-Without the optional key, the profile continues to use its direct cap or last-used connection. A user with no usable cap has null allowance. `credits.remaining_credit_units` counts grants only. The complete base-plus-grants total is in `allowance.remaining_credit_units`
+- [Show a customer's balance](/startups/check-allowance): Read remaining allowance in dollars or credits.
+- [Grant customer credits](/startups/credit-grants): Add a welcome bonus or support adjustment.
+- [Show customer activity](/startups/product-user-activity): Show the customer's requests and credit changes.
+- [Set allowance reset dates](/startups/allowance-periods): Align resets with a subscription date when needed.

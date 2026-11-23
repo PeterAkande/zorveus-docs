@@ -1,202 +1,145 @@
 ---
-title: Prorate AI allowances on plan upgrades
-description: Set the plan-change policy once and prorate AI allowance increases when customers upgrade.
+title: Prorate plan upgrades
+description: Prorate AI allowance increases when customers upgrade mid-cycle.
 ---
 
-Proration adjusts the extra AI allowance based on how much of the current cycle is left. Half a cycle left means half the allowance increase
+Give customers the remaining portion of an allowance increase when they upgrade. For example, upgrading from $2 to $10 halfway through the cycle adds $4 to the current cycle's allowance. The full $10 applies at the next reset.
 
-[Configure both plan connections](/startups/configure-product-user-allowances) with active daily or monthly caps. Use the same period and currency
+Configure an active spending cap in each plan's inference key settings. Both caps must use the same period, such as monthly, and currency, such as USD.
 
-## 1. Send the policy
+---
 
-Send the policy on the first request and on later requests while the customer stays on a plan or upgrades. For a downgrade, omit the policy from the switching request; Zorveus does not prorate decreases. Use your app's [inference API key](/startups/api-keys)
+## Understand the arithmetic
 
-<Tabs items={["Header", "Request body"]}>
-<Tab title="Header">
+Consider a customer upgrading from Starter to Pro halfway through their monthly billing cycle:
 
-```bash
-curl https://api.zorveus.com/v1/chat/completions \
-	-H "Authorization: Bearer $PLAN_API_KEY" \
-	-H "Content-Type: application/json" \
-	-H "X-Zorveus-External-User-ID: customer_123" \
-	-H "X-Zorveus-Allowance-Change-Policy: prorate_increase" \
-	-d '{"model":"YOUR_ALLOWED_MODEL","messages":[{"role":"user","content":"Hello"}]}'
+- **Starter plan allowance**: $2.00 per month
+- **Pro plan allowance**: $10.00 per month
+- **Total increase**: $10.00 - $2.00 = $8.00
+
+If the customer upgrades on June 16 in a June 1 to July 1 UTC cycle, exactly half of the cycle remains:
+
+```text
+Prorated increase     = $8.00 × 0.50 = $4.00
+Adjusted cycle cap    = $2.00 + $4.00 = $6.00
+Spendable balance     = $6.00 - $1.00 used = $5.00
 ```
 
-</Tab>
-<Tab title="Request body">
+The customer gets $5.00 of spendable allowance for the remainder of June. On July 1, the full $10.00 monthly Pro allowance takes effect.
 
-```json
-{
-	"model": "YOUR_ALLOWED_MODEL",
-	"messages": [{"role": "user", "content": "Hello"}],
-	"metadata": {
-		"external_user_id": "customer_123",
-		"product_user": {"allowance_change": "prorate_increase"}
-	}
-}
-```
+---
 
-</Tab>
-</Tabs>
+<span id="apply-the-upgrade-on-a-request" />
 
-The body value takes precedence over the header. Zorveus records the initial connection without proration
+## Set a default header for proration
 
-A selected-key allowance read also remembers that connection. Apply a prorated plan change before reading allowance with the new key. The read itself does not apply `prorate_increase`
+Set `X-Zorveus-Allowance-Change-Policy: prorate_increase` once on your backend client for requests on the same plan and eligible upgrades. Your backend picks the inference key for the customer's current subscription. When the key points to a plan with a higher allowance, Zorveus detects the change and prorates the increase if both plans qualify.
 
-## Use a native SDK
+The customer's first request establishes their starting plan. Later requests on the same plan keep the existing allowance cap. Use the same customer ID across plans and get it from your signed-in session.
 
-These calls run on your server. Configure the Pro plan key, select an allowed model, and get the customer ID from your authenticated session
+Omit the header when switching to a plan with a lower or equal allowance, or with an incompatible period or currency. Zorveus rejects those plan changes with HTTP `400` if you send `prorate_increase`.
 
-<CodeGroup titles={["TypeScript", "Python"]}>
+These examples use the Pro key after the customer upgrades from Starter. Use the same header configuration for both keys.
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
 ```typescript
 import { Zorveus } from "@zorveus/sdk";
 
-const client = new Zorveus({ apiKey: process.env.ZORVEUS_PRO_KEY! });
-const response = await client.chat.completions.create({
-    model: selectedModelId,
-    messages: [{ role: "user", content: "Hello" }],
-    zorveusMetadata: {
-        externalUserId: authenticatedUserId,
-        allowanceChange: "prorate_increase",
-    },
+const client = new Zorveus({
+  apiKey: process.env.ZORVEUS_PRO_KEY!,
+  defaultHeaders: {
+    "X-Zorveus-Allowance-Change-Policy": "prorate_increase",
+  },
 });
+
+const response = await client.chat.completions.create({
+  model: "anthropic/claude-3-5-sonnet",
+  messages: [{ role: "user", content: "Analyze monthly report" }],
+}, {
+  headers: {
+    "X-Zorveus-External-User-ID": "customer_42",
+  },
+});
+
+console.log(response.choices[0].message.content);
 ```
 
 ```python
 import os
 from zorveus import Zorveus
 
-client = Zorveus(api_key=os.environ["ZORVEUS_PRO_KEY"])
+client = Zorveus(
+    api_key=os.environ["ZORVEUS_PRO_KEY"],
+    default_headers={
+        "X-Zorveus-Allowance-Change-Policy": "prorate_increase",
+    },
+)
 try:
     response = client.chat.completions.create(
-        model=selected_model_id,
-        messages=[{"role": "user", "content": "Hello"}],
-        extra_headers={
-            "X-Zorveus-External-User-ID": authenticated_user_id,
-            "X-Zorveus-Allowance-Change-Policy": "prorate_increase",
-        },
+        model="anthropic/claude-3-5-sonnet",
+        messages=[{"role": "user", "content": "Analyze monthly report"}],
+        extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
     )
+    print(response.choices[0].message.content)
 finally:
     client.close()
 ```
 
+```bash
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+  -H "Authorization: Bearer $ZORVEUS_PRO_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-Zorveus-External-User-ID: customer_42" \
+  -H "X-Zorveus-Allowance-Change-Policy: prorate_increase" \
+  -d '{
+    "model": "anthropic/claude-3-5-sonnet",
+    "messages": [{"role": "user", "content": "Analyze monthly report"}]
+  }'
+```
+
 </CodeGroup>
 
-With a routing key, use the plan alias on the same request as shown in [routing keys](/startups/routing-keys#use-native-sdk-request-options). Proration is requested by inference metadata or headers, not by a service-client profile upsert
+<span id="important-ordering-requirement" />
 
-## 2. Switch the plan's API key
+### Send the AI request before checking the Pro balance
 
-When the customer upgrades, use the API key for the new plan's connection. Keep the same user ID and [allowance anchor](/startups/allowance-periods)
+When a customer moves from Starter to Pro, use the Pro inference key in this order:
 
-A $10 to $50 upgrade increases the allowance by $40. Halfway through the cycle, the customer gets $20 extra:
+1. Send the customer's next AI request with `prorate_increase`. Zorveus sees the move from Starter to Pro and prorates the increase.
+2. Then use the Pro key to check their adjusted balance.
 
-```text
-Current-cycle allowance = $10 + ($50 - $10) × 0.5 = $30
-Remaining after $8 used = $30 - $8 = $22
+Checking the balance with the Pro key first saves Pro as the customer's last used plan. The next AI request then compares Pro with Pro, so Zorveus skips the Starter-to-Pro adjustment.
+
+---
+
+## Read the adjusted balance
+
+After the upgrade request completes, read the customer profile from your backend using your service key:
+
+```typescript
+const user = await service.productUsers.getByExternalId({
+  appId: process.env.ZORVEUS_APP_ID!,
+  externalUserId: "customer_42",
+  inferenceKey: process.env.ZORVEUS_PRO_KEY!,
+});
+
+console.log(`Adjusted allowance: $${user.allowance?.available_allowance}`); // "$5.000000000000"
+console.log(`Resets at:          ${user.allowance?.period_end}`);
 ```
 
-Requests with the same connection reuse the saved allowance. At renewal, the full configured $50 allowance applies
+---
 
-## 3. Read the remaining allowance
+## Supported scope and restrictions
 
-Fetch the [product user](/api-reference/product-users#get-product-user-by-external-id) with your service key:
+- Both plan keys must belong to the same app and have active daily or monthly allowances with matching periods and currencies.
+- A limit set directly on the customer overrides the plan allowance and prevents proration.
+- **Payment provider billing**: Your payment provider (such as Stripe) handles subscription fees and monetary invoice proration. Zorveus calculates the AI model allowance.
 
-```bash
-curl --get https://api.zorveus.com/product-users/by-external-id \
-	-H "Authorization: Bearer $SERVICE_API_KEY" \
-	--data-urlencode "app_id=$APP_ID" \
-	--data-urlencode "external_user_id=customer_123"
-```
+---
 
-Display `allowance.available_allowance` as the remaining balance. Use `allowance.period_end` for the renewal date
+## Next steps
 
-<details>
-<summary>Complete response for the $10 to $50 upgrade example</summary>
-
-The fictional user upgrades on June 16 in a June 1 to July 1 cycle. There are no active reservations or promotional credits
-
-```json
-{
-	"product_end_user_id": "peu_example",
-	"org_id": "org_example",
-	"app_id": "app_example",
-	"external_user_id": "customer_123",
-	"display_name": "Example user",
-	"email_hash": null,
-	"status": "active",
-	"metadata": {
-		"plan": "business"
-	},
-	"allowance_starts_at": "2026-06-01T00:00:00Z",
-	"last_app_connection_id": "connection_business",
-	"usage": {
-		"this_period": {
-			"sell_cost": "8.000000000000",
-			"input_tokens": 1000,
-			"output_tokens": 500,
-			"total_tokens": 1500,
-			"request_count": 1
-		},
-		"period_start": "2026-06-01T00:00:00Z",
-		"period_end": "2026-07-01T00:00:00Z",
-		"total": {
-			"sell_cost": "8.000000000000",
-			"input_tokens": 1000,
-			"output_tokens": 500,
-			"total_tokens": 1500,
-			"request_count": 1
-		}
-	},
-	"cap": {
-		"source": "app_connection",
-		"cap_rule_id": "cap_business",
-		"amount": "50.000000000000",
-		"currency": "USD",
-		"period": "monthly",
-		"spent_this_period": "8.000000000000",
-		"period_start": "2026-06-01T00:00:00Z",
-		"period_end": "2026-07-01T00:00:00Z",
-		"reset_at": "2026-07-01T00:00:00Z",
-		"status": "active",
-		"updated_at": "2026-06-01T00:00:00Z"
-	},
-	"direct_cap": null,
-	"credits": {
-		"currency": "USD",
-		"available_credits": "0.000000000000",
-		"active_grant_count": 0,
-		"expiring_soon_amount": "0.000000000000",
-		"spent_this_month": "0.000000000000",
-		"spent_total": "0.000000000000",
-		"last_grant_at": null,
-		"last_used_at": null
-	},
-	"allowance": {
-		"app_connection_id": "connection_business",
-		"cap_source": "app_connection",
-		"cap_rule_id": "cap_business",
-		"credit_mode": "enforce_if_present",
-		"overrun_policy": "limit_output",
-		"currency": "USD",
-		"period": "monthly",
-		"period_start": "2026-06-01T00:00:00Z",
-		"period_end": "2026-07-01T00:00:00Z",
-		"cap_amount": "30.000000000000",
-		"spent_this_period": "8.000000000000",
-		"remaining_base_allowance": "22.000000000000",
-		"available_credits": "0.000000000000",
-		"available_allowance": "22.000000000000",
-		"adjustment": {
-			"type": "prorate_increase",
-			"configured_cap_amount": "50.000000000000",
-			"effective_at": "2026-06-16T00:00:00Z"
-		}
-	}
-}
-```
-
-</details>
-
-Your app still handles subscription payments. See the [proration reference](/api-reference/product-users#prorated-allowance) for supported changes, response fields, and audit history
+- [Set allowance reset dates](/startups/allowance-periods): Align allowance reset dates with customer subscription billing dates.
+- [Show a customer's balance](/startups/check-allowance): Inspect remaining balance and reset dates.
+- [Show customer activity](/startups/product-user-activity): View usage and credit history.

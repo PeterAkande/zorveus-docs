@@ -3,13 +3,12 @@
   "pages": [
     "../getting-started/integrate-your-product",
     "configure-product-user-allowances",
-    "product-users",
     "../inference/product-user-metadata",
     "check-allowance",
+    "product-users",
+    "credit-grants",
     "allowance-periods",
     "prorated-plan-changes",
-    "credit-grants",
-    "billing-integration",
     "product-user-activity"
   ]
 }

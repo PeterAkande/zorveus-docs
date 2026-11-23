@@ -29,7 +29,7 @@ After response loss, repeat the original POST with the same reference and parame
 
 A lookup returning 404 does not prove an in-flight transaction failed. Repeat the original referenced POST to wait for the original transaction or create the grant if it rolled back. A timeout while waiting remains an unknown outcome, so keep the same reference on the next attempt
 
-Calls without `external_reference`, or with null, retain independent creation behavior. Neither `reason`, metadata, nor an idempotency header supplies the guarantee. The SDKs expose the reference and lookup operation without enabling automatic grant POST retries by default. See [Grant credits after a payment](/startups/billing-integration)
+Calls without `external_reference`, or with null, retain independent creation behavior. Neither `reason`, metadata, nor an idempotency header supplies the guarantee. The SDKs expose the reference and lookup operation without enabling automatic grant POST retries by default. See [Grant credits after a payment](/startups/credit-grants#grant-credits-after-a-payment)
 
 ## Inference
 

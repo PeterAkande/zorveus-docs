@@ -11,6 +11,11 @@ const config = {
   async redirects() {
     return [
       {
+        source: '/startups/billing-integration',
+        destination: '/startups/credit-grants#grant-credits-after-a-payment',
+        permanent: true,
+      },
+      {
         source: '/resources/examples',
         destination: '/code-labs/overview',
         permanent: true,

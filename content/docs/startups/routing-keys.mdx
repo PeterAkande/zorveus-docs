@@ -60,7 +60,7 @@ Choose the plan in your backend. Do not let customers select a more generous pla
 
 ## Change the customer's plan
 
-Change the selector on their next request, for example from `free` to `pro`. To prorate an allowance increase, also send `X-Zorveus-Allowance-Change-Policy: prorate_increase`. See [prorated plan changes](/startups/prorated-plan-changes)
+Change the selector on their next request, for example from `free` to `pro`. To prorate eligible increases, keep `X-Zorveus-Allowance-Change-Policy: prorate_increase` on requests that stay on the same plan or move to a higher allowance. Omit it for downgrades. See [Prorate plan upgrades](/startups/prorated-plan-changes#set-a-default-header-for-proration).
 
 Manage the routes, default, spending limits, and key rotation in the dashboard
 

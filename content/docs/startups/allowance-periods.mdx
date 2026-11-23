@@ -1,65 +1,225 @@
 ---
-title: Set allowance periods and anchors
-description: Align daily or monthly product-user allowances with a subscription start date.
+title: Set allowance reset dates
+description: Send the customer's subscription start date with an AI request to align their allowance resets.
 ---
 
-Configure the allowance amount and period on the inference key's cap. Set `allowance_starts_at` on the product user when your subscription cycle differs from UTC calendar periods.
+Reset each customer's allowance on their subscription date. If a customer subscribes on the 17th, their monthly AI allowance can run from the 17th to the 17th.
 
-## Choose the period
+Send that date with their AI requests. Zorveus saves it and uses it to calculate their allowance cycle, so you do not need a separate API call when the date changes. You can also [update the date using an SDK or cURL](#update-the-date-with-an-sdk-or-curl).
 
-Without an anchor, daily caps use UTC calendar days and monthly caps use UTC calendar months. With an anchor, daily periods use consecutive 24-hour windows and monthly periods use calendar anniversaries at the anchor's UTC time. Lifetime caps have no repeating window.
+## Send the subscription date with an AI request
 
-A monthly anchor of July 17 produces a September 17 to October 17 window on September 30. The anchor does not make all usage since July count in September. For days absent from a month, Zorveus uses that month's final day and returns to the original anchor day when possible.
+Use the inference key from [your first API request](/getting-started/startup-quickstart), with a [monthly customer limit](/startups/configure-product-user-allowances). Add these headers to the AI request you send from your backend:
 
-## Pass the subscription anchor
-
-Use a server-owned subscription timestamp in RFC 3339 format. For inference, send the header or body metadata:
-
-```python
-response = await client.chat.completions.create(
-	model=model_id,
-	messages=[{"role": "user", "content": "Hello"}],
-	extra_headers={
-		"X-Zorveus-External-User-ID": user_id,
-		"X-Zorveus-Allowance-Starts-At": "2026-07-17T09:00:00Z",
-	},
-)
+```http
+X-Zorveus-External-User-ID: customer_42
+X-Zorveus-Allowance-Starts-At: 2026-07-17T09:00:00Z
 ```
 
-The body alternative is `metadata.product_user.allowance_starts_at`. Body metadata takes precedence over the header. For multipart requests, use the same header or a JSON-encoded `metadata` form field.
+Get the customer ID from your signed-in session and the subscription start date from your database. The values below are examples. Keep using the saved subscription date, not the current request time.
 
-Omit the anchor to preserve the stored value. Repeating the same value is allowed. A timestamp older than the stored anchor is rejected. Future timestamps are rejected. Clear the anchor through management with an explicit `null`, not an inference request.
-
-Do not set the anchor to the current time on every request. That changes the period instead of tracking the subscription cycle.
-
-## Read the current window
-
-Read `allowance.period_start` and `allowance.period_end` in the [product-user response](/startups/check-allowance). Do not calculate a separate frontend reset date.
-
-The anchor is app-scoped for the product user, not separate for each plan key. Usage in the current window can span connections. Credit-grant expiration is independent of the allowance anchor.
-
-For a plan upgrade that keeps the current cycle, use [prorated plan changes](/startups/prorated-plan-changes)
-
-## Set the anchor with a service client
-
-Use a [service client](/startups/service-keys#create-the-client) with `product_users:write`. Set the timestamp from your subscription record
-
-<CodeGroup titles={["TypeScript", "Python"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
 ```typescript
-await service.productUsers.createOrUpdate({
-	appId: "app_123", externalUserId: "customer_42",
-	allowanceStartsAt: "2026-07-17T09:00:00Z",
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+	apiKey: process.env.ZORVEUS_API_KEY!,
 });
+
+const response = await client.chat.completions.create({
+	model: "openai/gpt-4.1-mini",
+	messages: [{ role: "user", content: "Write a welcome message." }],
+}, {
+	headers: {
+		"X-Zorveus-External-User-ID": "customer_42",
+		"X-Zorveus-Allowance-Starts-At": "2026-07-17T09:00:00Z",
+	},
+});
+
+console.log(response.choices[0].message.content);
 ```
 
 ```python
-service.product_users.create_or_update(
-	app_id="app_123", external_user_id="customer_42",
-	allowance_starts_at="2026-07-17T09:00:00Z",
+import os
+from zorveus import Zorveus
+
+client = Zorveus(
+    api_key=os.environ["ZORVEUS_API_KEY"],
 )
+try:
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", "content": "Write a welcome message."}],
+        extra_headers={
+            "X-Zorveus-External-User-ID": "customer_42",
+            "X-Zorveus-Allowance-Starts-At": "2026-07-17T09:00:00Z",
+        },
+    )
+    print(response.choices[0].message.content)
+finally:
+    client.close()
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+	apiKey: process.env.ZORVEUS_API_KEY!,
+	baseURL: "https://api.zorveus.com/v1",
+});
+
+const response = await client.chat.completions.create({
+	model: "openai/gpt-4.1-mini",
+	messages: [{ role: "user", content: "Write a welcome message." }],
+}, {
+	headers: {
+		"X-Zorveus-External-User-ID": "customer_42",
+		"X-Zorveus-Allowance-Starts-At": "2026-07-17T09:00:00Z",
+	},
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["ZORVEUS_API_KEY"],
+    base_url="https://api.zorveus.com/v1",
+)
+try:
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", "content": "Write a welcome message."}],
+        extra_headers={
+            "X-Zorveus-External-User-ID": "customer_42",
+            "X-Zorveus-Allowance-Starts-At": "2026-07-17T09:00:00Z",
+        },
+    )
+    print(response.choices[0].message.content)
+finally:
+    client.close()
+```
+
+```bash
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+  -H "Authorization: Bearer $ZORVEUS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-Zorveus-External-User-ID: customer_42" \
+  -H "X-Zorveus-Allowance-Starts-At: 2026-07-17T09:00:00Z" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role": "user", "content": "Write a welcome message."}]
+  }'
 ```
 
 </CodeGroup>
 
-Omit the field on later profile updates to keep the stored anchor. To return to calendar periods, pass `allowanceStartsAt: null` in TypeScript or `allowance_starts_at=None` in Python. Explicit null clears the anchor. Omission preserves it
+The request returns the model's response. Zorveus uses the supplied subscription date when calculating this customer's allowance. A monthly cycle starting on July 17 at 09:00 UTC resets on August 17 at 09:00 UTC, then September 17, and so on.
+
+Send the same date on later requests. If the subscription schedule changes, send the updated date with the next AI request. Omitting the header leaves the saved date unchanged.
+
+### Timestamp validation rules
+
+- Send a UTC timestamp, such as `2026-07-17T09:00:00Z`. Future dates are rejected.
+- Repeating the saved date is allowed. A date earlier than the saved date is rejected.
+- Do not send the current time on every request. That changes the cycle instead of keeping the subscription schedule.
+
+The date is saved for the customer within your app. It applies across that customer's inference keys, so use the same subscription date when switching keys. For a plan upgrade that keeps the current cycle, see [Prorate plan upgrades](/startups/prorated-plan-changes).
+
+<span id="set-or-clear-the-date-before-an-ai-request" />
+<span id="set-the-anchor-with-a-service-client" />
+
+## Update the date with an SDK or cURL
+
+You can also update the saved subscription date using the TypeScript SDK, Python SDK, or a direct API call. This saves the date without waiting for an AI request.
+
+Use a backend [service key](/startups/service-keys) with `product_users:write` permission and your app's ID from the [dashboard](https://app.zorveus.com). Save them as `ZORVEUS_SERVICE_KEY` and `ZORVEUS_APP_ID`.
+
+This profile update replaces the customer's name, email, and metadata. Supply their current profile from your database. The example below uses Alex Rivera's profile. See [Manage customer profiles](/startups/product-users#create-or-update-a-customer) for update behavior.
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
+
+```typescript
+import { ZorveusServiceClient } from "@zorveus/sdk";
+
+const service = new ZorveusServiceClient({
+  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+});
+
+await service.productUsers.createOrUpdate({
+  appId: process.env.ZORVEUS_APP_ID!,
+  externalUserId: "customer_42",
+  displayName: "Alex Rivera",
+  email: "alex@example.com",
+  metadata: { account_type: "individual" },
+  allowanceStartsAt: "2026-07-17T09:00:00Z",
+});
+```
+
+```python
+import os
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+try:
+    service.product_users.create_or_update(
+        app_id=os.environ["ZORVEUS_APP_ID"],
+        external_user_id="customer_42",
+        display_name="Alex Rivera",
+        email="alex@example.com",
+        metadata={"account_type": "individual"},
+        allowance_starts_at="2026-07-17T09:00:00Z",
+    )
+finally:
+    service.close()
+```
+
+```bash
+curl --fail-with-body -X PUT https://api.zorveus.com/product-users/by-external-id \
+  -H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "app_id": "app_123",
+    "external_user_id": "customer_42",
+    "display_name": "Alex Rivera",
+    "email": "alex@example.com",
+    "metadata": {"account_type": "individual"},
+    "allowance_starts_at": "2026-07-17T09:00:00Z"
+  }'
+```
+
+</CodeGroup>
+
+<span id="change-or-clear-an-anchor" />
+
+### Clear the saved date
+
+To return monthly and daily allowances to calendar periods, use the same update with `allowanceStartsAt: null` in TypeScript, `allowance_starts_at=None` in Python, or `"allowance_starts_at": null` in cURL. Omitting this field preserves the saved date.
+
+After clearing the date, stop sending `X-Zorveus-Allowance-Starts-At` in AI requests, or a later request will save the date again. An inference header cannot clear the saved date.
+
+## Use calendar or subscription periods
+
+The saved subscription date is called an **allowance anchor** in the API:
+
+| Period | Without a saved date | With a saved date |
+| --- | --- | --- |
+| Monthly | Resets at 00:00 UTC on the 1st | Resets on the saved day and time each month |
+| Daily | Resets at 00:00 UTC | Uses consecutive 24-hour windows from the saved time |
+| Lifetime | Does not reset | Does not reset |
+
+If a month is shorter than the saved day, Zorveus uses that month's last day. Later months return to the original day. Credit-grant expiry dates are independent of this schedule.
+
+<span id="show-the-next-reset-date" />
+
+Your subscription backend already has the customer's renewal date. If you want to check when their AI allowance period ends in Zorveus, look for `allowance.period_end` in the [customer balance response](/startups/check-allowance).
+
+## Next steps
+
+- [Show a customer's balance](/startups/check-allowance): Read remaining allowance and reset dates.
+- [Prorate plan upgrades](/startups/prorated-plan-changes): Apply an allowance increase during an active cycle.
+- [Set customer limits](/startups/configure-product-user-allowances): Choose amounts, periods, and overrun policies.

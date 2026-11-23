@@ -1,117 +1,185 @@
 ---
-title: Configure product-user allowances
+title: Set customer limits
 description: Set customer AI spending limits, choose enforcement modes, and control overrun policies.
 ---
 
-When your product pays for your customers' AI usage, Zorveus gives each customer a dedicated spending allowance and stops requests when they exceed their quota.
-
-You configure limits on the connection in the dashboard, and your backend tags each customer request with an external user ID.
-
-## Core concepts
-
-- **Connection cap**: The monthly or daily allowance granted to each customer on this connection. A $10 monthly cap gives every customer their own $10 limit. It is not a shared pool.
-- **Credit mode**: Determines whether requests without customer IDs are allowed or blocked.
-- **Overrun policy**: Controls what happens if an individual response costs more than a customer's remaining allowance.
-- **Direct user caps**: An optional custom cap for a high-volume enterprise customer that overrides the connection default.
+Give each customer their own AI allowance. For example, set a $2 monthly limit in your inference key's settings, then send the customer's ID with each request. Zorveus tracks each customer separately, so one customer's usage does not reduce another's allowance.
 
 ---
 
-## Recommended default configuration
+## Set the amount and period
 
-For most SaaS applications with tiered subscription plans, start with these settings:
+In the [Zorveus dashboard](https://app.zorveus.com), open your inference key's settings and configure the spending cap:
 
-| Setting | Recommended value | Why |
-| --- | --- | --- |
-| Allowed models | Selected models (e.g. `openai/gpt-4.1-mini`) | Prevents unintended access to costly frontier models. |
-| Cap amount and period | Your plan allowance (e.g. `$10/month`) | Sets a predictable monthly budget per user. |
-| `credit_mode` | `enforce` | Enforces quota limits across all customer requests. |
-| `overrun_policy` | `limit_output` | Caps output length to keep total cost within remaining budget. |
-| External user ID | Your internal customer ID on every request | Attributes token usage to the correct customer ledger. |
+- **Amount**: The spending limit in USD (for example, `$2.00`).
+- **Period**: How often the allowance resets. Choose `monthly`, `daily`, or `lifetime`.
+
+A $2 monthly allowance gives each customer $2 of usage every cycle. By default, monthly periods reset at 00:00 UTC on the first day of each calendar month. To align resets with customer subscription billing dates, see [Set allowance reset dates](/startups/allowance-periods).
+
+If your app uses credits, choose how many credits equal $1 of AI allowance. For example, at 100 credits per $1, a $2 monthly limit gives each customer 200 credits. Keep the cap amount in USD. Zorveus uses your conversion rate to track usage and return the remaining allowance in credits.
+
+[Set your app's conversion rate](/getting-started/integrate-your-product#use-credits-in-your-product).
 
 ---
 
-## Credit enforcement modes
+## Choose how to enforce the limit
 
-The credit mode tells Zorveus how strictly to enforce spending limits:
+The credit mode controls when Zorveus enforces customer allowances:
+
+<div className="zorveus-nowrap-first-column">
 
 | Mode | Behavior | Best for |
-| --- | --- | --- |
-| `enforce` (Recommended) | Enforces base allowance plus valid credits. Requires attribution. | Production customer traffic where spending limits must be guaranteed. |
-| `enforce_if_present` | Enforces allowance when a customer ID is present; allows unattributed calls. | Shared keys serving both internal jobs and customer requests. |
-| `track_only` | Records customer usage and credits, but never blocks requests. | Observing customer AI consumption before launching strict quotas. |
-| `disabled` | Bypasses all quota checks and credit consumption. | Unrestricted testing environments. |
+| :--- | :--- | :--- |
+| `enforce` (Default) | Apply allowance enforcement. Send the customer's ID so the request uses that customer's allowance. Unattributed traffic still follows applicable key-level caps. | Production customer traffic where spending limits must be guaranteed. |
+| `enforce_if_present` | Enforce the customer allowance when a customer ID is present. Unattributed traffic bypasses this customer allowance enforcement path. | Shared keys serving both internal jobs and customer requests. |
+| `track_only` | Record customer usage and allowance allocations without rejecting a request for customer allowance exhaustion. | Observing customer AI consumption before launching strict quotas. |
+| `disabled` | Bypass customer allowance enforcement and grant consumption. Other access and funding requirements still apply. | Unrestricted testing environments. |
+
+</div>
+
+Without an applicable spending cap, customer requests do not consume extra credits. To give one customer a limit that overrides the inference key's settings, set a customer-specific cap in the dashboard.
 
 ---
 
-## Overrun policies
+## Choose the overrun policy
 
-AI models generate variable output lengths. If a customer has $0.10 remaining, but their prompt produces a response costing $0.15, the overrun policy determines what happens:
+AI responses have variable output lengths. When a customer has a small amount of allowance left (such as $0.10) and sends a prompt whose normal completion might cost $0.15, the overrun policy in your inference key's settings decides how the gateway handles the request:
+
+<div className="zorveus-nowrap-first-column">
 
 | Policy | Behavior | Best for |
-| --- | --- | --- |
-| `limit_output` (Default) | Automatically reduces maximum generation tokens so the response stays within budget. | Keeping spending strictly within customer limits. |
-| `allow_overrun` | Completes the response normally. The extra $0.05 is logged as uncovered spend, but does not penalize future cycles. | Chat apps where delivering a complete answer is more important than small overages. |
-| `carry_overrun_forward` | Completes the response, but carries the $0.05 excess as debt. The debt is deducted from next month's allowance or purchased credits. | Strict accounting where every cent of overage must eventually be settled. |
+| :--- | :--- | :--- |
+| `limit_output` (Default) | Zorveus can lower the response length to fit the remaining allowance. If the request cannot fit or its output cannot be limited, Zorveus may reject it. | Keeping spending strictly within customer limits. |
+| `allow_overrun` | Completes the response normally. The extra amount is recorded as uncovered spend, but does not penalize future cycles. | Chat apps where delivering a complete answer is more important than small overages. |
+| `carry_overrun_forward` | Completes the response, but carries the excess as debt. The debt is deducted from next month's allowance or purchased credits. | Strict accounting where every cent of overage must eventually be settled. |
+
+</div>
+
+Under `limit_output`, Zorveus estimates token costs before generation and sets maximum completion tokens so the output stays within budget. If a streaming generation exhausts remaining funds mid-response, the stream concludes gracefully without error.
 
 ---
 
-## Common scenarios
+## Use different limits for different plans
 
-### Free vs. Pro subscription tiers
+Set up an inference key for each plan with that plan's model access and allowance:
 
-Create two separate connections in your dashboard:
+| Plan | Customer subscription | Included AI allowance | Models permitted | Credit mode | Overrun policy |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Starter** | $5 per month | **$2 per month** | `openai/gpt-4.1-mini` | `enforce` <InfoTooltip label="Starter credit mode">All customers using the Starter key have their spending capped at $2 per month. Requests are stopped if their allowance runs out.</InfoTooltip> | `limit_output` <InfoTooltip label="Starter overrun policy">Customers cannot spend more than their $2 allowance. Zorveus lowers the maximum generation tokens so the response stays within budget.</InfoTooltip> |
+| **Pro** | $20 per month | **$10 per month** | `anthropic/claude-3-5-sonnet` | `enforce` <InfoTooltip label="Pro credit mode">All customers using the Pro key have their spending capped at $10 per month. Requests are stopped if their allowance runs out.</InfoTooltip> | `limit_output` <InfoTooltip label="Pro overrun policy">Customers cannot spend more than their $10 allowance. Zorveus lowers the maximum generation tokens so the response stays within budget.</InfoTooltip> |
 
-1. **Free connection**: Cap of $2/month, access to lightweight models, `enforce` mode.
-2. **Pro connection**: Cap of $20/month, access to frontier models, `enforce` mode.
+Your backend selects the key that matches the authenticated customer's plan and sends their customer ID. These examples use the Pro key, saved on your server as `ZORVEUS_PRO_KEY`. Replace `customer_42` with the customer ID from your backend's signed-in user session.
 
-Your backend inspects the authenticated user's subscription in your database, selects the appropriate API key, and attaches their ID:
+For Python, install `openai` with `pip install openai` or `zorveus` with `pip install zorveus`. For TypeScript, use `npm install openai` or `npm install @zorveus/sdk`.
 
-```bash
-# Pro user request
-curl https://api.zorveus.com/v1/chat/completions \
-  -H "Authorization: Bearer $ZORVEUS_PRO_KEY" \
-  -H "X-Zorveus-External-User-ID: usr_pro_987" \
-  -d '{"model": "anthropic/claude-3-5-sonnet", "messages": [{"role": "user", "content": "Analyze data"}]}'
+<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)", "Python (zorveus)", "TypeScript (@zorveus/sdk)", "cURL"]}>
+
+```python
+import os
+from openai import OpenAI
+
+with OpenAI(
+	api_key=os.environ["ZORVEUS_PRO_KEY"],
+	base_url="https://api.zorveus.com/v1",
+) as client:
+	response = client.chat.completions.create(
+		model="anthropic/claude-3-5-sonnet",
+		messages=[{"role": "user", "content": "Draft customer update"}],
+		extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
+	)
+	print(response.choices[0].message.content)
 ```
 
-If a customer upgrades mid-month, your backend immediately starts sending their requests with the Pro key.
+```typescript
+import OpenAI from "openai";
 
-### Using one-time credits alongside monthly allowances
+const client = new OpenAI({
+	apiKey: process.env.ZORVEUS_PRO_KEY!,
+	baseURL: "https://api.zorveus.com/v1",
+});
 
-When a customer holds both a recurring allowance and purchased credit grants, Zorveus always spends the recurring base allowance first:
+const response = await client.chat.completions.create(
+	{
+		model: "anthropic/claude-3-5-sonnet",
+		messages: [{ role: "user", content: "Draft customer update" }],
+	},
+	{ headers: { "X-Zorveus-External-User-ID": "customer_42" } },
+);
+
+console.log(response.choices[0].message.content);
+```
+
+```python
+import os
+from zorveus import Zorveus
+
+client = Zorveus(api_key=os.environ["ZORVEUS_PRO_KEY"])
+try:
+	response = client.chat.completions.create(
+		model="anthropic/claude-3-5-sonnet",
+		messages=[{"role": "user", "content": "Draft customer update"}],
+		extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
+	)
+	print(response.choices[0].message.content)
+finally:
+	client.close()
+```
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({ apiKey: process.env.ZORVEUS_PRO_KEY! });
+const response = await client.chat.completions.create({
+	model: "anthropic/claude-3-5-sonnet",
+	messages: [{ role: "user", content: "Draft customer update" }],
+	zorveusMetadata: { externalUserId: "customer_42" },
+});
+
+console.log(response.choices[0].message.content);
+```
+
+```bash
+# Pro customer request
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+	-H "Authorization: Bearer $ZORVEUS_PRO_KEY" \
+	-H "Content-Type: application/json" \
+	-H "X-Zorveus-External-User-ID: customer_42" \
+	-d '{
+		"model": "anthropic/claude-3-5-sonnet",
+		"messages": [{"role": "user", "content": "Draft customer update"}]
+	}'
+```
+
+</CodeGroup>
+
+The SDK examples print the response text; cURL returns the full response. Use a model [allowed by the selected key](/inference/model-discovery).
+
+When a customer upgrades plans, keep the same customer ID. Using the new plan's inference key applies that plan's model access and allowance without creating a duplicate customer profile.
+
+---
+
+## Understand base allowance vs extra credits
+
+When a customer holds both a recurring plan allowance and extra purchased credits, Zorveus always spends the recurring base allowance first:
 
 ```text
 Monthly base allowance remaining: $2.00
-Purchased credit pack:             $10.00
------------------------------------------
-Total spendable allowance:        $12.00
+Extra purchased credits:          $3.00
+---------------------------------------
+Total spendable allowance:        $5.00
 ```
 
 If the customer makes a request that costs $3.00:
-1. $2.00 is deducted from their base allowance (exhausting it for the cycle).
-2. The remaining $1.00 is deducted from their purchased credit pack.
-3. Their new spendable allowance is $9.00.
+1. $2.00 is deducted from their base allowance (exhausting it for the current cycle).
+2. The remaining $1.00 is deducted from their extra credits.
+3. Their remaining spendable allowance is $2.00 in extra credits.
 
-At the start of the next billing cycle, their $10.00 monthly base allowance resets automatically, while their remaining $9.00 in purchased credits remains available.
-
-### Aligning monthly resets with customer subscription dates
-
-By default, monthly caps reset on the 1st of each calendar month. 
-
-If a customer subscribes on March 18th, set their `allowance_starts_at` anchor to `2026-03-18T00:00:00Z` when creating or updating their profile. Zorveus will automatically reset their $10 allowance on the 18th of every month:
-
-```typescript
-await service.productUsers.createOrUpdate({
-  appId: "app_123",
-  externalUserId: "customer_42",
-  allowanceStartsAt: "2026-03-18T00:00:00Z",
-});
-```
+At the next billing reset, their $2.00 base allowance resets automatically, while their remaining $2.00 in extra credits remains available.
 
 ---
 
-## Related reading
+## Next steps
 
-- [Check customer allowance](/startups/check-allowance): How to query remaining balances from your backend.
-- [Grant credits](/startups/credit-grants): Top up balances after payments or plan upgrades.
-- [Allowance periods and anchors](/startups/allowance-periods): Detailed billing anchor rules.
+- [Show a customer's balance](/startups/check-allowance): Read remaining balances and reset dates from your backend.
+- [Grant customer credits](/startups/credit-grants): Add welcome bonuses, support adjustments, or purchased credits.
+- [Set allowance reset dates](/startups/allowance-periods): Align allowance reset dates with customer subscription cycles.

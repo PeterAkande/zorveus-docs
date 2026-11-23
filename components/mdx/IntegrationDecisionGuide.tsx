@@ -26,9 +26,9 @@ const RECOMMENDATIONS: Record<Payer, Recommendation> = {
     workspace: 'Business organization',
     credentials: 'API key (zrv_...) and service key (zrv_svc_...)',
     summary:
-      'Your product funds AI usage for its customers. Track each customer\'s spend, set plan allowances, and grant credits after payments through your payment provider.',
+      'Your product funds AI usage for its customers. Give each customer an allowance, track their spend, and add paid plans or credit purchases when needed.',
     href: '/getting-started/integrate-your-product',
-    ctaLabel: 'Build customer billing',
+    ctaLabel: 'Manage customer AI usage',
     nodes: [
       { title: 'Your app or backend', subtitle: 'Bearer zrv_...' },
       { title: 'Zorveus gateway', subtitle: 'Routes models, bills org' },

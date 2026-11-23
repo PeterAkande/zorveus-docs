@@ -306,7 +306,7 @@ test("integration decision guide directs product-funded apps to customer billing
   assert.match(html, /Routes models, bills org/);
   assert.match(html, /Business organization/);
   assert.match(html, /My product pays/);
-  assert.match(html, /Build customer billing/);
+  assert.match(html, /Manage customer AI usage/);
   assert.match(html, /href="\/getting-started\/integrate-your-product"/);
   assert.doesNotMatch(html, /href="\/getting-started\/startup-quickstart"/);
   assert.doesNotMatch(

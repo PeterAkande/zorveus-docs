@@ -2,7 +2,7 @@ import React from 'react';
 import { ThemedDiagram } from './ThemedDiagram';
 
 interface FlowDiagramProps {
-  flow: 'payment-credits' | 'resource-hierarchy';
+  flow: 'payment-credits' | 'resource-hierarchy' | 'plan-keys';
 }
 
 const FLOW_CONFIG = {
@@ -38,8 +38,49 @@ const FLOW_CONFIG = {
   },
 } as const;
 
+const PLAN_EXAMPLES = [
+  { plan: 'Starter', price: '$5/month subscription', key: 'ZORVEUS_STARTER_KEY', allowance: '$2/month' },
+  { plan: 'Pro', price: '$20/month subscription', key: 'ZORVEUS_PRO_KEY', allowance: '$10/month' },
+] as const;
+
 /** Renders payment and resource flows with readable, responsive text. */
 export function FlowDiagram({ flow }: FlowDiagramProps) {
+  if (flow === 'plan-keys') {
+    return (
+      <figure className="zorveus-architecture not-prose" aria-label="How your backend selects a plan key">
+        <div className="zorveus-diagram-frame" aria-hidden="true">
+          <p className="zorveus-plan-key-heading">Your backend reads the customer's saved plan</p>
+          <div className="zorveus-plan-key-paths">
+            {PLAN_EXAMPLES.map((example) => (
+              <div className="zorveus-plan-key-row" key={example.plan}>
+                <div className="zorveus-plan-key-node">
+                  <span className="zorveus-diagram-title">{example.plan} plan</span>
+                  <span>{example.price}</span>
+                </div>
+                <span className="zorveus-plan-key-arrow">→</span>
+                <div className="zorveus-plan-key-node" data-accent>
+                  <span className="zorveus-diagram-title">{example.plan} key</span>
+                  <code>{example.key}</code>
+                </div>
+                <span className="zorveus-plan-key-arrow">→</span>
+                <div className="zorveus-plan-key-node">
+                  <span className="zorveus-diagram-title">{example.allowance}</span>
+                  <span>AI allowance per customer</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <ol className="sr-only">
+          <li>Your backend looks up the signed-in customer's subscription in your database.</li>
+          <li>A Starter customer pays $5 per month. Your backend uses the Starter key, configured with a separate $2 monthly AI allowance for each customer.</li>
+          <li>A Pro customer pays $20 per month. Your backend uses the Pro key, configured with a separate $10 monthly AI allowance for each customer.</li>
+        </ol>
+        <figcaption>Example plans. Choose the matching key for requests and balance reads. Keep the customer's ID the same when their plan changes.</figcaption>
+      </figure>
+    );
+  }
+
   const config = FLOW_CONFIG[flow];
   return (
     <ThemedDiagram

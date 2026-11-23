@@ -1,156 +1,153 @@
 ---
-title: Check available allowance
-description: Read total spendable allowance without confusing credit grants with a user's remaining base allowance.
+title: Show a customer's balance
+description: Read a customer's remaining AI allowance in dollars or credits and show when it resets.
 ---
 
-Use this guide when your backend needs to check a customer's allowance before accepting work or after an allowance rejection
+Show customers how much AI they have left, such as "$2 remaining" or "200 credits left." Read their balance from your backend using their customer ID. This works with free allowances and paid plans.
 
-## Read the product-user profile
+## 1. Read the balance
 
-Create a [service key](/startups/service-keys) with product-user read permission. Call `GET /product-users/by-external-id` with your Zorveus `app_id` and the customer's `external_user_id`
+Save these values on your server:
 
-<CodeGroup titles={["Python (async)", "TypeScript"]}>
+- `ZORVEUS_SERVICE_KEY`: Create a [service key](/startups/service-keys) with `product_users:read` permission. This key authorizes the balance read.
+- `ZORVEUS_API_KEY`: Use the inference key you send that customer's AI requests with. This tells Zorveus which allowance settings to use. [Set a customer limit](/startups/configure-product-user-allowances) if you have not configured one yet.
+- `ZORVEUS_APP_ID`: Copy the app ID from your app in the [dashboard](https://app.zorveus.com). Use the same app as the inference key.
 
-```python
-from zorveus import AsyncZorveusServiceClient
+Install `@zorveus/sdk` with `npm install @zorveus/sdk` for TypeScript or `zorveus` with `pip install zorveus` for Python.
 
-async def read_allowance(service_key: str, app_id: str, user_id: str):
-	service = AsyncZorveusServiceClient(api_key=service_key)
-	try:
-		profile = await service.product_users.get_by_external_id(
-			app_id=app_id,
-			external_user_id=user_id,
-		)
-		return profile
-	finally:
-		await service.close()
+Replace `customer_42` below with the ID from your backend's signed-in user session. Keep both keys on your server. The examples create the customer record if it does not exist, so you can show a starting balance before their first AI request.
 
-```
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
 ```typescript
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
-const service = new ZorveusServiceClient({ apiKey: "zrv_svc_your_service_key" });
-const profile = await service.productUsers.getByExternalId({
-	appId: "app_123",
-	externalUserId: "customer_42",
+const service = new ZorveusServiceClient({
+	apiKey: process.env.ZORVEUS_SERVICE_KEY!,
 });
 
-console.log(profile.getTotalAvailableToSpend());
-// For an active user with a known enforced cap, this permits an attempt.
-const hasAllowance = profile.hasAvailableAllowance();
-```
-
-</CodeGroup>
-
-Reuse process-owned clients where your application supports that lifecycle. Do not call a synchronous network client from an async request handler
-
-## Check whether the user has any amount to spend
-
-For an active product user with a known enforced cap, check whether total available allowance is greater than zero. This answers whether the user has any amount to spend, not whether a particular request will fit
-
-<CodeGroup titles={["Python", "TypeScript"]}>
-
-```python
-available_to_spend = profile.get_total_available_to_spend_decimal()
-can_spend = available_to_spend > 0
-
-# The SDK shortcut returns the same boolean.
-can_spend = profile.has_available_allowance()
-```
-
-```typescript
-const availableToSpend = profile.getTotalAvailableToSpend();
-const canSpend = Number(availableToSpend) > 0;
-
-// The SDK shortcut returns the same boolean.
-const canSpendWithShortcut = profile.hasAvailableAllowance();
-```
-
-</CodeGroup>
-
-Use the shortcut when you only need a boolean. Use the amount getter when you also need to display the remaining allowance. These methods use the profile already retrieved; they do not make another API request
-
-A zero result means no reported spendable allowance. It is not a universal access decision: check the user's status and connection policy, and apply the missing-allowance and uncapped-key rules below
-
-## Interpret the response
-
-For a configured cap, the profile reports the base allowance after settled spend, active reservations, and applicable debt adjustments. Without active holds or debt, the calculation is:
-
-```text
-remaining_base_allowance = max(0, cap_amount - spent_this_period)
-available_allowance = remaining_base_allowance + available_credits
-```
-
-For example, a $20 cap with $15 spent and $10 in active credits reports $15 available. Use the returned amount. Do not rebuild the calculation from usage records in your application
-
-| Value | Meaning |
-| --- | --- |
-| `allowance.available_allowance` | Remaining base allowance plus available credits. |
-| `allowance.period_start` and `period_end` | The current allowance window. |
-| `allowance.app_connection_id` | The connection used to resolve the reported allowance. |
-| `credits.available_credits` | Credit grants only, not total allowance. |
-| `status` | Product-user state. A positive balance does not override a blocked user. |
-
-The Python and TypeScript helpers read `allowance.available_allowance`. If that value is absent, the helpers fall back to credits. If both values are absent, the helpers return zero
-
-<Callout type="warning" title="Zero is not always exhaustion">
-  A key without a cap has unlimited virtual allowance. A helper's zero fallback does not mean that an uncapped connection is exhausted. Apply admission checks only when you know the connection's cap and enforcement policy. `track_only` and `disabled` do not block requests for allowance
-</Callout>
-
-## Handle exhaustion and recovery
-
-For an active user under an enforced cap, `profile.get_total_available_to_spend_decimal() > 0` or `profile.hasAvailableAllowance()` permits an inference attempt. A positive balance does not guarantee funding for that request. The gateway still checks estimated cost, reservations, and other limits
-
-If the gateway rejects a request for allowance, record an observed exhausted state and return a clear failure to the user. Recheck the profile before rejecting later requests from that state. Credits or a new allowance period can restore access without a local billing event
-
-A missing profile returns HTTP 404 by default. To create it during the read, send `X-Zorveus-Upsert-Product-User: true` as described in [the header contract](/api-reference/product-users#create-a-missing-user-during-a-read). A missing profile is not an exhausted profile. Inline attribution creates new users on their first inference request. Handle lookup failures separately from allowance failures
-
-The profile uses an active direct product-user cap, or the user's last applicable connection cap. If a plan change selects a different key, do not reject the new request using an allowance from the old connection
-
-Continue with [allowance periods](/startups/allowance-periods), [credit grants](/startups/credit-grants), and [webhook processing](/platform/webhooks)
-
-
-## Read allowance before the first AI request
-
-Use the service client and pass the inference key selected by your application's subscription logic. For a routing key, supply its member alias or use its configured default. Your database remains the source of the customer's plan
-
-```typescript
 const user = await service.productUsers.getByExternalId({
-	appId,
-	externalUserId: authenticatedUserId,
-	inferenceKey: selectedInferenceOrRoutingKey,
-	keyAlias: selectedRoutingAlias,
+	appId: process.env.ZORVEUS_APP_ID!,
+	externalUserId: "customer_42",
+	inferenceKey: process.env.ZORVEUS_API_KEY!,
 	upsertIfMissing: true,
 });
-console.log(user.allowance?.remaining_credit_units);
+
+const availableUsd = user.allowance?.available_allowance ?? null;
+console.log(availableUsd === null ? "Balance unavailable" : `$${availableUsd} remaining`);
+console.log("Resets at:", user.allowance?.period_end ?? null);
 ```
 
 ```python
-user = service.product_users.get_by_external_id(
-	app_id=app_id,
-	external_user_id=authenticated_user_id,
-	inference_key=selected_inference_or_routing_key,
-	key_alias=selected_routing_alias,
-	upsert_if_missing=True,
-)
-print(user.allowance.remaining_credit_units if user.allowance else None)
+import os
+from zorveus import ZorveusServiceClient
+
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+try:
+	user = service.product_users.get_by_external_id(
+		app_id=os.environ["ZORVEUS_APP_ID"],
+		external_user_id="customer_42",
+		inference_key=os.environ["ZORVEUS_API_KEY"],
+		upsert_if_missing=True,
+	)
+
+	available_usd = user.allowance.available_allowance if user.allowance else None
+	print("Balance unavailable" if available_usd is None else f"${available_usd} remaining")
+	print("Resets at:", user.allowance.period_end if user.allowance else None)
+finally:
+	service.close()
 ```
 
-Python supports the same arguments on the asynchronous service client. Omit the alias for a direct inference key. Both SDKs send the selection in headers, keeping the service key in `Authorization`
-
-```http
-GET /product-users/by-external-id?app_id=app_example&external_user_id=shop_123
-Authorization: Bearer <organization-service-key>
-X-Zorveus-Inference-Key: <inference-or-routing-key>
-X-Zorveus-Key-Alias: pro
-X-Zorveus-Upsert-Product-User: true
+```bash
+curl --fail-with-body --get https://api.zorveus.com/product-users/by-external-id \
+	-H "Authorization: Bearer $ZORVEUS_SERVICE_KEY" \
+	-H "X-Zorveus-Inference-Key: $ZORVEUS_API_KEY" \
+	-H "X-Zorveus-Upsert-Product-User: true" \
+	--data-urlencode "app_id=$ZORVEUS_APP_ID" \
+	--data-urlencode "external_user_id=customer_42"
 ```
 
-Use an active Business inference key or routing key from the service key's app and organization. OAuth user tokens do not select a product-user policy. An invalid selection returns an error without falling back or creating a user. Read-only product-user permission is sufficient. Keep both credentials on your backend
+</CodeGroup>
 
-For a $5 monthly allowance at 1,000 credit units per USD, a first read with no usage or grants returns `allowance.remaining_credit_units: "5000"`. Selecting a new plan key on the next read reflects that policy immediately, using the customer's shared usage and grants. The read saves the validated connection as `last_app_connection_id`, so later reads without a key use it as their fallback. The business still owns the customer's subscription state
+For a new customer with a $2 monthly allowance and no usage or extra credits, the SDK examples print `$2.000000000000 remaining` and the reset date. cURL returns the customer profile.
 
-For prorated upgrades, [apply the plan change](/startups/prorated-plan-changes) before reading with the new key. The read does not apply proration
+<details>
+<summary>Example response fields</summary>
 
-Without the optional key, the profile continues to use its direct cap or last-used connection. A user with no usable cap has null allowance. `credits.remaining_credit_units` counts grants only. The complete base-plus-grants total is in `allowance.remaining_credit_units`
+This excerpt also shows credit units when your app uses a rate of 100 credits per $1:
+
+```json
+{
+	"external_user_id": "customer_42",
+	"status": "active",
+	"allowance": {
+		"available_allowance": "2.000000000000",
+		"remaining_credit_units": "200.000000000000",
+		"period_start": "2026-11-01T00:00:00Z",
+		"period_end": "2026-12-01T00:00:00Z"
+	},
+	"credits": {
+		"available_credits": "0.000000000000"
+	}
+}
+```
+
+`credits.available_credits` covers extra grants only. Use the `allowance` fields for the total spendable balance. See the [product users reference](/api-reference/product-users) for the full response.
+
+</details>
+
+If you are [prorating a plan upgrade](/startups/prorated-plan-changes), apply the upgrade before reading the balance with the new inference key.
+
+## 2. Show dollars or credits
+
+Choose the field that matches how your app uses allowances:
+
+| Your app uses | Read |
+| --- | --- |
+| USD allowances | `allowance.available_allowance` |
+| Credit units | `allowance.remaining_credit_units` |
+
+Both totals include the remaining recurring allowance and usable extra credits. Send the selected value from your backend to your app. Refresh the balance after AI requests or credit purchases.
+
+Use `allowance.period_end` for the reset date. It is a UTC timestamp, or `null` when no reset date is available.
+
+### Show the balance in credits
+
+If your app uses credits, [set your app's conversion rate](/getting-started/integrate-your-product#use-credits-in-your-product). At 100 credits per $1, the $2 allowance above gives the customer 200 credits. Zorveus keeps the underlying allowance in USD and returns the credit units for you.
+
+Using the `user` returned above:
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
+
+```typescript
+const creditsLeft = user.allowance?.remaining_credit_units ?? null;
+console.log(creditsLeft === null ? "Balance unavailable" : `${creditsLeft} credits left`);
+```
+
+```python
+credits_left = user.allowance.remaining_credit_units if user.allowance else None
+print("Balance unavailable" if credits_left is None else f"{credits_left} credits left")
+```
+
+</CodeGroup>
+
+Keep the returned decimal strings and format them for display, such as "200 credits left." Use the returned credit total instead of multiplying the USD balance yourself, because individual grants can have different saved conversion rates. For a working app, see [Write Room](/code-labs/write-room-saas).
+
+## 3. Handle missing or exhausted balances
+
+| Returned state | What your app should do |
+| --- | --- |
+| Positive balance | Show the remaining amount. The next request can still exceed that amount or fail another access check. |
+| Zero balance | Show that the allowance is used up. Offer a reset date or extra credits if your product supports them. |
+| Missing allowance or selected balance field | Show "Balance unavailable." A credit-unit balance can be missing when a positive allowance has no conversion rate. Missing data does not mean the balance is zero. |
+| `status: "blocked"` | Show that AI access is blocked, even if there is a remaining balance. |
+
+Use decimal arithmetic when comparing amounts. For example, `"0.000000000000"` is zero, even though it is not the string `"0"`.
+
+You do not need to read the balance before every AI request. When allowance enforcement is enabled, Zorveus checks the allowance during model requests. This balance read is for your app's display and logic.
+
+## Next steps
+
+- [Set customer limits](/startups/configure-product-user-allowances): Choose allowance amounts and reset periods.
+- [Grant customer credits](/startups/credit-grants): Add welcome bonuses or support adjustments.
+- [Show customer activity](/startups/product-user-activity): Show requests and credit changes alongside the balance.

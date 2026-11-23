@@ -1,298 +1,205 @@
 ---
-title: Build customer billing
-description: Map subscription plans to AI allowances and grant customer credits after verified payments.
+title: Manage customer AI usage
+description: Give customers an AI allowance, track their requests, and show their remaining balance. Connect paid plans or purchases when you need them.
 ---
 
-Use Zorveus to track customer AI usage, enforce plan allowances, and grant credits after payments. Your payment provider handles customer payments and subscriptions.
+Control how much AI each customer can use in your product. Give them a free allowance, include AI in a paid plan, or let them buy extra credits. Zorveus tracks their usage and checks their remaining allowance on each request.
 
-This guide connects those capabilities in your backend, including plan selection, attributed model requests, allowance checks, and payment webhooks.
+Start with one allowance for all customers. Each customer gets their own balance, so one customer's spending does not reduce another's.
 
-If you do not yet have an app and inference key, follow [Make your first API request](/getting-started/startup-quickstart) to set them up and fund your route.
+Follow [Make your first API request](/getting-started/startup-quickstart) if you need an app, an API key, or a funded route. Your product funds these model requests. Setting a customer allowance does not add money to your Zorveus wallet.
+
+## 1. Set a customer allowance
+
+In the [dashboard](https://app.zorveus.com), open your inference key's settings.
+
+For this example, give each customer a $2 monthly allowance:
+
+- Set **Cap amount** to `$2` and **Period** to `monthly`. <InfoTooltip label="Cap amount and period">Each customer gets their own $2 allowance every month.</InfoTooltip>
+- Set **Credit mode** to `enforce`. <InfoTooltip label="Credit mode">Zorveus checks the customer's remaining allowance when their ID is included on a request.</InfoTooltip>
+- Set **Overrun policy** to `limit_output`. <InfoTooltip label="Overrun policy">Zorveus can lower supported response lengths to fit the remaining allowance. It can reject requests that cannot fit or whose output cannot be limited.</InfoTooltip>
+
+Keep this key on your backend as `ZORVEUS_API_KEY`. You can offer the allowance for free; no subscription or payment integration is required.
+
+See [Set customer limits](/startups/configure-product-user-allowances) for other amounts, periods, and enforcement options.
 
 <ArchitectureDiagram />
 
-<Callout type="tip" title="Want a runnable starter example?">
-  See the [Write Room SaaS Code Lab](/code-labs/write-room-saas) for a full React, TypeScript, and Express app you can clone and provision with the Zorveus CLI.
-</Callout>
+## 2. Send requests with the customer's ID
 
----
+Get the customer ID from your backend's signed-in user session and include it on each model request. Use the same ID for that customer every time.
 
-## 1. Configure your plan keys
+Install `openai` with `npm install openai` for TypeScript or `pip install openai` for Python. Choose a chat model [available to your key](/inference/model-discovery). These examples use `openai/gpt-4.1-mini`.
 
-In the [Zorveus dashboard](https://app.zorveus.com), configure separate connections for each subscription tier your product offers:
-
-- **Free Tier connection**: Set a $2/month connection cap, allow lightweight models (e.g. `openai/gpt-4.1-mini`), and set credit mode to `enforce`.
-- **Pro Tier connection**: Set a $20/month connection cap, allow frontier models (e.g. `anthropic/claude-3-5-sonnet`), and set credit mode to `enforce`.
-
-Store your inference keys and your service key in your backend secrets:
-
-```bash
-ZORVEUS_FREE_KEY="zrv_free_tier_key..."
-ZORVEUS_PRO_KEY="zrv_pro_tier_key..."
-ZORVEUS_SERVICE_KEY="zrv_svc_your_service_key..."
-ZORVEUS_APP_ID="app_123"
-```
-
----
-
-## 2. Complete backend service implementation
-
-Here is a complete, copyable backend module in Python and TypeScript that ties together plan selection, user attribution, allowance checks, and error handling.
-
-<CodeGroup titles={["TypeScript", "Python"]}>
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
 ```typescript
-import OpenAI, { APIError } from "openai";
+import OpenAI from "openai";
+
+const client = new OpenAI({
+	apiKey: process.env.ZORVEUS_API_KEY!,
+	baseURL: "https://api.zorveus.com/v1",
+});
+
+export async function runChatRequest(customerId: string, prompt: string) {
+	const response = await client.chat.completions.create(
+		{
+			model: "openai/gpt-4.1-mini",
+			messages: [{ role: "user", content: prompt }],
+		},
+		{ headers: { "X-Zorveus-External-User-ID": customerId } },
+	);
+
+	return response.choices[0].message.content;
+}
+
+console.log(await runChatRequest("customer_42", "Say hello in five words."));
+```
+
+```python
+import os
+from openai import OpenAI
+
+
+def run_chat_request(customer_id: str, prompt: str):
+	with OpenAI(
+		api_key=os.environ["ZORVEUS_API_KEY"],
+		base_url="https://api.zorveus.com/v1",
+	) as client:
+		response = client.chat.completions.create(
+			model="openai/gpt-4.1-mini",
+			messages=[{"role": "user", "content": prompt}],
+			extra_headers={"X-Zorveus-External-User-ID": customer_id},
+		)
+		return response.choices[0].message.content
+
+
+print(run_chat_request("customer_42", "Say hello in five words."))
+```
+
+```bash
+curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
+	-H "Authorization: Bearer $ZORVEUS_API_KEY" \
+	-H "Content-Type: application/json" \
+	-H "X-Zorveus-External-User-ID: customer_42" \
+	-d '{
+		"model": "openai/gpt-4.1-mini",
+		"messages": [{"role": "user", "content": "Say hello in five words."}]
+	}'
+```
+
+</CodeGroup>
+
+Replace `customer_42` with the signed-in customer's ID. Run this code on your server. In an async Python handler, use an async client and await its requests.
+
+The first request creates the customer's record in Zorveus. Later requests with the same ID count toward the same customer's allowance. The SDK examples print the response text; cURL returns the full response.
+
+You do not need to check the balance before every request. Zorveus checks it when the request arrives. See [Track requests by customer](/inference/product-user-metadata) for optional profile details and activity labels.
+
+## 3. Show the remaining balance
+
+Create a [service key](/startups/service-keys) with `product_users:read` permission. Save it as `ZORVEUS_SERVICE_KEY` and your app ID as `ZORVEUS_APP_ID`. The service key reads customer data; `ZORVEUS_API_KEY` makes model requests. Keep both on your server.
+
+Install `@zorveus/sdk` with `npm install @zorveus/sdk` for TypeScript or `zorveus` with `pip install zorveus` for Python.
+
+Pass the same inference key when reading the balance so Zorveus knows which allowance settings to use. Opt-in creation also lets you show the starting balance before the customer's first AI request.
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
+
+```typescript
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
 const service = new ZorveusServiceClient({
-  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+	apiKey: process.env.ZORVEUS_SERVICE_KEY!,
 });
 
-const planClients = {
-  free: new OpenAI({
-    apiKey: process.env.ZORVEUS_FREE_KEY!,
-    baseURL: "https://api.zorveus.com/v1",
-  }),
-  pro: new OpenAI({
-    apiKey: process.env.ZORVEUS_PRO_KEY!,
-    baseURL: "https://api.zorveus.com/v1",
-  }),
-};
-
-interface CompletionRequest {
-  userId: string;
-  userTier: "free" | "pro";
-  prompt: string;
-}
-
-export async function runUserPrompt({ userId, userTier, prompt }: CompletionRequest) {
-  // 1. Optional pre-flight check: Verify customer has remaining allowance
-  const user = await service.productUsers.getByExternalId({
-    appId: process.env.ZORVEUS_APP_ID!,
-    externalUserId: userId,
-    upsertIfMissing: true,
-  });
-
-  const available = parseFloat(user.allowance?.available_allowance || "0");
-  if (available <= 0) {
-    return {
-      status: "quota_exhausted",
-      message: "You have reached your monthly AI allowance. Please upgrade or buy credits.",
-    };
-  }
-
-  // 2. Select client for the user's tier
-  const client = planClients[userTier];
-
-  try {
-    // 3. Send request with customer attribution header
-    const response = await client.chat.completions.create(
-      {
-        model: userTier === "pro" ? "anthropic/claude-3-5-sonnet" : "openai/gpt-4.1-mini",
-        messages: [{ role: "user", content: prompt }],
-      },
-      {
-        headers: { "X-Zorveus-External-User-ID": userId },
-      }
-    );
-
-    return {
-      status: "success",
-      content: response.choices[0].message.content,
-    };
-  } catch (err: unknown) {
-    if (err instanceof APIError) {
-      if (err.status === 403) {
-        return {
-          status: "quota_exhausted",
-          message: "You have reached your monthly AI allowance. Please upgrade or buy credits.",
-        };
-      }
-      if (err.status === 402) {
-        return {
-          status: "system_error",
-          message: "AI service temporarily unavailable. Organization wallet requires funding.",
-        };
-      }
-    }
-    throw err;
-  }
-}
-```
-
-```python
-import os
-from openai import OpenAI, APIStatusError
-from zorveus import ZorveusServiceClient
-
-service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
-app_id = os.environ["ZORVEUS_APP_ID"]
-
-plan_clients = {
-    "free": OpenAI(api_key=os.environ["ZORVEUS_FREE_KEY"], base_url="https://api.zorveus.com/v1"),
-    "pro": OpenAI(api_key=os.environ["ZORVEUS_PRO_KEY"], base_url="https://api.zorveus.com/v1"),
-}
-
-def run_user_prompt(user_id: str, user_tier: str, prompt: str):
-    # 1. Optional pre-flight check: Verify customer has remaining allowance
-    user = service.product_users.get_by_external_id(
-        app_id=app_id,
-        external_user_id=user_id,
-        upsert_if_missing=True,
-    )
-
-    available = float(user.allowance.available_allowance if user.allowance else 0)
-    if available <= 0:
-        return {
-            "status": "quota_exhausted",
-            "message": "You have reached your monthly AI allowance. Please upgrade or buy credits.",
-        }
-
-    # 2. Select client for the user's tier
-    client = plan_clients.get(user_tier, plan_clients["free"])
-    model = "anthropic/claude-3-5-sonnet" if user_tier == "pro" else "openai/gpt-4.1-mini"
-
-    try:
-        # 3. Send request with customer attribution header
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            extra_headers={"X-Zorveus-External-User-ID": user_id},
-        )
-        return {
-            "status": "success",
-            "content": response.choices[0].message.content,
-        }
-    except APIStatusError as err:
-        if err.status_code == 403:
-            return {
-                "status": "quota_exhausted",
-                "message": "You have reached your monthly AI allowance. Please upgrade or buy credits.",
-            }
-        if err.status_code == 402:
-            return {
-                "status": "system_error",
-                "message": "AI service temporarily unavailable. Organization wallet requires funding.",
-            }
-        raise err
-```
-
-</CodeGroup>
-
----
-
-## 3. Grant credits after a payment
-
-When customers run out of their monthly plan allowance, you can let them purchase one-time credit top-ups.
-
-Use any payment provider to collect the payment. After your backend verifies a successful-payment webhook, use your Zorveus service key to grant credits.
-
-Read the customer ID and purchased credit amount from your trusted billing records. Pass the credit amount as a USD decimal string and use a unique payment reference as `external_reference`. Reuse that reference on retries so the same payment does not grant credits twice.
-
-Call this helper from your verified payment handler:
-
-<CodeGroup titles={["TypeScript", "Python"]}>
-
-```typescript
-import { ZorveusServiceClient } from "@zorveus/sdk";
-
-const service = new ZorveusServiceClient({ apiKey: process.env.ZORVEUS_SERVICE_KEY! });
-
-export async function grantPurchasedCredits(
-  userId: string,
-  creditAmountUsd: string,
-  paymentReference: string,
-) {
-  // Idempotent grant: retries with the same reference return the existing receipt
-  const receipt = await service.productUsers.grantCreditByExternalId({
-    appId: process.env.ZORVEUS_APP_ID!,
-    externalUserId: userId,
-    amount: creditAmountUsd,
-    externalReference: paymentReference,
-    source: "purchase",
-    reason: "Purchased AI credits",
-  });
-
-  console.log(`Granted $${receipt.credit_grant.amount} to user ${userId}`);
-}
-```
-
-```python
-import os
-from zorveus import ZorveusServiceClient
-
-service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
-app_id = os.environ["ZORVEUS_APP_ID"]
-
-def grant_purchased_credits(user_id: str, credit_amount_usd: str, payment_reference: str):
-    receipt = service.product_users.grant_credit_by_external_id(
-        app_id=app_id,
-        external_user_id=user_id,
-        amount=credit_amount_usd,
-        external_reference=payment_reference,
-        source="purchase",
-        reason="Purchased AI credits",
-    )
-
-    print(f"Granted ${receipt.credit_grant.amount} to user {user_id}")
-```
-
-</CodeGroup>
-
-See [Grant credits after a payment](/startups/billing-integration) for webhook integration, including a Stripe example.
-
-### Show balances as credits in your UI
-
-You can show customers a balance such as **200 credits left**. Choose how many credits equal one dollar. For example, set `app.creditUnitsPerUsd` to `"100"` in your [CLI manifest](/cli/manifest) and [apply the change](/cli/quickstart). A \$2 allowance then starts at 200 credits.
-
-Read the customer's balance using their plan key, then send `allowance.remaining_credit_units` to your UI:
-
-<CodeGroup titles={["TypeScript", "Python"]}>
-
-```typescript
 const user = await service.productUsers.getByExternalId({
 	appId: process.env.ZORVEUS_APP_ID!,
 	externalUserId: "customer_42",
-	inferenceKey: process.env.ZORVEUS_PRO_KEY!,
+	inferenceKey: process.env.ZORVEUS_API_KEY!,
 	upsertIfMissing: true,
 });
 
-const creditsLeft = user.allowance?.remaining_credit_units ?? null;
+const available = user.allowance?.available_allowance ?? null;
+console.log(available === null ? "Balance unavailable" : `$${available} remaining`);
+console.log("Resets at:", user.allowance?.period_end ?? null);
 ```
 
 ```python
-user = service.product_users.get_by_external_id(
-	app_id=os.environ["ZORVEUS_APP_ID"],
-	external_user_id="customer_42",
-	inference_key=os.environ["ZORVEUS_PRO_KEY"],
-	upsert_if_missing=True,
-)
+import os
+from zorveus import ZorveusServiceClient
 
-credits_left = user.allowance.remaining_credit_units if user.allowance else None
+service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
+try:
+	user = service.product_users.get_by_external_id(
+		app_id=os.environ["ZORVEUS_APP_ID"],
+		external_user_id="customer_42",
+		inference_key=os.environ["ZORVEUS_API_KEY"],
+		upsert_if_missing=True,
+	)
+
+	available = user.allowance.available_allowance if user.allowance else None
+	print("Balance unavailable" if available is None else f"${available} remaining")
+	print("Resets at:", user.allowance.period_end if user.allowance else None)
+finally:
+	service.close()
 ```
 
 </CodeGroup>
 
-Use the key for the customer's actual plan. `upsertIfMissing` creates their record if needed, so you can show a balance before their first AI request.
+A new customer with no usage or extra credits starts with $2. After a model request, the balance reflects their usage and any active reservations.
 
-The returned credit balance includes the remaining plan allowance and any usable purchased credits. Keep it as a decimal string. If it is `null`, show "Balance unavailable". Read it again after AI requests or credit purchases to refresh your UI.
+Use `allowance.available_allowance` for the total remaining amount, including usable extra credits, and `allowance.period_end` for the reset date. Keep amounts as decimal strings. If allowance data is missing, show "Balance unavailable" rather than treating the balance as zero.
 
-For a complete example, see the [Write Room starter](/code-labs/write-room-saas).
+Refresh the balance after AI requests or credit purchases. A positive balance does not guarantee the next request will fit, and it does not override a blocked customer status. See [Show a customer's balance](/startups/check-allowance) for the full behavior.
 
----
+## Use credits in your product
 
-## 4. Key security and best practices
+You can show customers "200 credits left" instead of "$2 remaining." Zorveus keeps the underlying allowance in USD and returns the balance in your chosen credit units.
 
-- **Never share inference keys with frontends**: All requests to `https://api.zorveus.com` that use your business keys must come from your authenticated application backend.
-- **Always attach the external user ID**: The `X-Zorveus-External-User-ID` header is what connects an AI request to a customer's allowance and usage ledger.
-- **Match billing cycles with allowance anchors**: If a user subscribes on the 15th of the month, pass `allowance_starts_at` when creating their profile so their monthly cap resets on the 15th, rather than the 1st. See [Allowance periods](/startups/allowance-periods).
+Set `app.creditUnitsPerUsd` to `"100"` in your [CLI manifest](/cli/manifest) and [apply the change](/cli/quickstart). Each $1 then equals 100 credits, so the $2 monthly allowance above gives each customer 200 credits.
 
----
+Display `allowance.remaining_credit_units` from the balance read above. Zorveus updates the balance as customers use AI; your app does not need a separate credit ledger. If the field is missing, show "Balance unavailable."
 
-## Related guides
+Credits work with free allowances and paid plans. See [Show a customer's balance](/startups/check-allowance#show-the-balance-in-credits) for the UI code or [Write Room](/code-labs/write-room-saas) for a working app. You can also [set a rate on an individual grant](/startups/credit-grants#choose-a-conversion-rate).
 
-- [Write Room SaaS Code Lab](/code-labs/write-room-saas): Complete runnable React, TypeScript, and Express starter wired with `@zorveus/sdk` and the CLI.
-- [Configure product-user allowances](/startups/configure-product-user-allowances): Deep dive into caps, overrun policies, and enforcement modes.
-- [Grant credits after a payment](/startups/billing-integration): Webhook setup and payment reconciliation.
-- [Product users API reference](/api-reference/product-users): Full parameters for reading customer allowances and credit histories.
+## When a request is rejected
+
+Inspect the structured Zorveus error code as well as the HTTP status. A `403` can mean several different things:
+
+| Error | What your app should do |
+| --- | --- |
+| `zorveus_product_user_allowance_insufficient` | Explain that this request exceeds the customer's remaining allowance. They can try a smaller request, wait for a reset, or use an extra allowance option your product offers. |
+| `zorveus_reservation_insufficient_balance` | Ask your product's operator to fund the Zorveus wallet. This is separate from the customer's allowance. |
+| `zorveus_model_not_allowed` | Use a model allowed by the key's settings. Buying extra credits does not resolve model access. |
+
+The gateway can nest the Zorveus code inside `error.provider_specific_fields.error`. Follow [Error handling](/platform/errors) for the response shapes and other failures.
+
+## Optional: connect paid plans or credit purchases
+
+You can add payment features when your product needs them. Your payment provider handles the money; Zorveus tracks the AI allowance you assign to each customer.
+
+### Include AI in a paid plan
+
+For example, a $5 subscription can include the same $2 monthly allowance used above. If customers on another plan need a different allowance, set up an inference key with that plan's allowance settings.
+
+Your backend selects the key for the customer's subscription in your database. Keep their customer ID stable across plan changes and use the selected key for both AI requests and balance reads. Setting `plan: "pro"` in profile metadata does not authorize a plan.
+
+<FlowDiagram flow="plan-keys" />
+
+See [One key for multiple plans](/startups/routing-keys) for selecting a plan with an alias. For [prorated upgrades](/startups/prorated-plan-changes), apply the plan change before reading the balance with the new key.
+
+### Sell extra AI allowance
+
+A customer could pay $5 for $3 of extra allowance. After your backend verifies the payment and looks up the purchase, use a service key with `product_users:write` permission to grant that allowance.
+
+Keep one reference for the purchase. Retrying with the same reference and grant details returns the original grant instead of adding credits twice. Changed details under that reference return a conflict.
+
+Follow [Grant customer credits](/startups/credit-grants) for welcome bonuses, support adjustments, and verified purchases. The [payment example](/startups/credit-grants#grant-credits-after-a-payment) shows how to connect your payment provider.
+
+## Next steps
+
+- [Set customer limits](/startups/configure-product-user-allowances): Choose amounts, periods, and enforcement behavior.
+- [Set allowance reset dates](/startups/allowance-periods): Align resets with a subscription date when needed.
+- [Show customer activity](/startups/product-user-activity): Display requests and credit changes in your app.
+- [Write Room SaaS Code Lab](/code-labs/write-room-saas): Explore a complete app with subscription plans and credit purchases.

@@ -409,6 +409,15 @@ code {
   overflow-wrap: anywhere !important;
 }
 
+.prose .zorveus-nowrap-first-column :is(th, td):first-child {
+  white-space: nowrap;
+}
+
+.prose .zorveus-nowrap-first-column :is(th, td):first-child code {
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+}
+
 /* Eliminate nested inner borders and backgrounds inside CodeGroup and Tabs */
 .overflow-hidden figure.nd-codeblock,
 .overflow-hidden figure[data-rehype-pretty-code-figure],
@@ -932,6 +941,22 @@ a.zorveus-card-container:hover .zorveus-card-cta { color: var(--docs-accent); }
   background: var(--docs-accent-bg);
 }
 .zorveus-diagram-title { color: var(--docs-heading); font-size: 14px; font-weight: 600; }
+.zorveus-plan-key-heading { margin: 0; padding: 14px 20px; border-bottom: 1px solid var(--docs-border); color: var(--docs-heading); font-size: 13px; font-weight: 500; }
+.zorveus-plan-key-paths { display: grid; gap: 16px; padding: 20px; }
+.zorveus-plan-key-row { display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1.3fr) 16px minmax(0, 1fr); align-items: stretch; gap: 12px; }
+.zorveus-plan-key-node { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; padding: 14px; border: 1px solid var(--docs-border); border-radius: 6px; background: var(--docs-surface); color: var(--docs-muted); font-size: 12px; line-height: 1.5; }
+.zorveus-plan-key-node[data-accent] { border-color: var(--docs-accent); background: var(--docs-accent-bg); }
+.zorveus-plan-key-node code { padding: 0; border: 0; background: transparent; color: var(--docs-muted); font-family: var(--font-mono); font-size: 11px; overflow-wrap: anywhere; }
+.zorveus-plan-key-arrow { align-self: center; color: var(--docs-muted); font-size: 18px; text-align: center; }
+@container (max-width: 480px) {
+  .zorveus-plan-key-heading { padding: 12px; }
+  .zorveus-plan-key-paths { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 12px; }
+  .zorveus-plan-key-row { grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr 16px 1fr 16px 1fr; gap: 6px; }
+  .zorveus-plan-key-node { padding: 10px; font-size: 12px; }
+  .zorveus-plan-key-node .zorveus-diagram-title { font-size: 12px; }
+  .zorveus-plan-key-node code { font-size: 10px; }
+  .zorveus-plan-key-arrow { font-size: 16px; line-height: 1; transform: rotate(90deg); }
+}
 .zorveus-diagram-node:not(:last-child)::after {
   content: "→";
   position: absolute;

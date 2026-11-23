@@ -1,172 +1,201 @@
 ---
-title: Product-user metadata
-description: Attribute requests using trusted customer IDs, headers, or body metadata.
+title: Track requests by customer
+description: Send customer IDs, optional profile data, and request activity labels with your AI requests.
 ---
 
-For a Business app, include your authenticated customer's external ID on each request. The first attributed request creates the product user for the app. Profile fields are optional
+Send the signed-in customer's ID with each AI request. Zorveus uses it to track their spending and apply their allowance. The first request creates their customer record automatically.
 
-## Use a header for ID-only attribution
+Keep customer identity server-controlled. Derive the customer ID from your authenticated session state. Never allow browser clients to pass an unverified customer ID.
 
-Headers work across JSON and multipart requests. With a shared client, set the ID per request rather than changing client defaults between users
+---
 
-<CodeGroup titles={["Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+## Send the customer's ID
 
-```python
-response = client.chat.completions.create(
-	model=model_id,
-	messages=[{"role": "user", "content": message}],
-	extra_headers={"X-Zorveus-External-User-ID": authenticated_user_id},
-)
-```
+Pass the customer's ID in the `X-Zorveus-External-User-ID` header. Headers work across standard JSON requests and multipart file uploads:
+
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)", "cURL"]}>
 
 ```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.ZORVEUS_STARTER_KEY!,
+  baseURL: "https://api.zorveus.com/v1",
+});
+
 const response = await client.chat.completions.create(
-	{ model: modelId, messages: [{ role: "user", content: message }] },
-	{ headers: { "X-Zorveus-External-User-ID": authenticatedUserId } },
+  {
+    model: "openai/gpt-4.1-mini",
+    messages: [{ role: "user", content: "Write a haiku" }],
+  },
+  {
+    headers: { "X-Zorveus-External-User-ID": "customer_42" },
+  },
 );
-```
-
-</CodeGroup>
-
-The caller supplies a client configured with the inference key and `https://api.zorveus.com/v1`. Get identity from trusted authentication or worker state. Do not allow customers to select another user's allowance
-
-## Send optional profile details
-
-```json
-{
-	"model": "YOUR_CHAT_MODEL_ID",
-	"messages": [{"role": "user", "content": "Hello"}],
-	"metadata": {
-		"external_user_id": "customer_42",
-		"product_user": {
-			"display_name": "Example user",
-			"email": "user@example.com",
-			"metadata": {"plan": "pro"}
-		}
-	}
-}
-```
-
-With the OpenAI Python client, pass this metadata through `extra_body={"metadata": {...}}`. With the OpenAI TypeScript client, send `metadata` as a top-level request body field. TypeScript does not use Python's `extra_body` option
-
-For the native TypeScript Zorveus SDK, use `zorveusMetadata: { externalUserId, displayName, userEmail, metadata }` on the request. Do not pass these fields to the native `Zorveus` constructor. The OpenAI adapter has its own attribution options
-
-Profile metadata is for attribution and reporting. A field such as `plan: "pro"` does not authorize the Pro plan. Your backend selects that plan's key or routing alias
-
-## Attach business context to usage events
-
-Use `metadata.usage_metadata` for request-specific activity, such as an agent reply or document indexing job. Keep profile data in `metadata.product_user.metadata`. Usage metadata does not update the user's profile or change the charge
-
-<CodeGroup titles={["cURL", "Python (Zorveus SDK)", "TypeScript (Zorveus SDK)"]}>
-
-```bash
-curl --fail-with-body https://api.zorveus.com/v1/chat/completions \
-	-H "Authorization: Bearer $ZORVEUS_INFERENCE_KEY" \
-	-H 'Content-Type: application/json' \
-	-H 'X-Zorveus-Usage-Metadata: {"channel":"whatsapp"}' \
-	-d '{
-		"model": "YOUR_CHAT_MODEL_ID",
-		"messages": [{"role":"user","content":"Reply to the customer"}],
-		"metadata": {
-			"external_user_id": "user_123",
-			"usage_metadata": {
-				"activity_id": "reply_123",
-				"activity_label": "WhatsApp agent replied",
-				"conversation_id": "conversation_123"
-			}
-		}
-	}'
 ```
 
 ```python
 import os
-from zorveus import Zorveus
+from openai import OpenAI
 
-client = Zorveus()
-try:
-	response = client.chat.completions.create(
-		model=os.environ["ZORVEUS_MODEL_ID"],
-		messages=[{"role": "user", "content": "Reply to the customer"}],
-		user="user_123",
-		usage_metadata={
-			"activity_id": "reply_123",
-			"activity_label": "WhatsApp agent replied",
-			"conversation_id": "conversation_123",
-		},
-		extra_headers={"X-Zorveus-Usage-Metadata": '{"channel":"whatsapp"}'},
-	)
-finally:
-	client.close()
+client = OpenAI(
+    api_key=os.environ["ZORVEUS_STARTER_KEY"],
+    base_url="https://api.zorveus.com/v1",
+)
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Write a haiku"}],
+    extra_headers={"X-Zorveus-External-User-ID": "customer_42"},
+)
+```
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Authorization: Bearer $ZORVEUS_STARTER_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-Zorveus-External-User-ID: customer_42" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role": "user", "content": "Write a haiku"}]
+  }'
+```
+
+</CodeGroup>
+
+When sharing an API client across multiple customer requests, set the ID on each call rather than setting client-level defaults.
+
+---
+
+## Add optional profile details
+
+You can optionally send profile information to display readable customer names in your Zorveus dashboard:
+
+```json
+{
+  "model": "openai/gpt-4.1-mini",
+  "messages": [{"role": "user", "content": "Hello"}],
+  "metadata": {
+    "external_user_id": "customer_42",
+    "product_user": {
+      "display_name": "Alex Rivera",
+      "email": "alex@example.com"
+    }
+  }
+}
+```
+
+You can also pass these profile fields via HTTP headers:
+
+```http
+X-Zorveus-External-User-ID: customer_42
+X-Zorveus-Product-User-Display-Name: Alex Rivera
+X-Zorveus-Product-User-Email: alex@example.com
+```
+
+Profile details are for dashboard reporting and identification. Profile fields do not authorize a subscription plan or change customer limits. Your backend selects the plan's inference key.
+
+---
+
+## Attach business context to usage events
+
+Use `usage_metadata` to label specific tasks (such as an agent reply, document indexing, or audio transcription). When your backend fetches customer activity via [Product-user activity](/startups/product-user-activity), Zorveus returns these saved fields with each request item.
+
+Pass activity metadata using HTTP headers:
+
+```http
+X-Zorveus-External-User-ID: customer_42
+X-Zorveus-Usage-Metadata: {"activity_label": "Drafting assistant", "activity_id": "reply_123"}
+```
+
+Or pass it in the request body under `metadata.usage_metadata`:
+
+<CodeGroup titles={["cURL", "TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
+
+```bash
+curl https://api.zorveus.com/v1/chat/completions \
+  -H "Authorization: Bearer $ZORVEUS_STARTER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-4.1-mini",
+    "messages": [{"role": "user", "content": "Reply to ticket"}],
+    "metadata": {
+      "external_user_id": "customer_42",
+      "usage_metadata": {
+        "activity_id": "reply_123",
+        "activity_label": "Customer support reply",
+        "project_id": "proj_support"
+      }
+    }
+  }'
 ```
 
 ```typescript
 import { Zorveus } from "@zorveus/sdk";
 
-const client = new Zorveus({ apiKey: process.env.ZORVEUS_INFERENCE_KEY! });
-const response = await client.chat.completions.create(
-	{
-		model: process.env.ZORVEUS_MODEL_ID!,
-		messages: [{ role: "user", content: "Reply to the customer" }],
-		zorveusMetadata: {
-			externalUserId: "user_123",
-			usageMetadata: {
-				activity_id: "reply_123",
-				activity_label: "WhatsApp agent replied",
-				conversation_id: "conversation_123",
-			},
-		},
-	},
-	{ headers: { "X-Zorveus-Usage-Metadata": JSON.stringify({ channel: "whatsapp" }) } },
-);
+const client = new Zorveus({ apiKey: process.env.ZORVEUS_STARTER_KEY! });
+
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Reply to ticket" }],
+  zorveusMetadata: {
+    externalUserId: "customer_42",
+    usageMetadata: {
+      activity_id: "reply_123",
+      activity_label: "Customer support reply",
+      project_id: "proj_support",
+    },
+  },
+});
+```
+
+```python
+from zorveus import Zorveus
+
+client = Zorveus(api_key=os.environ["ZORVEUS_STARTER_KEY"])
+
+response = client.chat.completions.create(
+    model="openai/gpt-4.1-mini",
+    messages=[{"role": "user", "content": "Reply to ticket"}],
+    user="customer_42",
+    usage_metadata={
+        "activity_id": "reply_123",
+        "activity_label": "Customer support reply",
+        "project_id": "proj_support",
+    },
+)
 ```
 
 </CodeGroup>
 
-Replace the example user and activity IDs with values from your authenticated application state. Both native SDKs also support this metadata on embeddings. Python uses `usage_metadata` on each call, including async and streaming calls. TypeScript uses `zorveusMetadata.usageMetadata`
+`activity_label` and `activity_id` are application-defined. They do not alter pricing or deduplicate requests.
 
-With the official OpenAI Python client, use `extra_body={"metadata": {"usage_metadata": activity}}`. The `ZorveusOpenAI` and `AsyncZorveusOpenAI` adapters accept `usage_metadata=activity` per request. The Python framework adapters accept `usage_metadata=activity` when constructing `ChatZorveus` or `ZorveusLLM`. Use an activity-specific framework instance when the value changes between operations
+---
+
+## Advanced metadata rules
 
 ### Header and body precedence
 
-`X-Zorveus-Usage-Metadata` accepts a JSON-encoded object. The gateway merges its keys with `metadata.usage_metadata`; the body wins when both define a key. This is a shallow merge, so a nested body object replaces the matching header object
+`X-Zorveus-Usage-Metadata` accepts a JSON-encoded object. The gateway merges header keys with `metadata.usage_metadata`. The body wins when both define the same key:
 
-For example, a header containing `{"channel":"whatsapp","activity_id":"default"}` and a body containing `{"activity_id":"reply_123"}` produce `{"channel":"whatsapp","activity_id":"reply_123"}`
+- Header: `{"channel": "web", "activity_id": "default"}`
+- Body: `{"activity_id": "reply_123"}`
+- Merged: `{"channel": "web", "activity_id": "reply_123"}`
 
-The header, body object, and merged object must each fit within 4,096 UTF-8 bytes. Object sizes use compact JSON encoding. The raw header must also fit within 4,096 bytes, so omit unnecessary whitespace. Values can contain nested JSON objects, arrays, strings, finite numbers, booleans, and null. The header must contain an object, and a non-null body value must be an object. Omitting the body field or setting it to null attaches no body metadata. Invalid JSON, arrays or scalar top-level values, non-finite numbers, and oversized metadata are rejected with HTTP 400 before a billing reservation is created
+### Size limits
 
-### Saved event metadata
+The header, body object, and merged object must each fit within 4,096 UTF-8 bytes. The header must be an object (not an array or scalar). Values can contain strings, numbers, booleans, arrays, and nested objects. Invalid JSON or oversized payloads return HTTP 400 before a reservation is created.
 
-Zorveus captures the merged object for the reservation and carries it into the resulting usage events for wallet, BYOK, and Realtime requests. Gateway retries retain that captured context. The gateway removes this business metadata before forwarding the request to the model provider
+### Scoping and upstream stripping
 
-Authorized usage-event responses include a `usage_metadata` field. For the request above, that field contains:
+- **App scoping**: A customer ID is scoped to your Zorveus app. The same ID in another app is an independent customer record.
+- **Provider stripping**: Zorveus strips all `X-Zorveus-*` headers and internal business metadata before forwarding requests to model providers (OpenAI, Anthropic, Google).
+- **Request tracing**: Successful gateway responses include `x-zorveus-request-id` and, when a reservation is made, `x-zorveus-reservation-id` for audit logging.
 
-```json
-{
-	"activity_id": "reply_123",
-	"activity_label": "WhatsApp agent replied",
-	"conversation_id": "conversation_123",
-	"channel": "whatsapp"
-}
-```
+---
 
-Events without metadata, including older events, return `null`. An explicit empty object stays `{}`. Existing diagnostic access without usage-detail permission redacts this field. Completion and embedding responses keep their provider-compatible shapes and do not include the saved usage event
+## Next steps
 
-`activity_id` and `activity_label` are optional application-defined keys. They do not deduplicate requests, group multiple events, or change prices. Use [Product-user activity](/startups/product-user-activity) to list usage and permanent credit movements through a service key
-
-## Identifier precedence and scope
-
-For an external ID, the gateway uses the first non-empty value in this order: `metadata.external_user_id`, top-level `user`, then `X-Zorveus-External-User-ID`. Supply one canonical value or ensure all supplied values agree
-
-An external ID is scoped to your app. The same ID in another app is a separate product user. `metadata.product_end_user_id` refers to an existing internal Zorveus ID. If both internal and external identifiers are provided, they must refer to the same user. An invalid internal ID is rejected. A new external ID can create a user
-
-User OAuth connections use their authorized funding context. They do not use the Business product-user allowance workflow
-
-## Plan selection and subscription cycles
-
-With a [routing key](/startups/routing-keys), use `X-Zorveus-Key-Alias` or `metadata.key_alias` to select a member key. The body selector takes precedence. Keep the external customer ID stable across plan changes
-
-Use `X-Zorveus-Allowance-Starts-At` or `metadata.product_user.allowance_starts_at` for a subscription anchor. Use `X-Zorveus-Allowance-Change-Policy: prorate_increase` or `metadata.product_user.allowance_change` for supported upgrades. Read [allowance periods](/startups/allowance-periods) and [prorated plan changes](/startups/prorated-plan-changes) before changing these values
-
-## Trace a request
-
-Successful gateway responses can include `x-zorveus-request-id` and, when a reservation exists, `x-zorveus-reservation-id`. Keep these identifiers with your application request ID for support. A request rejected before reservation may not have a reservation ID
+- [Show customer activity](/startups/product-user-activity): Fetch saved activity metadata and usage breakdowns.
+- [Manage customer profiles](/startups/product-users): Look up or update a customer's details with your service key.
+- [Set customer limits](/startups/configure-product-user-allowances): Configure spending caps and overrun policies.
