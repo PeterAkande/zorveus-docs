@@ -1,0 +1,290 @@
+---
+title: PulseWrite AI studio starter
+description: Clone, configure, and inspect a client-side Vite and React editorial studio powered by user-funded Zorveus AI wallets.
+---
+
+PulseWrite AI is an open-source AI editorial studio starter built on `@zorveus/react` and `@zorveus/sdk`. You can clone it from [`PeterAkande/zorveus-pulsewrite-ai`](https://github.com/PeterAkande/zorveus-pulsewrite-ai) or test the live deployment at [pulsewrite.peterakande.com](https://pulsewrite.peterakande.com).
+
+Unlike traditional SaaS apps where the developer pays for server-side API keys, PulseWrite AI uses the **Bring Your Own Wallet (BYOW)** architecture. Users connect their personal Zorveus wallet and pay for their own text, image, and voice requests. Your application incurs \$0 in model billing liabilities.
+
+If you want a starter where your company pays for customer model usage and manages plan limits, see the [Write Room SaaS starter](/code-labs/write-room-saas).
+
+---
+
+## What this lab demonstrates
+
+- **Pure client-side PKCE architecture**: A Single Page App (SPA) using a public Client ID with zero server-side client secrets and no backend proxy layer.
+- **Drop-in React components (`@zorveus/react`)**: Wrap your application with `ZorveusProvider`, drop in `ConnectWalletButton`, and handle callback redirects with `OAuthCallbackHandler`.
+- **Live wallet spend tracking (`useZorveusSpend`)**: Real-time display of the user's remaining balance, spent amount, and active spending cap in USD, refreshed automatically via event-driven `zorveus:activity` triggers without polling.
+- **Multi-modal AI generation**:
+  - **Long-form article drafting**: Streaming chat completions using `zorveus/qwen3.8-27b`.
+  - **Custom cover art generation**: High-resolution editorial artwork using `gemini/gemini-2.5-flash-image` via `openai.images.generate`.
+  - **Audio narration synthesis**: Lifelike speech using `gemini/gemini-2.5-flash-preview-tts` via `openai.audio.speech.create`, converting raw PCM16 samples to playable WAV blobs directly in the browser.
+
+---
+
+## 1. Clone and install dependencies
+
+Requires Node.js `18` or later.
+
+```sh
+git clone https://github.com/PeterAkande/zorveus-pulsewrite-ai.git
+cd zorveus-pulsewrite-ai
+npm install
+```
+
+---
+
+## 2. Register your OAuth app in the Zorveus dashboard
+
+Create an OAuth app in the [Zorveus dashboard](https://app.zorveus.com) to allow users to connect their wallets:
+
+1. Open the [Zorveus dashboard](https://app.zorveus.com) and navigate to **Apps** -> **Create App**.
+2. Set **Client type** to `public`. Public clients run entirely in the browser and do not use a client secret.
+3. Under **Redirect URIs**, enter the local development callback URL:
+   ```text
+   http://localhost:5173/oauth/callback
+   ```
+   If you deploy to Vercel or Netlify, add your production callback URL (e.g., `https://pulsewrite.peterakande.com/oauth/callback`) on a new line.
+4. Under **Scopes**, request:
+   - `inference:write`
+   - `models:*`
+5. Save the app and copy your **Client ID** (`zrv_client_...`).
+
+While your app is in `draft` status, you can connect using your own Zorveus organization account or add invited test users in the dashboard settings.
+
+---
+
+## 3. Configure environment and run locally
+
+Copy `.env.example` to `.env`:
+
+```sh
+cp .env.example .env
+```
+
+Open `.env` and paste your Client ID:
+
+```bash
+# Zorveus Public Client ID from the developer console
+VITE_ZORVEUS_CLIENT_ID="zrv_client_your_client_id"
+
+# OAuth callback redirect URI
+VITE_ZORVEUS_REDIRECT_URI="http://localhost:5173/oauth/callback"
+
+# Zorveus API and gateway endpoints
+VITE_ZORVEUS_API_URL="https://api.zorveus.com"
+VITE_ZORVEUS_GATEWAY_URL="https://api.zorveus.com/v1"
+```
+
+Start the Vite development server:
+
+```sh
+npm run dev
+```
+
+Open `http://localhost:5173` in your browser. Click **Connect AI Wallet**, log in to Zorveus, select your funding organization, and approve the connection. Once redirected, you will see your live balance badge appear in the navbar.
+
+---
+
+## 4. Walk through the integration
+
+### Step 1: Wrap your app with `ZorveusProvider` (`src/App.tsx`)
+
+`@zorveus/react` provides context for user tokens, gateway URLs, and reactive spend state. In `src/App.tsx`, `ZorveusProvider` wraps the routing tree and configures token persistence:
+
+```tsx
+import { ZorveusProvider, OAuthCallbackHandler } from "@zorveus/react";
+
+export default function App() {
+  const clientId = import.meta.env.VITE_ZORVEUS_CLIENT_ID;
+  const apiUrl = import.meta.env.VITE_ZORVEUS_API_URL || "https://api.zorveus.com";
+  const gatewayBaseURL = import.meta.env.VITE_ZORVEUS_GATEWAY_URL || "https://api.zorveus.com/v1";
+  const redirectUri = import.meta.env.VITE_ZORVEUS_REDIRECT_URI || "http://localhost:5173/oauth/callback";
+
+  return (
+    <ZorveusProvider
+      clientId={clientId}
+      redirectUri={redirectUri}
+      baseURL={apiUrl}
+      gatewayBaseURL={gatewayBaseURL}
+      persistToken={true}
+    >
+      {/* Handles return redirects when completing the OAuth handshake */}
+      <OAuthCallbackHandler
+        onSuccess={() => {
+          if (typeof window !== "undefined" && !window.opener) {
+            window.location.replace("/");
+          }
+        }}
+      />
+
+      <Navbar />
+      <MainApp />
+    </ZorveusProvider>
+  );
+}
+```
+
+Setting `persistToken={true}` saves the user's connection in local storage so they remain signed in between browser refreshes.
+
+### Step 2: Show wallet balance and connection status (`src/components/Navbar.tsx`)
+
+PulseWrite AI uses `ConnectWalletButton` for authentication and `useZorveusSpend` to display remaining funds and spending caps in the header:
+
+```tsx
+import { ConnectWalletButton, useZorveusAuth, useZorveusSpend } from "@zorveus/react";
+import { useEffect } from "react";
+import { Wallet, RefreshCw } from "lucide-react";
+
+export function Navbar() {
+  const { isConnected } = useZorveusAuth();
+  const { remainingBalanceFormatted, currency, spentFormatted, spendCapFormatted, isLoading, refresh } = useZorveusSpend();
+
+  // Refresh balance immediately whenever a generation completes
+  useEffect(() => {
+    const handleActivity = () => void refresh();
+    window.addEventListener("zorveus:activity", handleActivity);
+    return () => window.removeEventListener("zorveus:activity", handleActivity);
+  }, [refresh]);
+
+  return (
+    <header className="navbar">
+      <div className="brand">PulseWrite</div>
+
+      <div className="actions">
+        {isConnected && remainingBalanceFormatted !== null && (
+          <div
+            className="balance-badge"
+            onClick={() => void refresh()}
+            title={`Spent: $${spentFormatted} / Cap: $${spendCapFormatted ?? "Unlimited"}`}
+          >
+            <Wallet size={12} />
+            <span>${remainingBalanceFormatted} {currency}</span>
+            {isLoading && <RefreshCw size={10} className="spin" />}
+          </div>
+        )}
+
+        <ConnectWalletButton size="sm" />
+      </div>
+    </header>
+  );
+}
+```
+
+### Step 3: Stream article drafting (`src/services/agent.ts`)
+
+When an authenticated user drafts an essay, PulseWrite AI sends a streaming request directly to the Zorveus gateway using their OAuth bearer token:
+
+```typescript
+import type { Zorveus } from "@zorveus/sdk";
+
+export async function streamArticleDraft(
+  client: Zorveus,
+  topic: string,
+  onChunk: (delta: string, fullText: string) => void,
+  signal?: AbortSignal
+): Promise<string> {
+  let accumulatedContent = "";
+
+  const stream = await client.chat.completions.create(
+    {
+      model: "zorveus/qwen3.8-27b",
+      messages: [
+        {
+          role: "system",
+          content: "You are an acclaimed publication essayist and journalist. Write clear, insightful articles.",
+        },
+        { role: "user", content: `Write an article on: ${topic}` },
+      ],
+      stream: true,
+      temperature: 0.7,
+    },
+    { signal }
+  );
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content ?? "";
+    accumulatedContent += delta;
+    onChunk(delta, accumulatedContent);
+  }
+
+  // Notify the app that an inference call finished so the balance updates
+  window.dispatchEvent(new CustomEvent("zorveus:activity"));
+  return accumulatedContent;
+}
+```
+
+### Step 4: Generate cover art (`src/services/agent.ts`)
+
+In parallel with drafting, the application creates custom editorial artwork using the OpenAI SDK adapter (`ZorveusOpenAI`):
+
+```typescript
+import { ZorveusOpenAI } from "@zorveus/sdk/openai";
+
+export async function generateCoverImage(
+  gatewayBaseURL: string,
+  accessToken: string,
+  topic: string,
+  style: string
+): Promise<string> {
+  const openai = new ZorveusOpenAI({
+    apiKey: accessToken,
+    baseURL: gatewayBaseURL,
+    dangerouslyAllowBrowser: true,
+  });
+
+  const response = await openai.images.generate({
+    model: "gemini/gemini-2.5-flash-image",
+    prompt: `Editorial cover art for a story titled "${topic}". Style: ${style}, high resolution, minimalist.`,
+    n: 1,
+    size: "1024x1024",
+    response_format: "b64_json",
+  });
+
+  window.dispatchEvent(new CustomEvent("zorveus:activity"));
+  return `data:image/png;base64,${response.data[0].b64_json}`;
+}
+```
+
+### Step 5: Synthesize voice narration (`src/services/agent.ts`)
+
+Once the text draft completes, PulseWrite AI converts the article into an audio narration with text-to-speech:
+
+```typescript
+export async function generateVoiceNarration(
+  gatewayBaseURL: string,
+  accessToken: string,
+  articleMarkdown: string,
+  voice: string
+): Promise<string> {
+  const openai = new ZorveusOpenAI({
+    apiKey: accessToken,
+    baseURL: gatewayBaseURL,
+    dangerouslyAllowBrowser: true,
+  });
+
+  const response = await openai.audio.speech.create({
+    model: "gemini/gemini-2.5-flash-preview-tts",
+    voice: voice || "achird",
+    input: articleMarkdown.slice(0, 2500),
+    response_format: "pcm16",
+  });
+
+  const arrayBuffer = await response.arrayBuffer();
+  const wavBlob = pcm16ToWavBlob(arrayBuffer, 24000, 1);
+
+  window.dispatchEvent(new CustomEvent("zorveus:activity"));
+  return URL.createObjectURL(wavBlob);
+}
+```
+
+The helper `pcm16ToWavBlob` prepends a 44-byte RIFF WAV header to the raw audio buffer so standard HTML5 `<audio>` players can scrub and play the narration immediately.
+
+---
+
+## 5. Next steps
+
+- **Deploy your app**: Host your Vite app on Vercel, Netlify, or Cloudflare Pages. Remember to add your production domain to your app's **Redirect URIs** in the Zorveus dashboard.
+- **Publish your app**: When you are ready for users outside your test audience, submit your app for review in the Zorveus dashboard. Read [App review and publishing](/oauth/app-review).
+- **Deep dive into OAuth**: Learn how to implement custom backend PKCE exchanges in Node.js or Python with [Connect users and exchange tokens](/oauth/token-exchange).
