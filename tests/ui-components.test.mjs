@@ -192,6 +192,19 @@ test("flow diagrams preserve payment steps and resource relationships as live te
   assert.match(hierarchyHtml, /App Connection/);
   assert.match(hierarchyHtml, /Authenticates model requests/);
   assert.equal((hierarchyHtml.match(/<li>/g) || []).length, 3);
+
+  const oauthHtml = renderToStaticMarkup(
+    React.createElement(FlowDiagram, { flow: "oauth-wallet" }),
+  );
+  assert.doesNotMatch(oauthHtml, /<img/);
+  assert.match(oauthHtml, /1\. Connect once \(OAuth with PKCE\)/);
+  assert.match(oauthHtml, /2\. Every AI request/);
+  assert.match(oauthHtml, /User(&#x27;|')s browser/);
+  assert.match(oauthHtml, /Zorveus consent/);
+  assert.match(oauthHtml, /Your app/);
+  assert.match(oauthHtml, /Zorveus gateway/);
+  assert.match(oauthHtml, /Model provider/);
+  assert.equal((oauthHtml.match(/<li>/g) || []).length, 4);
 });
 
 test("endpoint methods have distinct pill styles and retain authentication labels", () => {
@@ -327,4 +340,18 @@ test("copy page button includes screen-reader live region and layout provides sk
 
   const css = fs.readFileSync("app/globals.css", "utf8");
   assert.match(css, /\.sr-only\s*\{[^}]*overflow:\s*hidden/);
+});
+
+test("docs not-found pages render inside DocsPage main area with valid quick links", () => {
+  const docsNotFoundFile = fs.readFileSync("app/(docs)/not-found.tsx", "utf8");
+  const globalNotFoundFile = fs.readFileSync("app/not-found.tsx", "utf8");
+  assert.match(docsNotFoundFile, /<DocsPage/);
+  assert.match(docsNotFoundFile, /<DocsNotFound/);
+  assert.match(globalNotFoundFile, /<ZorveusDocsLayout/);
+  assert.match(globalNotFoundFile, /<DocsPage/);
+
+  const component = fs.readFileSync("components/layout/DocsNotFound.tsx", "utf8");
+  assert.match(component, /Page not found/);
+  assert.match(component, /href="\/"/);
+  assert.match(component, /href:\s*'\/startups\/provider-credentials'/);
 });

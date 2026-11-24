@@ -1,92 +1,49 @@
 ---
-title: Use the scoped OAuth token
-description: Execute inference calls using the user-provided OAuth access token.
+title: Run AI requests with user tokens
+description: Send chat, image, and audio model requests using a connected user's OAuth access token.
 ---
 
-The `access_token` returned by `/oauth/token` is a standard Zorveus API key (`zrv_...`). Pass it directly in the `Authorization: Bearer zrv_...` header, the official Zorveus SDK constructors, or OpenAI SDK `apiKey` parameters
+The `access_token` returned by `POST https://api.zorveus.com/oauth/token` (`zrv_usr_...`) works as a standard Zorveus API key. Pass it to the Zorveus SDK, the OpenAI SDK, or an `Authorization: Bearer zrv_usr_...` header.
+
+Zorveus bills every request directly to the funding organization the user chose during consent, not to your company account.
+
+In the examples below, `userAccessToken` (or `user_access_token`) is the `access_token` from [Connect users and exchange tokens](/oauth/token-exchange), or `accessToken` from `useZorveusAuth()` if you use `@zorveus/react`.
 
 ---
 
-## Make an inference request
+## 1. Chat completions
 
-<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "Python (ZorveusOpenAI)", "TypeScript (ZorveusOpenAI)", "Python (OpenAI SDK)", "TypeScript (OpenAI SDK)"]}>
+Use `@zorveus/sdk` (`zorveus` in Python) or the OpenAI SDK pointed at `https://api.zorveus.com/v1`:
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (OpenAI SDK)", "Python (OpenAI SDK)"]}>
 
 ```typescript
 import { Zorveus } from "@zorveus/sdk";
 
-// Initialize Zorveus client using the user's wallet access token
 const client = new Zorveus({
-  apiKey: userOAuthAccessToken,
+  apiKey: userAccessToken,
 });
 
-const completion = await client.chat.completions.create({
-  model: "openai/gpt-6-sol",
-  messages: [{ role: "user", content: "Hello Zorveus!" }],
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Draft a two-sentence project summary." }],
 });
 
-console.log(completion.choices[0].message.content);
+console.log(response.choices[0].message.content);
 ```
 
 ```python
 from zorveus import Zorveus
 
-# Instantiate client with user's access token
 client = Zorveus(api_key=user_access_token)
-
-response = client.chat.completions.create(
-    model="openai/gpt-6-sol",
-    messages=[{"role": "user", "content": "Hello Zorveus!"}]
-)
-
-print(response.choices[0].message.content)
-```
-
-```python
-# pip install zorveus[openai]
-from zorveus.openai import ZorveusOpenAI
-
-# Instantiate OpenAI adapter with user's access token
-client = ZorveusOpenAI(api_key=user_access_token)
-
-response = client.chat.completions.create(
-    model="openai/gpt-6-sol",
-    messages=[{"role": "user", "content": "Hello Zorveus!"}]
-)
-
-print(response.choices[0].message.content)
-```
-
-```typescript
-// npm install @zorveus/sdk openai
-import { ZorveusOpenAI } from "@zorveus/sdk/openai";
-
-const openai = new ZorveusOpenAI({
-  apiKey: userOAuthAccessToken,
-});
-
-const completion = await openai.chat.completions.create({
-  model: "openai/gpt-6-sol",
-  messages: [{ role: "user", content: "Hello Zorveus!" }],
-});
-
-console.log(completion.choices[0].message.content);
-```
-
-```python
-from openai import OpenAI
-
-# Initialize client using the OAuth access token
-client = OpenAI(
-    base_url="https://api.zorveus.com/v1",
-    api_key=user_access_token,
-)
-
-response = client.chat.completions.create(
-    model="openai/gpt-6-sol",
-    messages=[{"role": "user", "content": "Hello Zorveus!"}],
-)
-
-print(response.choices[0].message.content)
+try:
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", content: "Draft a two-sentence project summary."}],
+    )
+    print(response.choices[0].message.content)
+finally:
+    client.close()
 ```
 
 ```typescript
@@ -94,19 +51,141 @@ import OpenAI from "openai";
 
 const client = new OpenAI({
   baseURL: "https://api.zorveus.com/v1",
-  apiKey: userOAuthAccessToken,
+  apiKey: userAccessToken,
+  // Add dangerouslyAllowBrowser: true only in browser apps using the user's own OAuth token
 });
 
-async function main() {
-  const completion = await client.chat.completions.create({
-    model: "openai/gpt-6-sol",
-    messages: [{ role: "user", content: "Hello Zorveus!" }],
-  });
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Draft a two-sentence project summary." }],
+});
 
-  console.log(completion.choices[0].message.content);
-}
+console.log(response.choices[0].message.content);
+```
 
-main();
+```python
+from openai import OpenAI
+
+with OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key=user_access_token,
+) as client:
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", "content": "Draft a two-sentence project summary."}],
+    )
+    print(response.choices[0].message.content)
 ```
 
 </CodeGroup>
+
+You can replace `openai/gpt-4.1-mini` with any model covered by the user's approved scopes (such as `zorveus/qwen3.8-27b`). Use [model discovery](/inference/model-discovery) to list available models for that token.
+
+---
+
+## 2. Image generation
+
+Call `images.generate` with an image model covered by your app's scopes:
+
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)"]}>
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: userAccessToken,
+  // Add dangerouslyAllowBrowser: true only in browser apps using the user's own OAuth token
+});
+
+const response = await client.images.generate({
+  model: "gemini/gemini-2.5-flash-image",
+  prompt: "Minimalist geometric cover illustration, clean editorial style.",
+  n: 1,
+  size: "1024x1024",
+  response_format: "b64_json",
+});
+
+const base64Image = response.data[0].b64_json;
+```
+
+```python
+from openai import OpenAI
+
+with OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key=user_access_token,
+) as client:
+    response = client.images.generate(
+        model="gemini/gemini-2.5-flash-image",
+        prompt="Minimalist geometric cover illustration, clean editorial style.",
+        n=1,
+        size="1024x1024",
+        response_format="b64_json",
+    )
+    base64_image = response.data[0].b64_json
+```
+
+</CodeGroup>
+
+---
+
+## 3. Audio synthesis
+
+Call `audio.speech.create` to synthesize speech from text:
+
+<CodeGroup titles={["TypeScript (OpenAI SDK)", "Python (OpenAI SDK)"]}>
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.zorveus.com/v1",
+  apiKey: userAccessToken,
+  // Add dangerouslyAllowBrowser: true only in browser apps using the user's own OAuth token
+});
+
+const response = await client.audio.speech.create({
+  model: "gemini/gemini-2.5-flash-preview-tts",
+  voice: "achird",
+  input: "Your summary is ready to play.",
+  response_format: "pcm16",
+});
+
+const arrayBuffer = await response.arrayBuffer();
+```
+
+```python
+from openai import OpenAI
+
+with OpenAI(
+    base_url="https://api.zorveus.com/v1",
+    api_key=user_access_token,
+) as client:
+    response = client.audio.speech.create(
+        model="gemini/gemini-2.5-flash-preview-tts",
+        voice="achird",
+        input="Your summary is ready to play.",
+        response_format="pcm16",
+    )
+    audio_bytes = response.content
+```
+
+</CodeGroup>
+
+---
+
+## Keep user tokens safe and isolated
+
+1. **Create a client per user**: Never reuse or mutate one shared client across different users. Build the client from the signed-in user's token for each request or session.
+2. **Never fall back to your company key**: If a user's token fails because of low balance, a spending cap, or revocation, stop and prompt the user to fix their Zorveus account. Do not silently retry with your own API key.
+3. **Skip Business product-user headers**: The user's OAuth token already identifies the paying organization and spending limits. Do not send `X-Zorveus-External-User-ID`.
+4. **Keep tokens out of logs**: Treat `zrv_usr_...` tokens like passwords. Never write them to server logs, error trackers, or analytics events.
+
+---
+
+## Next steps
+
+- [Disconnect and reauthorize](/oauth/revocation): Revoke tokens on logout and reconnect users when a token expires.
+- [Test, publish, and handle errors](/oauth/app-review): Handle OAuth and inference errors and publish your app.
+- [PulseWrite AI Code Lab](/code-labs/pulsewrite-ai): Inspect a complete browser app with chat, image, and audio requests.

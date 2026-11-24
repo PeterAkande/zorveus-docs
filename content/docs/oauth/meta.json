@@ -3,14 +3,9 @@
   "pages": [
     "overview",
     "register-an-app",
-    "authorization-request",
-    "consent-and-caps",
     "token-exchange",
     "use-the-token",
-    "reauthorization",
     "revocation",
-    "testing-draft-apps",
-    "app-review",
-    "errors"
+    "app-review"
   ]
 }

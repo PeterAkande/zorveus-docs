@@ -1,17 +1,109 @@
 ---
-title: App review and publishing
-description: Prepare an OAuth app for users outside its test audience.
+title: Test, publish, and handle errors
+description: Invite test users to a draft OAuth app, submit it for review, and recover from OAuth and inference errors.
 ---
 
-Configure your app's identity, redirect URIs, scopes, models, test users, and consent spending policy in the [dashboard](https://app.zorveus.com). Test the authorization, inference, and disconnect flows before submitting it for review
+Before opening your OAuth app to the public, test the connection flow with invited users, handle error responses cleanly, and submit your app for review in the Zorveus dashboard.
+
+---
+
+## 1. Test a draft app
+
+<span id="test-users" />
+
+Every new OAuth app starts in `draft` status. While an app is in draft:
+
+- Only members of your Developer organization and invited **Test Users** can approve access.
+- Other Zorveus users see a message saying the app is still in testing.
+
+### Invite test users
+
+1. Open your app in the [Zorveus dashboard](https://app.zorveus.com).
+2. Under **Test Users**, add the email addresses of developers or QA testers.
+3. Ask each tester to connect and approve the app. Make sure the Zorveus organization they pick has wallet funds or eligible provider credentials so model calls succeed.
+
+---
+
+## 2. Submit for review and publish
+
+When you are ready for any Zorveus user to connect, submit your app for review from the app settings page.
 
 | Status | Meaning |
-| --- | --- |
-| `draft` | Editable and available to permitted testers |
-| `submitted_for_review` | Waiting for review |
-| `active` | Available outside the test audience |
-| `rejected` | Returned with review feedback |
-| `suspended` | Authorization is blocked |
-| `deleted` | No longer active |
+| :--- | :--- |
+| `draft` | Editable. Only organization members and invited test users can connect. |
+| `submitted_for_review` | Waiting for Zorveus review. App settings are locked until review finishes. |
+| `active` | Approved. Any Zorveus user can connect to your app. |
+| `rejected` | Returned with review feedback. Fix the noted items and submit again. |
+| `suspended` | Authorization is temporarily blocked by administrators. |
+| `deleted` | App is permanently removed. |
 
-Manage submission and cancellation in the dashboard. Treat an app as publicly available only when its status is `active`. See [Testing draft apps](/oauth/testing-draft-apps)
+### Before you submit
+
+Check that your app settings include:
+
+- **App name and icon**: Clear branding users recognize on the consent screen.
+- **Production redirect URIs**: `https://` callback URLs for your deployed app.
+- **Privacy policy and Terms of service URLs**: Working public links for end users.
+- **Scope justification**: A short note explaining why your app needs `inference:write` and the model scopes you request.
+
+---
+
+## 3. Handle OAuth and inference errors
+
+<span id="oauth-errors" />
+
+Errors can happen at three points: the browser consent redirect, the token exchange call, and later model requests.
+
+### Browser authorization errors (`GET https://app.zorveus.com/oauth/authorize`)
+
+Zorveus checks `client_id`, `redirect_uri`, scopes, and the PKCE challenge before showing the consent screen:
+
+- **Invalid client or redirect URI**: Zorveus shows an error page directly to the user and does not redirect back to your app.
+- **User declined access**: Zorveus redirects to your callback URL with `error=access_denied` and your original `state`. Check for `error` in your callback handler and return the user cleanly to your app.
+
+### Token exchange errors (`POST https://api.zorveus.com/oauth/token`)
+
+Failed token exchanges return a structured JSON error:
+
+```json
+{
+  "error": {
+    "code": "zorveus_invalid_code_verifier",
+    "message": "OAuth code_verifier does not match the authorization code."
+  }
+}
+```
+
+Branch on `error.code`:
+
+| Code | HTTP status | What to do |
+| :--- | :--- | :--- |
+| `zorveus_invalid_code_verifier` | `400` | Restart authorization with a fresh PKCE verifier and S256 challenge. |
+| `zorveus_oauth_code_expired` | `400` | The authorization code expired (codes last 10 minutes). Ask the user to connect again. |
+| `zorveus_oauth_code_consumed` | `400` | The code was already exchanged. Use the token from the first exchange, or ask the user to connect again. |
+| `zorveus_invalid_client_secret` | `401` | Check `ZORVEUS_CLIENT_SECRET` on your server or rotate the secret in the dashboard. |
+| `zorveus_client_secret_required` | `400` | Confidential apps must send `client_secret` from the server. |
+| `zorveus_redirect_uri_mismatch` | `400` | Send the exact same `redirect_uri` used in the authorization request. |
+| `zorveus_model_scope_required` | `400` | Add at least one `models:` scope (such as `models:*`) to your authorization request. |
+
+### Model request errors (`https://api.zorveus.com/v1`)
+
+When calling the gateway with a user's token, branch on the HTTP status and Zorveus error code. On OpenAI-compatible gateway routes, Zorveus can place the structured error inside `error.provider_specific_fields.error` (see [Error handling](/platform/errors) for payload details).
+
+| Code | HTTP status | Cause | What to show or do |
+| :--- | :--- | :--- | :--- |
+| `zorveus_malformed_or_missing_key` or `zorveus_unknown_key` | `401` | Missing, invalid, or expired token. | Clear the saved token and prompt the user to reconnect. |
+| `zorveus_key_inactive` | `403` | The user revoked your app in their Zorveus dashboard. | Clear the saved token and prompt the user to reconnect. |
+| `zorveus_reservation_insufficient_balance` or `zorveus_org_billing_frozen` | `402` | The user's paying organization does not have enough balance or billing is frozen. | Ask the user to top up or resolve billing in their Zorveus account. |
+| `zorveus_cap_exceeded` | `403` | The user hit the spending cap they set for your app. | Ask the user to raise the cap in Zorveus or reconnect with a higher cap. |
+| `zorveus_model_not_allowed` | `403` | The requested model is outside the scopes approved for this connection. | Use an approved model or reauthorize with the required `models:` scope. |
+
+Never fall back to your company's API key when a user's token fails. Show the reason so the user can fix it in their Zorveus account.
+
+---
+
+## Next steps
+
+- [Connect user wallets](/oauth/overview): Review the full user-funded architecture.
+- [Error handling](/platform/errors): See the full list of gateway error codes and payload structure.
+- [PulseWrite AI Code Lab](/code-labs/pulsewrite-ai): Inspect a working starter app with connection recovery.

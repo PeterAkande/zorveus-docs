@@ -1,24 +1,53 @@
 ---
-title: Automatic provider routing
-description: Understand credential priority, BYOK selection, and optional wallet fallback.
+title: Key priority, rotation, and fallback
+description: Use multiple provider keys with different priorities, automatic rotation around failures and cooldowns, and optional Zorveus wallet fallback.
 ---
 
-Zorveus selects an eligible credential for the model you request. It does not choose a cheaper model or change your model ID automatically
+You can attach multiple keys for the same provider in **Provider Credentials** in the [Zorveus dashboard](https://app.zorveus.com) and give each one a priority. Zorveus tries eligible keys in priority order, rotates to the next key when one hits rate limits or upstream failures, and can optionally fall back to your Zorveus wallet.
 
-## Configure eligible credentials
+Zorveus only selects between eligible credentials for the exact model you asked for. It does not switch your request to a different model ID automatically.
 
-Add [provider credentials](/startups/provider-credentials) in the dashboard. A credential must be active, match the model's provider and allowed model policy, and be available to the app connection. `auto_resolve` credentials can be selected automatically. `manual_grant_only` credentials need an explicit connection grant
+---
 
-Explicit connection grants are considered before organization credentials available through automatic resolution. Within each group, lower `routing_priority` numbers come first. For example, `10` precedes `30`. Do not rely on equal-priority credentials receiving equal traffic
+## How priority ordering works
 
-Credentials in quota cooldown are placed after healthy candidates. Cooldown does not mean the credential is permanently disabled or that every failing credential is excluded
+For a credential to be eligible, it must be active, match the requested model's provider and model policy, and be accessible to the app connection (`auto_resolve` or explicitly granted).
 
-## Understand wallet fallback
+Zorveus orders eligible keys in two tiers:
 
-If no eligible BYOK credential resolves, the request uses the configured Zorveus-managed route and checks wallet funding
+1. **Explicit connection grants first**: Keys granted directly to the app connection are tried before organization-wide `auto_resolve` keys.
+2. **Lower `routing_priority` first**: Within each tier, smaller numbers run first. For example, a key with priority `10` runs before priority `20`, which runs before priority `30`.
 
-If a BYOK credential resolves, backup credentials can be attempted for eligible provider failures. Wallet fallback from that BYOK request requires `auto_fallback_to_wallet`, an available managed route, and enough wallet funds for the reservation. Disabling fallback does not create a BYOK-only model policy for requests that match no credential
+A common setup is placing your primary high-quota key at priority `10` and one or more backup keys at priority `20` and `30`. Do not rely on two keys with the same `routing_priority` receiving an even 50/50 split.
 
-Wallet fallback can change who pays for a request. A successful fallback is recorded as `billing_mode: "wallet"`. Successful BYOK usage is `byok_external`, with applicable platform fees. Check usage after testing both paths
+---
 
-Model-policy and customer-allowance failures are not a reason to bypass the selected plan. See [BYOK costs](/wallet-and-billing/byok-costs) and [Error handling](/platform/errors)
+## Rotation and quota cooldown
+
+When a primary key hits an eligible upstream error (such as a provider rate limit or quota exhaustion), Zorveus rotates to the next eligible backup key in priority order.
+
+Keys that enter quota cooldown move behind healthy candidates until cooldown clears. Cooldown is temporary. It does not permanently disable the key, and Zorveus prefers it by priority again once it recovers.
+
+---
+
+## Optional wallet fallback
+
+You control what happens if your BYOK keys fail with `auto_fallback_to_wallet` in **Provider Credentials**:
+
+- **No matching BYOK key**: If no active BYOK credential matches the requested model, Zorveus uses its managed wallet-funded route (when available and funded). Turning off `auto_fallback_to_wallet` does not block managed routes when no BYOK credential matched in the first place.
+- **Matching BYOK key fails**: Zorveus tries any backup BYOK keys first. If none succeed and `auto_fallback_to_wallet` is enabled, Zorveus can fall back to a managed wallet-funded route as long as one exists and your wallet has enough funds to reserve.
+
+Wallet fallback changes who pays for that request:
+
+- Requests served by your provider key record `billing_mode: "byok_external"` (plus any configured Zorveus platform fee).
+- Requests served by wallet fallback record `billing_mode: "wallet"` and bill your Zorveus wallet directly.
+
+Test both paths in **Usage** in the dashboard before enabling `auto_fallback_to_wallet` in production.
+
+---
+
+## Next steps
+
+- [Provider keys (BYOK)](/startups/provider-credentials): Add provider keys, pick routing modes, and check supported providers.
+- [BYOK costs](/wallet-and-billing/byok-costs): Understand platform fees, wallet reservations, and reference pricing.
+- [Error handling](/platform/errors): Handle funding, cap, and model-policy errors in your app.

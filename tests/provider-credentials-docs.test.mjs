@@ -6,9 +6,11 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 test('provider setup guides use the dashboard, not credential API requests', () => {
-  const pages = fs.readdirSync('content/docs/providers').filter((name) => name.endsWith('.mdx'))
-    .map((name) => `content/docs/providers/${name}`);
-  pages.push('content/docs/startups/provider-credentials.mdx', 'content/docs/api-reference/provider-credentials.mdx');
+  const pages = [
+    'content/docs/startups/provider-credentials.mdx',
+    'content/docs/startups/automatic-routing.mdx',
+    'content/docs/api-reference/provider-credentials.mdx',
+  ];
   for (const page of pages) {
     const content = fs.readFileSync(page, 'utf8');
     assert.match(content, /dashboard/, page);

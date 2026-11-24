@@ -1,11 +1,86 @@
 ---
 title: Register an OAuth app
-description: Create a developer app and configure its redirect URIs, scopes, models, and cap policy.
+description: Create a Zorveus OAuth app and set its redirect URIs, permission scopes, and spending cap limits.
 ---
 
-Create an OAuth app in the [Zorveus Dashboard](https://app.zorveus.com) to connect your product to Zorveus users. You can configure the app's redirect URIs, scopes, models, and cap policy
+Register an OAuth app in the [Zorveus dashboard](https://app.zorveus.com) before connecting users. You need a **Developer organization** in your Zorveus account to create one.
 
-Confidential apps receive a client secret at creation. Store it immediately because secrets are shown only when created or rotated. Public clients use PKCE without storing a client secret.
-If you lose the secret, rotate it on the app details page in the dashboard
+---
 
-Redirect URIs use exact matching. Register every environment explicitly and use HTTPS outside approved local development cases
+## 1. Create your app
+
+1. Open the [Zorveus dashboard](https://app.zorveus.com), switch to your **Developer organization**, go to **Apps**, and click **Create App**.
+2. Enter an app name and upload an optional icon. Users see both on the consent screen.
+3. Choose a **Client type**:
+   - **Public**: Use this for browser apps (React, Vite, Vue), static sites, and mobile or desktop apps. Public clients use S256 PKCE and never receive a client secret.
+   - **Confidential**: Use this for server-side backends (Node.js, Express, Next.js server routes, Python) that can keep credentials secret on the server.
+4. Save the app and copy its **Client ID** (`zrv_client_...`).
+
+For a confidential app, Zorveus also creates a **Client Secret** (`zrv_client_secret_...`) and shows it once. Save it in your server environment variables right away. If you lose it, open the app page and click **Rotate secret**.
+
+---
+
+## 2. Add redirect URIs
+
+Zorveus matches the callback URL character for character. If the `redirect_uri` your code sends does not match an entry in your app settings, Zorveus rejects the request.
+
+1. Under **Redirect URIs**, add your local callback URL:
+   ```text
+   http://localhost:3000/oauth/callback
+   ```
+2. Add one line for each environment you deploy:
+   ```text
+   http://localhost:3000/oauth/callback
+   https://staging.myapp.com/oauth/callback
+   https://myapp.com/oauth/callback
+   ```
+
+`http://localhost` works for local development. Production redirect URIs must use `https://`.
+
+---
+
+## 3. Choose permission scopes
+
+Scopes control what your app can do with a user's token. Enable the models your app needs in your app settings, then request the matching scopes during authorization:
+
+| Scope | Required | What it allows |
+| :--- | :--- | :--- |
+| `inference:write` | **Yes** | Lets your app send model requests on the user's behalf. |
+| `models:*` | **Yes** (or a specific provider scope) | Lets your app call any model allowed by the user's paying organization. |
+| `models:openai/*` | Optional | Limits requests to OpenAI models. |
+| `models:anthropic/*` | Optional | Limits requests to Anthropic models. |
+| `models:gemini/*` | Optional | Limits requests to Gemini models. |
+
+<span id="model-scopes" />
+
+Every model scope must start with `models:` (for example, `models:*` or `models:openai/*`). Zorveus rejects bare strings like `openai/*`.
+
+---
+
+## 4. Set spending cap defaults
+
+<span id="spending-caps" />
+
+Spending caps limit how much your app can spend from a user's wallet. Set your default cap rules in the app settings so users see sensible options on the consent screen:
+
+| Setting | Format | What it controls |
+| :--- | :--- | :--- |
+| **Default cap amount** | USD decimal string (for example, `"10.00"`) | Suggested cap pre-filled on the consent screen. |
+| **Minimum cap amount** | USD decimal string | Lowest cap a user can choose when connecting to your app. |
+| **Maximum cap amount** | USD decimal string | Highest cap a user can choose. |
+| **Allow unlimited** | Boolean | Lets users connect without a spending ceiling. |
+| **Cap period** | `daily`, `monthly`, or `lifetime` | How often spent usage resets. Monthly caps reset at 00:00 UTC on the first of each month. |
+
+### How user spending caps work
+
+On the consent screen, the user can accept your default cap or change it within your minimum and maximum bounds.
+
+That cap applies to total spend from that user's connection to your app. User OAuth connections do not use Business product-user credit grants or allowance anchors.
+
+---
+
+## Next steps
+
+- [Connect users and exchange tokens](/oauth/token-exchange): Build the PKCE redirect, validate the callback, and exchange the code for a token.
+- [Run AI requests with user tokens](/oauth/use-the-token): Pass the user's token to the Zorveus or OpenAI SDK.
+- [Test, publish, and handle errors](/oauth/app-review): Invite test users and submit your app for public access.

@@ -17,7 +17,7 @@ Create a **Developer organization** in the [dashboard](https://app.zorveus.com),
 
 Enable the models your app needs and copy its **Client ID**. Use it in your chosen example below.
 
-While the app is in draft, connect with an organization member or an added [test user](/oauth/testing-draft-apps). That user needs funds or eligible provider keys in the account they choose to pay from.
+While the app is in draft, connect with an organization member or an added [test user](/oauth/app-review#test-users). That user needs funds or eligible provider keys in the account they choose to pay from.
 
 ## 2. Get the user's token
 
@@ -336,7 +336,7 @@ The response is funded by the account the user approved. Use each user's token o
 
 - [PulseWrite AI studio Code Lab](/code-labs/pulsewrite-ai): Inspect a complete Vite and React starter with drop-in wallet connect and multi-modal generation.
 - [Disconnect a user](/oauth/revocation): Revoke access before removing the saved token.
-- [Reconnect a user](/oauth/reauthorization): Replace a revoked token or change the approved account, models, or limits.
+- [Reconnect a user](/oauth/revocation#reauthorize-a-user): Replace a revoked token or change the approved account, models, or limits.
 - [Register a backend app](/oauth/register-an-app): Use a confidential client when your server manages tokens. Keep its client secret on the server.
 
 Honor `expires_in` when present. Zorveus does not issue refresh tokens, so users reconnect when their token expires.

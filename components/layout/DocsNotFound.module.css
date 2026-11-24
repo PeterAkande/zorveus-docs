@@ -1,0 +1,127 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  max-width: 780px;
+  margin-inline: auto;
+  padding: 24px 0 48px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid var(--docs-accent);
+  border-radius: 999px;
+  background: var(--docs-accent-bg);
+  color: var(--docs-accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.title {
+  margin: 0;
+  color: var(--docs-heading);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.description {
+  margin: 0;
+  max-width: 560px;
+  color: var(--docs-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: var(--docs-heading);
+  color: var(--docs-bg);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.primary:hover {
+  opacity: 0.88;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--docs-border);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--docs-border);
+  border-radius: 8px;
+  background: var(--docs-surface);
+  color: var(--docs-text);
+  text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.card:hover {
+  border-color: var(--docs-border-strong);
+  background: var(--docs-hover);
+}
+
+.cardHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--docs-heading);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cardHeading svg {
+  color: var(--docs-accent);
+}
+
+.cardDescription {
+  margin: 0;
+  color: var(--docs-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+}

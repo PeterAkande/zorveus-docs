@@ -1,59 +1,317 @@
 ---
-title: Token exchange
-description: Exchange authorization codes and PKCE verifiers for scoped inference tokens.
+title: Connect users and exchange tokens
+description: Redirect users to Zorveus with PKCE, verify the callback, and exchange the authorization code for an access token.
 ---
 
-Once the user approves your app, Zorveus redirects to your `redirect_uri` with a temporary `code`. Your backend exchanges this code and your PKCE `code_verifier` for a scoped access token.
+Connecting a user takes four steps with OAuth 2.0 and S256 PKCE. Notice the two different hosts:
 
-<ApiEndpoint method="POST" path="/oauth/token" />
+- **Browser consent**: Redirect users to `https://app.zorveus.com/oauth/authorize`.
+- **Token exchange**: Send the authorization code to `POST https://api.zorveus.com/oauth/token`.
+
+Before you start, [register an OAuth app](/oauth/register-an-app) and copy its **Client ID** (`zrv_client_...`). If your app uses a confidential backend, save its **Client Secret** on your server too.
+
+---
+
+## Shortcut for React apps
+
+If you are building a public browser app in React, `@zorveus/react` handles PKCE generation, redirect, callback validation, and token exchange for you:
+
+```bash
+npm install @zorveus/react @zorveus/sdk
+```
+
+```tsx
+'use client';
+
+import {
+  ZorveusProvider,
+  ConnectWalletButton,
+  OAuthCallbackHandler,
+  useZorveusAuth,
+} from "@zorveus/react";
+
+export function WalletProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <ZorveusProvider
+      clientId="zrv_client_your_client_id"
+      redirectUri="http://localhost:3000/oauth/callback"
+    >
+      {children}
+    </ZorveusProvider>
+  );
+}
+
+export function ConnectButton() {
+  return <ConnectWalletButton>Connect Zorveus</ConnectWalletButton>;
+}
+
+// Render this component on your /oauth/callback route
+export function WalletCallback() {
+  return <OAuthCallbackHandler redirectTo="/" />;
+}
+
+// Read accessToken in any component inside WalletProvider
+export function useUserToken() {
+  const { accessToken, isConnected } = useZorveusAuth();
+  return { accessToken, isConnected };
+}
+```
+
+If you are not using `@zorveus/react`, or you are exchanging tokens on a backend server, follow the four manual steps below.
+
+---
+
+## Manual PKCE flow
+
+```text
+1. Your app creates a PKCE verifier, S256 challenge, and random state, saves them, and redirects the user.
+2. The user signs in on app.zorveus.com, picks a paying organization, sets a spend cap, and approves access.
+3. Zorveus redirects back to your redirect_uri with a one-time code and your original state.
+4. Your app calls POST https://api.zorveus.com/oauth/token with the code and verifier to get the access token.
+```
+
+Install the SDK for your language:
+
+<CodeGroup titles={["TypeScript", "Python"]}>
+
+```bash
+npm install @zorveus/sdk
+```
+
+```bash
+pip install zorveus
+```
+
+</CodeGroup>
+
+---
+
+## 1. Start authorization
+
+<span id="start-authorization" />
+
+When the user clicks **Connect Zorveus**, generate a random `state` and a PKCE verifier and challenge. Save `state` and the verifier for the callback check, then send the user's browser to `https://app.zorveus.com/oauth/authorize`.
+
+<ApiEndpoint method="GET" path="https://app.zorveus.com/oauth/authorize" />
 
 <KeyInserter type="client" label="Client ID" placeholder="zrv_client_your_client_id" />
 
-## Code examples
-
-<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
+<CodeGroup titles={["TypeScript (Browser / Public)", "Python (Server / Confidential)"]}>
 
 ```typescript
 import { ZorveusOAuth } from "@zorveus/sdk";
 
-// Retrieve codeVerifier and state from your user's session
-const { code, state } = req.query;
-if (state !== session.state) {
-  throw new Error("CSRF state mismatch");
+export async function startWalletConnect() {
+  const pkce = await ZorveusOAuth.generatePKCE();
+
+  // Keep state and verifier in this browser tab until the callback runs
+  sessionStorage.setItem("zorveus_oauth_attempt", JSON.stringify({
+    state: pkce.state,
+    verifier: pkce.codeVerifier,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  }));
+
+  const authUrl = ZorveusOAuth.getAuthorizationUrl({
+    clientId: "zrv_client_your_client_id",
+    redirectUri: "http://localhost:3000/oauth/callback",
+    state: pkce.state,
+    codeChallenge: pkce.codeChallenge,
+    scopes: ["inference:write", "models:*"],
+    baseURL: "https://app.zorveus.com",
+  });
+
+  window.location.assign(authUrl);
 }
-
-const tokenData = await ZorveusOAuth.exchangeCode({
-  clientId: "zrv_client_your_client_id",
-  clientSecret: process.env.ZORVEUS_CLIENT_SECRET, // Omit for public clients
-  code: String(code),
-  codeVerifier: session.codeVerifier,
-  redirectUri: "https://myapp.com/api/auth/callback",
-});
-
-// Save token securely against the user account
-await db.users.update({
-  where: { id: currentUserId },
-  data: { zorveusAccessToken: tokenData.access_token },
-});
 ```
 
 ```python
+import os
+import time
 from zorveus import ZorveusOAuth
 
-# Verify state from session
-if request.args.get("state") != session.get("state"):
-    raise ValueError("CSRF state mismatch")
+CLIENT_ID = os.environ["ZORVEUS_CLIENT_ID"]
+REDIRECT_URI = "http://localhost:3000/oauth/callback"
 
-token_data = ZorveusOAuth.exchange_code(
-    client_id="zrv_client_your_client_id",
-    client_secret=os.environ.get("ZORVEUS_CLIENT_SECRET"),  # Omit for public clients
-    code=request.args["code"],
-    code_verifier=session["code_verifier"],
-    redirect_uri="https://myapp.com/api/auth/callback",
-)
 
-# Save token in database
-db.save_user_token(user_id=current_user_id, access_token=token_data.access_token)
+def start_wallet_connect(server_session):
+    pkce = ZorveusOAuth.generate_pkce()
+
+    # Keep state and verifier in the signed-in user's server session
+    server_session["zorveus_oauth_attempt"] = {
+        "state": pkce.state,
+        "verifier": pkce.code_verifier,
+        "expires_at": time.time() + 10 * 60,
+    }
+
+    auth_url = ZorveusOAuth.get_authorization_url(
+        client_id=CLIENT_ID,
+        redirect_uri=REDIRECT_URI,
+        state=pkce.state,
+        code_challenge=pkce.code_challenge,
+        scopes=["inference:write", "models:*"],
+        base_url="https://app.zorveus.com",
+    )
+
+    # Redirect the user's browser to this URL
+    return auth_url
+```
+
+</CodeGroup>
+
+Replace `http://localhost:3000/oauth/callback` with your production `https://` callback URL when you deploy.
+
+### Authorization query parameters
+
+<ParamField name="response_type" type="string" required>
+  Must be `code`.
+</ParamField>
+
+<ParamField name="client_id" type="string" required>
+  Your app's Client ID (`zrv_client_...`) from your Developer organization.
+</ParamField>
+
+<ParamField name="redirect_uri" type="string" required>
+  Exact callback URL registered in your app settings.
+</ParamField>
+
+<ParamField name="scope" type="string" required>
+  Space-separated scopes. Must include `inference:write` and at least one `models:` scope such as `models:*` or `models:openai/*`.
+</ParamField>
+
+<ParamField name="code_challenge" type="string" required>
+  Base64URL-encoded SHA-256 hash of your PKCE `code_verifier`.
+</ParamField>
+
+<ParamField name="code_challenge_method" type="string" required>
+  Must be `S256`.
+</ParamField>
+
+<ParamField name="state" type="string" required>
+  Random string used to block CSRF attacks. Check that the callback returns this exact value.
+</ParamField>
+
+---
+
+## 2. User approves access on Zorveus
+
+On `app.zorveus.com`, the user:
+
+1. Signs in to their Zorveus account.
+2. Chooses the personal or team organization that pays for usage.
+3. Reviews the requested models and sets their spending cap.
+4. Approves or cancels the connection.
+
+---
+
+## 3. Handle the callback
+
+If the user approves access, Zorveus redirects their browser to your `redirect_uri` with a one-time `code` and your original `state`:
+
+```text
+http://localhost:3000/oauth/callback?code=zorveus_code_abc123xyz&state=YOUR_RANDOM_STATE
+```
+
+If the user cancels, Zorveus redirects back with an `error` query parameter:
+
+```text
+http://localhost:3000/oauth/callback?error=access_denied&state=YOUR_RANDOM_STATE
+```
+
+Before exchanging the code, check that `state` matches the value you stored in step 1 and that the attempt has not expired. If either check fails, stop and ask the user to connect again.
+
+---
+
+## 4. Exchange the code for an access token
+
+<span id="exchange-token" />
+
+Send the one-time authorization code and your saved PKCE `code_verifier` to `POST https://api.zorveus.com/oauth/token`. Public browser apps omit `client_secret`; confidential servers include it.
+
+<ApiEndpoint method="POST" path="https://api.zorveus.com/oauth/token" />
+
+<KeyInserter type="client" label="Client ID" placeholder="zrv_client_your_client_id" />
+
+<CodeGroup titles={["TypeScript (Browser / Public)", "Python (Server / Confidential)", "cURL (Confidential)"]}>
+
+```typescript
+import { ZorveusOAuth } from "@zorveus/sdk";
+
+export async function finishWalletConnect(clientId: string) {
+  // 1. Read and remove the saved attempt so it can only be used once
+  const stored = sessionStorage.getItem("zorveus_oauth_attempt");
+  sessionStorage.removeItem("zorveus_oauth_attempt");
+  if (!stored) throw new Error("No pending wallet connection");
+
+  const attempt = JSON.parse(stored) as {
+    state: string;
+    verifier: string;
+    expiresAt: number;
+  };
+
+  // Strip ?code= and ?state= from the browser address bar
+  const callbackUrl = new URL(window.location.href);
+  window.history.replaceState(null, "", callbackUrl.pathname);
+
+  if (Date.now() > attempt.expiresAt) {
+    throw new Error("Wallet connection expired. Connect again.");
+  }
+
+  // 2. Validate state and extract the authorization code
+  const callback = ZorveusOAuth.validateCallback({
+    urlOrParams: callbackUrl.searchParams,
+    expectedState: attempt.state,
+  });
+
+  if (!callback.valid || !callback.code) {
+    throw new Error(callback.errorDescription ?? callback.error ?? "Connection was not approved");
+  }
+
+  // 3. Exchange the code for a user access token (public clients omit clientSecret)
+  const tokenData = await ZorveusOAuth.exchangeToken({
+    clientId,
+    code: callback.code,
+    codeVerifier: attempt.verifier,
+    redirectUri: "http://localhost:3000/oauth/callback",
+  });
+
+  return tokenData;
+}
+```
+
+```python
+import os
+import time
+from zorveus import ZorveusOAuth
+
+CLIENT_ID = os.environ["ZORVEUS_CLIENT_ID"]
+CLIENT_SECRET = os.environ["ZORVEUS_CLIENT_SECRET"]
+REDIRECT_URI = "http://localhost:3000/oauth/callback"
+
+
+def finish_wallet_connect(callback_url, server_session):
+    # 1. Read and remove the saved attempt so it can only be used once
+    attempt = server_session.pop("zorveus_oauth_attempt", None)
+    if not attempt or time.time() > attempt["expires_at"]:
+        raise ValueError("Connection attempt expired. Connect again.")
+
+    # 2. Validate state and extract the authorization code
+    callback = ZorveusOAuth.validate_callback(
+        callback_url,
+        expected_state=attempt["state"],
+    )
+    if not callback.valid or not callback.code:
+        raise ValueError(callback.error_description or "Connection was not approved.")
+
+    # 3. Exchange the code for a user access token
+    token_data = ZorveusOAuth.exchange_token(
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        code=callback.code,
+        code_verifier=attempt["verifier"],
+        redirect_uri=REDIRECT_URI,
+    )
+
+    return token_data
 ```
 
 ```bash
@@ -64,14 +322,12 @@ curl -X POST https://api.zorveus.com/oauth/token \
   -d "client_secret=zrv_client_secret_your_secret" \
   -d "code=zorveus_code_abc123xyz" \
   -d "code_verifier=original_plain_code_verifier" \
-  -d "redirect_uri=https://myapp.com/api/auth/callback"
+  -d "redirect_uri=http://localhost:3000/oauth/callback"
 ```
 
 </CodeGroup>
 
----
-
-## Request parameters
+### Request body (form URL-encoded)
 
 <ParamField name="grant_type" type="string" required>
   Must be `authorization_code`.
@@ -82,19 +338,19 @@ curl -X POST https://api.zorveus.com/oauth/token \
 </ParamField>
 
 <ParamField name="code" type="string" required>
-  The single-use authorization code received from the callback redirect.
+  The one-time authorization code from the callback URL.
 </ParamField>
 
 <ParamField name="code_verifier" type="string" required>
-  The original plaintext PKCE verifier generated before the authorization request.
+  The plain PKCE verifier used to create the original `code_challenge`.
 </ParamField>
 
 <ParamField name="redirect_uri" type="string" required>
-  The exact redirect URI used in the authorization request.
+  The exact `redirect_uri` sent in step 1.
 </ParamField>
 
 <ParamField name="client_secret" type="string">
-  Required for confidential backend apps. Public apps (mobile, single-page apps) omit this.
+  Required for confidential backend apps. Omit for public browser or mobile apps.
 </ParamField>
 
 ---
@@ -113,7 +369,7 @@ curl -X POST https://api.zorveus.com/oauth/token \
 ```
 
 <ResponseField name="access_token" type="string" required>
-  The scoped inference bearer token to use for model requests on behalf of this user.
+  User-scoped bearer token (`zrv_usr_...`) to pass as the API key on model requests.
 </ResponseField>
 
 <ResponseField name="token_type" type="string" required>
@@ -121,29 +377,25 @@ curl -X POST https://api.zorveus.com/oauth/token \
 </ResponseField>
 
 <ResponseField name="scope" type="string" required>
-  The granted scopes approved by the user.
+  Permissions approved by the user.
+</ResponseField>
+
+<ResponseField name="expires_in" type="integer">
+  Token lifetime in seconds, when an expiry is set. Zorveus does not issue refresh tokens; users reconnect when a token expires.
+</ResponseField>
+
+<ResponseField name="app_connection_id" type="string" required>
+  ID for this user's connection to your app.
 </ResponseField>
 
 <ResponseField name="api_base" type="string" required>
-  The base gateway endpoint for inference calls (typically `https://api.zorveus.com/v1`).
+  Base gateway URL for model requests (`https://api.zorveus.com/v1`).
 </ResponseField>
 
 ---
 
-## Making requests with the token
+## Next steps
 
-Pass the returned `access_token` in the `Authorization` header on standard OpenAI or native SDK completions. Costs are billed directly to the authorizing user's Zorveus funding account:
-
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: tokenData.api_base,
-  apiKey: tokenData.access_token,
-});
-
-const response = await client.chat.completions.create({
-  model: "openai/gpt-4.1-mini",
-  messages: [{ role: "user", content: "Hello from my OAuth app!" }],
-});
-```
+- [Run AI requests with user tokens](/oauth/use-the-token): Pass `access_token` to the Zorveus or OpenAI SDK.
+- [Disconnect and reauthorize](/oauth/revocation): Revoke tokens on logout and handle expired or revoked connections.
+- [Test, publish, and handle errors](/oauth/app-review): Invite test users and handle OAuth and inference errors.

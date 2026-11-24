@@ -99,6 +99,7 @@ Different SDK clients append different default path prefixes. Configure the base
 | :--- | :--- | :--- |
 | **OpenAI Python / TypeScript** | `https://api.zorveus.com/v1` | Automatically appends `/chat/completions`. |
 | **Anthropic Python / TypeScript** | `https://api.zorveus.com` | Automatically appends `/v1/messages`. Do not add `/v1`. |
+| **Google Gemini native wire protocol** | `https://api.zorveus.com` | Supports `POST /v1beta/models/*` and `POST /vertex_ai/live` in addition to `/v1/chat/completions`. |
 | **Zorveus SDK (@zorveus/sdk)** | Preconfigured | Connects to `https://api.zorveus.com`. |
 | **Direct HTTP / cURL** | Full endpoint URL | Use `https://api.zorveus.com/v1/chat/completions` or `https://api.zorveus.com/v1/messages`. |
 

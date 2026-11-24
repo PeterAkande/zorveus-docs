@@ -2,7 +2,7 @@ import React from 'react';
 import { ThemedDiagram } from './ThemedDiagram';
 
 interface FlowDiagramProps {
-  flow: 'payment-credits' | 'resource-hierarchy' | 'plan-keys';
+  flow: 'payment-credits' | 'resource-hierarchy' | 'plan-keys' | 'oauth-wallet';
 }
 
 const FLOW_CONFIG = {
@@ -37,6 +37,32 @@ const FLOW_CONFIG = {
     ],
   },
 } as const;
+
+const OAUTH_WALLET_PHASES = [
+  {
+    label: '1. Connect once (OAuth with PKCE)',
+    nodes: [
+      { title: "User's browser", detail: 'Signs in and sets spending cap' },
+      { title: 'Zorveus consent', detail: 'app.zorveus.com returns one-time code', accent: true },
+      { title: 'Your app', detail: 'Exchanges code for user token' },
+    ],
+  },
+  {
+    label: '2. Every AI request',
+    nodes: [
+      { title: 'Your app', detail: 'Sends user token as API key' },
+      { title: 'Zorveus gateway', detail: 'Checks limits and bills user wallet', accent: true },
+      { title: 'Model provider', detail: 'Runs model and returns response' },
+    ],
+  },
+] as const;
+
+const OAUTH_WALLET_STEPS = [
+  'The user signs in on app.zorveus.com, chooses the organization that pays, and approves models and a spending cap.',
+  'Zorveus redirects back to your app with a one-time authorization code, and your app exchanges it with the PKCE verifier for a user access token.',
+  'On each AI request, your app calls https://api.zorveus.com/v1 using the user access token as the API key.',
+  'Zorveus checks the connection limits, bills the user wallet, and routes the request to the model provider.',
+] as const;
 
 const PLAN_EXAMPLES = [
   { plan: 'Starter', price: '$5/month subscription', key: 'ZORVEUS_STARTER_KEY', allowance: '$2/month' },
@@ -77,6 +103,34 @@ export function FlowDiagram({ flow }: FlowDiagramProps) {
           <li>A Pro customer pays $20 per month. Your backend uses the Pro key, configured with a separate $10 monthly AI allowance for each customer.</li>
         </ol>
         <figcaption>Example plans. Choose the matching key for requests and balance reads. Keep the customer's ID the same when their plan changes.</figcaption>
+      </figure>
+    );
+  }
+
+  if (flow === 'oauth-wallet') {
+    return (
+      <figure className="zorveus-architecture not-prose" aria-label="User-funded OAuth connect and request flow">
+        <div className="zorveus-diagram-frame" aria-hidden="true">
+          {OAUTH_WALLET_PHASES.map((phase) => (
+            <div className="zorveus-diagram-phase" key={phase.label}>
+              <p className="zorveus-diagram-phase-label">{phase.label}</p>
+              <div className="zorveus-diagram-flow" data-columns={phase.nodes.length}>
+                {phase.nodes.map((node) => (
+                  <div className="zorveus-diagram-node" data-accent={'accent' in node && node.accent ? true : undefined} key={node.title}>
+                    <span className="zorveus-diagram-title">{node.title}</span>
+                    <span>{node.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <ol className="sr-only">
+          {OAUTH_WALLET_STEPS.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+        <figcaption>Zorveus bills each model request to the user&apos;s selected account, not yours.</figcaption>
       </figure>
     );
   }

@@ -1,34 +1,61 @@
 ---
-title: OAuth 2.0 overview
-description: Actors, returned data, and the authorization-code PKCE flow for connectable AI applications.
+title: Connect user wallets
+description: Let users connect their Zorveus account and pay for their own AI requests in your app.
 ---
 
-Zorveus uses the OAuth 2.0 authorization code flow with S256 PKCE to let an application request scoped inference access funded by a user-selected organization.
+With user-funded apps, each user pays for their own AI requests instead of your company covering model bills. A user connects their Zorveus account to your app, approves the models and spending limit they want to allow, and Zorveus bills their account whenever your app calls a model for them.
+
+You do not pay for their model usage, and you do not manage provider accounts on their behalf.
 
 ---
 
-## Three-step lifecycle
+## How it works
 
-| Step | Action | Description |
+User-funded apps use OAuth 2.0 with S256 PKCE to connect the user once, then reuse the returned token on every AI request:
+
+<FlowDiagram flow="oauth-wallet" />
+
+1. **Connect once**: The user clicks your **Connect Zorveus** button, signs in on `app.zorveus.com`, picks the organization that pays, and approves your requested models and spending cap.
+2. **Exchange the code**: Zorveus redirects back to your callback URL with a one-time authorization code. Your app sends that code and its PKCE `code_verifier` to `POST https://api.zorveus.com/oauth/token` and gets back a user access token.
+3. **Call models**: Your app sends model requests to `https://api.zorveus.com/v1` with the user's access token as the API key. Zorveus checks model permissions and spend limits, then bills the user's wallet.
+
+---
+
+## Choose your client type
+
+Zorveus OAuth supports two client types, depending on whether your app runs in the browser or on a server:
+
+| | Public client | Confidential client |
 | :--- | :--- | :--- |
-| **1. Authorize** | User Consent | User is redirected to Zorveus to choose their funding organization and approve your requested scopes. |
-| **2. Exchange** | PKCE Token Swap | Your backend exchanges the authorization code + cryptographic `code_verifier` for a scoped inference token. |
-| **3. Inference** | AI Completions | Your application sends standard inference calls to `https://api.zorveus.com/v1` using that token. |
+| **Best for** | React apps, single-page apps, mobile apps, desktop tools | Node.js, Next.js server routes, Python, and other backends |
+| **Credentials** | `client_id` only. Never has a client secret. | `client_id` and `client_secret`, stored on your server. |
+| **PKCE verifier** | Kept in browser memory or `sessionStorage` until callback. | Kept in the signed-in user's server session. |
+| **Token exchange** | Calls `POST /oauth/token` without `client_secret`. | Calls `POST /oauth/token` with `client_secret` from your server. |
+| **Token storage** | In-memory state (for example via `@zorveus/react`) or browser storage for that user. | Server database or server session tied to the signed-in user. |
+
+### When to use user-funded apps
+
+- **Creation tools**: Writing studios, image editors, audio tools, and research apps where heavy users run unpredictable token volumes.
+- **Developer tools and CLIs**: Local coding agents, IDE extensions, and desktop utilities where users supply their own compute.
+- **Team and enterprise connectors**: Apps where customer organizations want AI costs billed directly to their own Zorveus account.
+
+If your product collects a subscription or payment through your payment provider and pays for customer AI usage from your own Zorveus wallet, use [Customer limits and billing](/startups/configure-product-user-allowances) instead.
 
 ---
 
-## Data returned to the client
+## Live reference app
 
-When a user authorizes your app via OAuth:
-- The token response contains the access token, token type, scopes, app connection ID, expiry when applicable, and inference API base URL.
-- It does not return the selected organization’s stored provider credentials or wallet balance.
-- The user can inspect and revoke the connection from the Zorveus dashboard.
+To inspect a complete client-side app using `@zorveus/react` and `@zorveus/sdk`, check out the **PulseWrite AI studio** Code Lab:
+
+- **Code Lab walkthrough**: [PulseWrite AI studio starter](/code-labs/pulsewrite-ai)
+- **Live demo**: [pulsewrite.peterakande.com](https://pulsewrite.peterakande.com)
+- **GitHub repository**: [`PeterAkande/zorveus-pulsewrite-ai`](https://github.com/PeterAkande/zorveus-pulsewrite-ai)
 
 ---
 
-## OAuth actors
+## Next steps
 
-1. **Client / App Developer**: The application initiating authorization and exchanging tokens.
-2. **Resource Owner / Payer**: The user granting access and choosing which personal or team wallet funds the inference.
-3. **Authorization Server**: Zorveus OAuth endpoints (`/oauth/authorize`, `/oauth/token`).
-4. **Resource Server**: The Zorveus Inference Gateway (`https://api.zorveus.com/v1`).
+- [Let users fund their AI usage](/getting-started/oauth-app-quickstart): Follow the quickstart to get one working connection and model call running fast.
+- [Register an OAuth app](/oauth/register-an-app): Set your client type, redirect URIs, model scopes, and spending cap defaults.
+- [Connect users and exchange tokens](/oauth/token-exchange): Wire up the PKCE redirect, callback validation, and token exchange.
+- [Run AI requests with user tokens](/oauth/use-the-token): Call chat, image, and audio models with the user's token.

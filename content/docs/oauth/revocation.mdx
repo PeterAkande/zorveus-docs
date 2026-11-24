@@ -1,48 +1,54 @@
 ---
-title: Token revocation
-description: Revoke an OAuth user access token and terminate its connection.
+title: Disconnect and reauthorize
+description: Revoke user access tokens on logout, handle expired or revoked tokens, and reconnect users.
 ---
 
-When a user disconnects their Zorveus account or logs out of your app, revoke their access token to terminate remote access immediately.
+When a user disconnects Zorveus or signs out of your app, revoke their access token so it stops working right away. If a token expires or the user revokes it from their Zorveus dashboard, clear your saved token and send them through the connect flow again.
 
-<ApiEndpoint method="POST" path="/oauth/revoke" />
+---
+
+## 1. Revoke access on logout
+
+<span id="revoke-token" />
+
+Call `POST https://api.zorveus.com/oauth/revoke` with the user's token and your Client ID. Confidential server apps also send `client_secret`; public browser apps omit it.
+
+<ApiEndpoint method="POST" path="https://api.zorveus.com/oauth/revoke" />
 
 <KeyInserter type="client" label="Client ID" placeholder="zrv_client_your_client_id" />
 
-## Code examples
-
-<CodeGroup titles={["TypeScript", "Python", "cURL"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
 
 ```typescript
 import { ZorveusOAuth } from "@zorveus/sdk";
 
-const result = await ZorveusOAuth.revokeToken({
-  clientId: "zrv_client_your_client_id",
-  clientSecret: process.env.ZORVEUS_CLIENT_SECRET, // Omit for public clients
-  token: userAccessToken,
-});
-
-if (result.revoked) {
-  console.log("Token revoked successfully");
-  await db.users.update({
-    where: { id: userId },
-    data: { zorveusAccessToken: null },
+export async function disconnectUser(userAccessToken: string) {
+  const result = await ZorveusOAuth.revokeToken({
+    clientId: "zrv_client_your_client_id",
+    // Include clientSecret on confidential backends; omit it in browser apps
+    clientSecret: process.env.ZORVEUS_CLIENT_SECRET,
+    token: userAccessToken,
   });
+
+  // Remove the saved token from your database, server session, or browser state
+  return result.revoked;
 }
 ```
 
 ```python
+import os
 from zorveus import ZorveusOAuth
 
-result = ZorveusOAuth.revoke_token(
-    client_id="zrv_client_your_client_id",
-    client_secret=os.environ.get("ZORVEUS_CLIENT_SECRET"),  # Omit for public clients
-    token=user_access_token,
-)
 
-if result.revoked:
-    print("Token revoked successfully")
-    db.clear_user_token(user_id=user_id)
+def disconnect_user(user_access_token):
+    result = ZorveusOAuth.revoke_token(
+        client_id=os.environ["ZORVEUS_CLIENT_ID"],
+        client_secret=os.environ["ZORVEUS_CLIENT_SECRET"],
+        token=user_access_token,
+    )
+
+    # Remove the saved token from your database or server session
+    return result.revoked
 ```
 
 ```bash
@@ -55,25 +61,21 @@ curl -X POST https://api.zorveus.com/oauth/revoke \
 
 </CodeGroup>
 
----
-
-## Request parameters
+### Request parameters
 
 <ParamField name="client_id" type="string" required>
   Your app's Client ID.
 </ParamField>
 
 <ParamField name="token" type="string" required>
-  The OAuth access token to revoke.
+  The user access token (`zrv_usr_...`) to revoke.
 </ParamField>
 
 <ParamField name="client_secret" type="string">
-  Required for confidential backend clients.
+  Required for confidential server apps. Omit for public browser or mobile apps.
 </ParamField>
 
----
-
-## Response format
+### Response
 
 ```json
 {
@@ -82,5 +84,55 @@ curl -X POST https://api.zorveus.com/oauth/revoke \
 ```
 
 <ResponseField name="revoked" type="boolean" required>
-  `true` if an active token was revoked. Subsequent calls for an already revoked token return `false`.
+  `true` when an active token is revoked. Repeating the request for an already revoked token returns `false`.
 </ResponseField>
+
+---
+
+## 2. Handle token expiration
+
+When a token has a lifetime, `/oauth/token` returns `expires_in` in seconds. Zorveus does not issue refresh tokens.
+
+When a token expires:
+
+1. Delete the expired token from your app storage.
+2. Prompt the user to click **Connect Zorveus**.
+3. Run the authorization flow again to get a new access token.
+
+---
+
+## 3. Handle revocations from the dashboard
+
+Users can view and disconnect authorized apps from their [Zorveus dashboard](https://app.zorveus.com) at any time.
+
+When a user disconnects your app there:
+
+- Model requests with that token fail with HTTP `403 Forbidden` and error code `zorveus_key_inactive` (or HTTP `401 Unauthorized` if the token is expired or unknown).
+- Catch the error, delete the stored token, and show a message such as: *"Your Zorveus account was disconnected. Reconnect to continue."*
+- Never fall back silently to your company's API key.
+
+---
+
+## 4. Reauthorize a user
+
+<span id="reauthorize-a-user" />
+
+Run the standard [Connect users and exchange tokens](/oauth/token-exchange) flow again whenever a user needs to:
+
+- Reconnect after a token expires or is revoked.
+- Switch to a different paying organization.
+- Approve new model scopes or change their spending cap.
+
+### What happens to the existing connection
+
+- **Same paying organization**: Zorveus updates the existing app connection with the new scopes and spending cap, revokes older tokens, and returns one replacement `access_token`.
+- **Different paying organization**: Zorveus creates a connection for the new organization and revokes the previous connection.
+
+Always replace your stored token with the new `access_token` returned after reauthorization.
+
+---
+
+## Next steps
+
+- [Test, publish, and handle errors](/oauth/app-review): Handle OAuth and inference error codes and publish your app.
+- [PulseWrite AI Code Lab](/code-labs/pulsewrite-ai): Inspect a working browser app with connect and disconnect controls.

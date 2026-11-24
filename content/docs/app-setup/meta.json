@@ -4,6 +4,8 @@
     "../startups/apps",
     "../startups/api-keys",
     "../startups/routing-keys",
-    "../startups/service-keys"
+    "../startups/service-keys",
+    "../startups/provider-credentials",
+    "../startups/automatic-routing"
   ]
 }
