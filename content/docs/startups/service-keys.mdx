@@ -1,30 +1,54 @@
 ---
-title: Use a service client
-description: Set up Python or TypeScript server clients for customer, credit, and allowance operations.
+title: Service keys
+description: Create a server-side service key and configure the Zorveus service client for customer profiles, allowances, and credit grants.
 ---
 
-Service keys start with `zrv_svc_`. Create a key in the dashboard with the scopes your backend needs, then store it as `ZORVEUS_SERVICE_KEY`. Keep it on your server. A service key cannot make inference requests
+Service keys (`zrv_svc_...`) authenticate backend requests to `https://api.zorveus.com` for reading customer allowances, updating customer profiles, and granting credits. Keep service keys on your server. A service key cannot make AI model requests.
 
-## Choose scopes
+---
 
-| Scope | Actions |
-| --- | --- |
-| `product_users:read` | Read a profile, credits, allowance debt, and credit grants |
-| `product_users:write` | Create or update a product user and grant credits. Also permits product-user reads |
+## Create a service key
 
-Create organizations, register apps, configure connections and caps, manage BYOK credentials and team access, and configure webhooks in the dashboard. Product-user status changes and credit-grant revocation are also dashboard operations
+1. Open your **Business** organization in the [Zorveus dashboard](https://app.zorveus.com) and go to **Service Keys**.
+2. Click **Create Service Key** and select the scopes your backend needs.
+3. Copy the secret (`zrv_svc_...`) and save it as `ZORVEUS_SERVICE_KEY` on your server. Also copy your app's ID from **Apps** (`ZORVEUS_APP_ID`).
+
+### Choose scopes
+
+| Scope | What it allows |
+| :--- | :--- |
+| `product_users:read` | Read a customer profile, remaining allowance, carried allowance debt, and credit grants. |
+| `product_users:write` | Create or update a customer profile, set subscription anchors, and grant credits. Includes read permissions. |
+
+Organizations, apps, API keys, caps, BYOK provider credentials, team access, webhooks, customer status changes, and credit-grant revocations are managed in the dashboard (or CLI where supported), not through service keys.
+
+---
 
 ## Create the client
 
-Install `@zorveus/sdk` for TypeScript or `zorveus` for Python
+Install `@zorveus/sdk` for TypeScript or `zorveus` for Python:
 
 <CodeGroup titles={["TypeScript", "Python"]}>
+
+```bash
+npm install @zorveus/sdk
+```
+
+```bash
+pip install zorveus
+```
+
+</CodeGroup>
+
+Initialize `ZorveusServiceClient` once and reuse it across your backend:
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
 
 ```typescript
 import { ZorveusServiceClient } from "@zorveus/sdk";
 
-const service = new ZorveusServiceClient({
-	apiKey: process.env.ZORVEUS_SERVICE_KEY!,
+export const service = new ZorveusServiceClient({
+  apiKey: process.env.ZORVEUS_SERVICE_KEY!,
 });
 ```
 
@@ -37,56 +61,69 @@ service = ZorveusServiceClient(api_key=os.environ["ZORVEUS_SERVICE_KEY"])
 
 </CodeGroup>
 
-The action examples linked below assume this server-owned `service` client. The SDK supplies `Authorization: Bearer ...` and uses `https://api.zorveus.com` without `/v1`. Set `baseURL` in TypeScript or `base_url` in Python only when you need another environment
+- The client sends `Authorization: Bearer ...` to `https://api.zorveus.com` (without `/v1`). Set `baseURL` in TypeScript or `base_url` in Python only when targeting another environment.
+- In Python, call `service.close()` on shutdown. For async handlers, use `AsyncZorveusServiceClient`, `await` its calls, and call `await service.close()` on shutdown.
 
-Reuse clients through your backend's lifecycle. Call `service.close()` when a Python sync client shuts down. In an async Python handler, use `AsyncZorveusServiceClient`, await its methods, and call `await service.close()` on shutdown
+---
 
-## Call the action you need
+## Example: upsert and read a customer
 
-| Task | Example |
-| --- | --- |
-| Create or update a customer | [Manage customer profiles](/startups/product-users#create-or-update-a-customer) |
-| Read spendable allowance | [Check available allowance](/startups/check-allowance) |
-| Set or clear a subscription anchor | [Allowance periods](/startups/allowance-periods#set-the-anchor-with-a-service-client) |
-| Grant credits after a payment | [Grant customer credits](/startups/credit-grants#grant-credits-after-a-payment) |
-| Read carried allowance debt | [Allowance debt](/startups/credit-grants#read-carried-allowance-debt) |
+Upserting a customer returns a wrapper (`{ created, product_user }`), while reading by external ID returns the profile directly:
 
-For example, upsert returns a response envelope, while a profile read returns the profile directly:
-
-<CodeGroup titles={["TypeScript", "Python"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)"]}>
 
 ```typescript
+const appId = process.env.ZORVEUS_APP_ID!;
+
 const result = await service.productUsers.createOrUpdate({
-	appId: "app_123",
-	externalUserId: "customer_42",
-	displayName: "Example user",
+  appId,
+  externalUserId: "customer_42",
+  displayName: "Ada Lovelace",
 });
 console.log(result.created, result.product_user.external_user_id);
 
 const profile = await service.productUsers.getByExternalId({
-	appId: "app_123",
-	externalUserId: "customer_42",
+  appId,
+  externalUserId: "customer_42",
 });
 console.log(profile.getTotalAvailableToSpend());
 ```
 
 ```python
+import os
+
+app_id = os.environ["ZORVEUS_APP_ID"]
+
 result = service.product_users.create_or_update(
-	app_id="app_123",
-	external_user_id="customer_42",
-	display_name="Example user",
+    app_id=app_id,
+    external_user_id="customer_42",
+    display_name="Ada Lovelace",
 )
 print(result.created, result.product_user.external_user_id)
 
 profile = service.product_users.get_by_external_id(
-	app_id="app_123",
-	external_user_id="customer_42",
+    app_id=app_id,
+    external_user_id="customer_42",
 )
 print(profile.get_total_available_to_spend())
 ```
 
 </CodeGroup>
 
-Replace `app_123` with the app used for inference and `customer_42` with your authenticated customer's ID. A missing profile returns `404` by default. Add `X-Zorveus-Upsert-Product-User: true` to opt into creation during a read. See [the header contract](/api-reference/product-users#create-a-missing-user-during-a-read) for supported endpoints and SDK examples
+Replace `customer_42` with the signed-in customer's stable ID from your backend.
 
-Credit grants have side effects. Do not automatically repeat them after an uncertain network result. See [Idempotency](/platform/idempotency)
+Reading an unknown customer returns HTTP `404` by default. To create the profile automatically during a read, send `X-Zorveus-Upsert-Product-User: true`; see [Create a missing user during a read](/api-reference/product-users#create-a-missing-user-during-a-read).
+
+Credit grants change customer balances. Always pass a unique `external_reference` (such as the payment ID) instead of blindly retrying after an uncertain network error. See [Idempotency](/platform/idempotency).
+
+---
+
+## Common service actions
+
+| Task | Guide |
+| :--- | :--- |
+| Create or update a customer | [Manage customer profiles](/startups/product-users#create-or-update-a-customer) |
+| Read spendable allowance | [Check available allowance](/startups/check-allowance) |
+| Set or clear a subscription anchor | [Allowance periods](/startups/allowance-periods#set-the-anchor-with-a-service-client) |
+| Grant credits after a payment | [Grant customer credits](/startups/credit-grants#grant-credits-after-a-payment) |
+| Read carried allowance debt | [Allowance debt](/startups/credit-grants#read-carried-allowance-debt) |

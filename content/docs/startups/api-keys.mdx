@@ -1,33 +1,99 @@
 ---
-title: Inference API keys
-description: Create, inspect, and rotate keys for server-side model requests.
+title: API keys
+description: Create, inspect, and rotate Zorveus API keys for server-side model requests.
 ---
 
-An inference key, `zrv_...`, authenticates model requests under an app connection. The connection supplies model access, spending policy, credit mode, and overrun policy
+A Zorveus API key (`zrv_...`) authenticates model requests against `https://api.zorveus.com/v1` under one app connection. That connection defines the allowed models, spending cap, credit mode, and overrun policy.
 
-## Create a key
+## Which key do you need?
 
-Select a Business organization in the [dashboard](https://app.zorveus.com). Create an app and generate an API key in its connection settings. Copy the full secret when it is shown and keep it in your backend's secret store
+| Key type | Prefix | Where it runs | What it does |
+| :--- | :--- | :--- | :--- |
+| **API key** | `zrv_...` | Your backend | Calls models under one app connection. |
+| **Routing key** | `zrv_route_...` | Your backend | Uses one secret to route requests across multiple plan keys via `X-Zorveus-Key-Alias`. See [Routing keys](/startups/routing-keys). |
+| **Service key** | `zrv_svc_...` | Your backend | Reads and updates customer profiles, allowances, and credit grants on `https://api.zorveus.com`. Cannot call models. See [Service keys](/startups/service-keys). |
+| **User OAuth token** | `zrv_usr_...` | Browser or backend | Calls models billed directly to a connected user's own Zorveus wallet. See [Connect user wallets](/oauth/overview). |
 
-Follow [Make your first API request](/getting-started/startup-quickstart) to create a key and call a model. To attribute requests and cap spend per user, configure [product-user allowances](/startups/configure-product-user-allowances) and pass `X-Zorveus-External-User-ID` with your customer ID.
+To route requests through your own OpenAI, Anthropic, or Gemini accounts instead of your Zorveus wallet, add upstream keys in the dashboard under [Provider keys (BYOK)](/startups/provider-credentials). Your code still sends your Zorveus API key (`zrv_...`).
 
-For multiple plan policies, use [one routing key](/startups/routing-keys) to select among member inference keys with `X-Zorveus-Key-Alias`
+---
+
+## Create an API key
+
+1. Open your **Business** organization in the [Zorveus dashboard](https://app.zorveus.com).
+2. Open an app (or [create one](/startups/apps)) and go to its connection settings.
+3. Click **Create API Key**, copy the secret (`zrv_...`), and store it as `ZORVEUS_API_KEY` on your server. The raw secret is shown only once.
+
+To make your first call, follow [Make your first API request](/getting-started/startup-quickstart). To enforce separate limits per customer, see [Configure product-user allowances](/startups/configure-product-user-allowances) and send `X-Zorveus-External-User-ID` with each request.
+
+---
 
 ## Inspect key usage
 
-```bash
-curl --fail-with-body https://api.zorveus.com/inference-keys/usage \
-	-H "Authorization: Bearer $ZORVEUS_API_KEY"
+Call `GET https://api.zorveus.com/inference-keys/usage` to read the key's current spend, cap, remaining balance, and reset time:
+
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "cURL"]}>
+
+```typescript
+import { Zorveus } from "@zorveus/sdk";
+
+const client = new Zorveus({
+  apiKey: process.env.ZORVEUS_API_KEY!,
+});
+
+const usage = await client.getUsage();
+console.log(`Spent $${usage.spent_this_period} of $${usage.spend_cap}`);
 ```
 
-The response includes `spend_cap`, `spent_this_period`, `remaining_balance`, and `reset_at`. Nullable values are described in [Key usage](/api-reference/usage). The TypeScript SDK calls this `client.getUsage()`, and the Python SDK calls it `client.get_usage()`
+```python
+import os
+from zorveus import Zorveus
 
-This is a key-level summary, not a customer's available allowance. Use [Check available allowance](/startups/check-allowance) for a product user
+client = Zorveus(api_key=os.environ["ZORVEUS_API_KEY"])
+try:
+    usage = client.get_usage()
+    print(f"Spent ${usage.spent_this_period} of ${usage.spend_cap}")
+finally:
+    client.close()
+```
 
-CORS support permits browser requests but does not protect an embedded key. Keep shared Business keys on your server. Browser OAuth apps use the user's scoped token
+```bash
+curl --fail-with-body https://api.zorveus.com/inference-keys/usage \
+  -H "Authorization: Bearer $ZORVEUS_API_KEY"
+```
 
-## Rotate a key
+</CodeGroup>
 
-Create a replacement key for the same connection, deploy it to your backend, and verify a request before revoking the previous key in the dashboard. Connection policy stays with the connection
+Example response:
 
-Use a [service key](/startups/service-keys) for supported product-user management. An inference key does not grant access to those endpoints
+```json
+{
+  "status": "active",
+  "app_id": "app_123",
+  "app_connection_id": "appcon_123",
+  "currency": "USD",
+  "period": "monthly",
+  "spend_cap": "50.000000000000",
+  "spent_this_period": "12.500000000000",
+  "remaining_balance": "37.500000000000",
+  "reset_at": "2026-12-01T00:00:00Z"
+}
+```
+
+See [Key usage](/api-reference/usage) for nullable fields and status values. This endpoint returns key-level spend across the connection, not an individual customer's remaining balance. To read a customer's allowance, use [Check available allowance](/startups/check-allowance).
+
+---
+
+## Rotate an API key
+
+Rotate a key without downtime:
+
+1. Create a new API key on the same app connection in the dashboard. Connection policies stay attached to the connection.
+2. Deploy the new key to your backend and verify a live request succeeds.
+3. Revoke the old key in the dashboard.
+
+---
+
+## Keep company keys on your server
+
+The gateway supports CORS for browser-based OAuth apps, not for embedding company API keys in frontend bundles. Keep `zrv_...` Business keys on your backend server. If you want to call models directly from the browser, use a connected user's OAuth token (`zrv_usr_...`) via [Connect user wallets](/oauth/overview).

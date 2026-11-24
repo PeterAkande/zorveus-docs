@@ -1,55 +1,60 @@
 ---
-title: Managing apps
-description: Create and configure applications, model allowlists, credit modes, and overrun policies in the Zorveus dashboard.
+title: Apps
+description: Create apps in the Zorveus dashboard and configure allowed models, spending caps, credit mode, and overrun rules.
 ---
 
-An application in Zorveus groups API keys, model access policies, credit enforcement modes, and spending caps for a specific product or service
+An app in Zorveus groups API keys, allowed models, spending caps, and credit rules for one product or service.
 
-You create and manage apps directly in the [Zorveus Dashboard](https://app.zorveus.com) under **Apps**
-
----
-
-## Creating an app in the dashboard
-
-1. Log in to the [Zorveus Dashboard](https://app.zorveus.com) and select your **Business** organization.
-2. Navigate to **Apps** in the sidebar.
-3. Click **Create App**, enter a descriptive name (such as "Production API" or "Customer Portal"), and save.
-4. Open the newly created app to configure its connection policies and generate API keys
+Create and manage Business apps in the [Zorveus dashboard](https://app.zorveus.com) under **Apps**. If you are building a user-funded app where users connect their own Zorveus wallets, register an OAuth app in a Developer organization instead; see [Register an OAuth app](/oauth/register-an-app).
 
 ---
 
-## Configuring connection policies
+## Create an app
 
-For defaults, decision tables, and plan examples, see [Configure product-user allowances](/startups/configure-product-user-allowances)
-
-Each app connection defines policies that govern every inference request passing through its keys:
-
-### 1. Allowed models
-Restrict which models this app can access. Requests specifying an unapproved model are rejected with HTTP `403 Forbidden` (`zorveus_model_not_allowed`)
-
-Supported pattern formats:
-- `*`: Grants access to all models available in the Zorveus catalog.
-- `provider/*`: Grants access to all models under that provider (such as `openai/*` or `anthropic/*`).
-- `provider/model-name`: Restricts access to an exact model string (such as `anthropic/claude-sonnet-5`)
-
-### 2. Credit enforcement mode (`credit_mode`)
-Choose how Zorveus enforces spending caps and product-user credits:
-- **`enforce_if_present` (default)**: Enforces caps and user credits when a product user is supplied. Bypasses virtual allowance checks for traffic that has no product user. Model access and funding checks still apply
-- **`enforce`**: Enforces applicable allowance for attributed and unattributed requests. Your backend must still require a customer ID when attribution is mandatory
-- **`track_only`**: Allocates cap and credits without blocking. Any spend beyond the cap is logged as uncovered spend.
-- **`disabled`**: Bypasses cap checks and credits completely
-
-### 3. Allowance overrun policy (`overrun_policy`)
-Choose what happens when a model response might exceed remaining virtual allowance:
-- **`limit_output` (default)**: Automatically lowers the provider output token limit to the affordable budget.
-- **`allow_overrun`**: Lets the call finish with its declared limit and records excess as uncovered virtual spend (forgiven on next reset).
-- **`carry_overrun_forward`**: Lets the call finish with its declared limit, recording excess as debt repaid by future credits or cap resets
-
-### 4. Spending caps
-Set daily, monthly, or lifetime limits. For attributed Business requests, the connection cap supplies a base allowance for each product user. Under `enforce`, unattributed traffic uses a separate connection-level spend calculation
+1. Sign in to the [Zorveus dashboard](https://app.zorveus.com) and select your **Business** organization.
+2. Open **Apps** in the sidebar.
+3. Click **Create App**, enter a name (for example, `Production API` or `Customer Portal`), and save.
+4. Open the app to configure its connection rules and create an API key.
 
 ---
 
-## Managing API keys
+## Configure connection rules
 
-Within the app's connection settings, click **Create API Key** to generate a secret key (`zrv_...`) for your server backend. The dashboard displays the raw secret key only once upon creation
+Each app connection controls every model request sent with its API keys. For defaults, plan layouts, and examples, see [Configure product-user allowances](/startups/configure-product-user-allowances).
+
+### Allowed models
+
+Restrict which models requests on this connection can call. Any request for an unapproved model fails with HTTP `403 Forbidden` (`zorveus_model_not_allowed`).
+
+- `*`: Allows every model available in the Zorveus catalog.
+- `provider/*`: Allows every model from one provider (such as `openai/*` or `anthropic/*`).
+- `provider/model-name`: Allows one exact model (such as `openai/gpt-4.1-mini` or `anthropic/claude-sonnet-5`).
+
+### Credit mode (`credit_mode`)
+
+Choose when Zorveus checks customer caps and credits before allowing a request:
+
+- **`enforce_if_present` (default)**: Checks caps and credits whenever your request includes a customer ID (`X-Zorveus-External-User-ID`). Requests without a customer ID skip per-customer checks, though allowed models and wallet funding still apply.
+- **`enforce`**: Checks allowances on all requests, with or without a customer ID. Your backend should still require a customer ID when per-customer limits matter.
+- **`track_only`**: Logs cap and credit usage without blocking requests. Usage past the cap is recorded as uncovered spend.
+- **`disabled`**: Turns off cap and credit checks for this connection.
+
+### Overrun policy (`overrun_policy`)
+
+Choose what happens when a model reply could cost more than a customer's remaining allowance:
+
+- **`limit_output` (default)**: Lowers the provider's max output tokens so the response stays within what the customer can afford.
+- **`allow_overrun`**: Lets the request finish with its requested limit and logs any excess as uncovered spend, which clears at the next reset.
+- **`carry_overrun_forward`**: Lets the request finish and records any excess as debt that future credits or the next allowance reset pay back.
+
+### Spending caps
+
+Set a `daily`, `monthly`, or `lifetime` spending limit on the connection. When you pass `X-Zorveus-External-User-ID`, each customer gets their own separate allowance from that cap. Under `enforce`, requests without a customer ID share a separate connection-level spend total.
+
+---
+
+## Next steps
+
+- [API keys](/startups/api-keys): Create, inspect, and rotate server-side API keys (`zrv_...`).
+- [Routing keys](/startups/routing-keys): Use one key (`zrv_route_...`) to switch between multiple plans.
+- [Configure product-user allowances](/startups/configure-product-user-allowances): Map plans and subscriptions to customer spending limits.

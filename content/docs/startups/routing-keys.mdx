@@ -1,86 +1,49 @@
 ---
-title: One key for multiple plans
-description: Configure a routing key in the dashboard, then select a plan with a header or request metadata.
+title: Routing keys
+description: Use one routing key to select among multiple plan keys with a header or request metadata.
 ---
 
-A routing key lets your backend use one secret for several plans. Send `X-Zorveus-Key-Alias: pro` to use your Pro key's models and spending limit
+A routing key (`zrv_route_...`) lets your backend keep one API key secret while applying different models and spending limits per plan. Send `X-Zorveus-Key-Alias: pro` on a request, and Zorveus applies your Pro key's allowed models and spending cap.
 
-For example, your Free key can allow $1/day and your Pro key $10/day. The routing key selects the right key for each customer
+For example, your `free` key can allow $1/day and your `pro` key $10/day. Your backend stores one `ZORVEUS_ROUTING_KEY` and passes the customer's plan alias on each call.
+
+---
 
 ## Set up in the dashboard
 
-1. Open **API keys** in your Business organization
-2. Choose **Group existing keys** and select the app whose keys you want to group. To create the keys and routing key together, choose **Create keys together**
-3. Assign each key a selector, such as `free` or `pro`. Configure each key's allowed models and spending limit in the dashboard
-4. Choose a default key if you want requests without a selector to use it
-5. Create the routing key and copy its `zrv_route_...` secret. Store it in your backend, as you would an inference key
+1. Open **API keys** in your Business organization in the [Zorveus dashboard](https://app.zorveus.com).
+2. Choose **Group existing keys** and pick the app whose keys you want to group. To create the plan keys and routing key in one step, choose **Create keys together**.
+3. Give each member key an alias, such as `free` or `pro`, and configure each key's allowed models and spending limit.
+4. Optionally choose a default key for requests that omit an alias.
+5. Create the routing key, copy its `zrv_route_...` secret, and store it as `ZORVEUS_ROUTING_KEY` on your backend.
 
-## Use it for inference
+Routing keys are configured in the dashboard, not through the SDK.
 
-Set the routing secret as your API key. Choose the selector from the customer's plan in your backend
+---
 
-```python
-import os
-from openai import OpenAI
+## Call a model with a plan alias
 
-client = OpenAI(
-	api_key=os.environ["ZORVEUS_ROUTING_KEY"],
-	base_url="https://api.zorveus.com/v1",
-)
+Pass `ZORVEUS_ROUTING_KEY` as your API key and choose the plan alias from the signed-in customer's subscription in your backend:
 
-response = client.chat.completions.create(
-	model="YOUR_ALLOWED_MODEL",
-	messages=[{"role": "user", "content": "Hello"}],
-	extra_headers={
-		"X-Zorveus-Key-Alias": "pro",
-		"X-Zorveus-External-User-ID": "customer_123",
-	},
-)
-```
-
-This request uses Pro's settings. Keep the same external user ID when the customer's plan changes
-
-You can instead put the selector in the JSON body:
-
-```json
-{
-	"model": "YOUR_ALLOWED_MODEL",
-	"messages": [{"role": "user", "content": "Hello"}],
-	"metadata": {"key_alias": "pro"}
-}
-```
-
-With the OpenAI Python client, add the body selector through `extra_body={"metadata": {"key_alias": "pro"}}`
-
-If you send both, `metadata.key_alias` takes precedence over `X-Zorveus-Key-Alias`. Model discovery and usage reads use the header
-
-Omit both selectors to use the default. A blank, null, malformed, or unknown body selector fails without falling back to the header or default. An expired or revoked selected key also fails. Without a default, you must send a selector
-
-Choose the plan in your backend. Do not let customers select a more generous plan themselves
-
-## Change the customer's plan
-
-Change the selector on their next request, for example from `free` to `pro`. To prorate eligible increases, keep `X-Zorveus-Allowance-Change-Policy: prorate_increase` on requests that stay on the same plan or move to a higher allowance. Omit it for downgrades. See [Prorate plan upgrades](/startups/prorated-plan-changes#set-a-default-header-for-proration).
-
-Manage the routes, default, spending limits, and key rotation in the dashboard
-
-The OpenAI TypeScript client sends `metadata` directly in the request body. Its request options use `headers`, while the Python client uses `extra_headers`
-
-## Use native SDK request options
-
-The SDK does not create routing groups. Configure the group in the dashboard and set its secret as the inference API key. Your backend chooses the plan alias and customer ID
-
-<CodeGroup titles={["TypeScript", "Python"]}>
+<CodeGroup titles={["TypeScript (@zorveus/sdk)", "Python (zorveus)", "TypeScript (OpenAI SDK)", "Python (OpenAI SDK)"]}>
 
 ```typescript
 import { Zorveus } from "@zorveus/sdk";
 
-const client = new Zorveus({ apiKey: process.env.ZORVEUS_ROUTING_KEY! });
-const response = await client.chat.completions.create({
-	model: selectedModelId,
-	messages: [{ role: "user", content: "Hello" }],
-	zorveusMetadata: { externalUserId: authenticatedUserId, keyAlias: "pro" },
+const client = new Zorveus({
+  apiKey: process.env.ZORVEUS_ROUTING_KEY!,
 });
+
+const response = await client.chat.completions.create({
+  model: "openai/gpt-4.1-mini",
+  messages: [{ role: "user", content: "Hello" }],
+  zorveusMetadata: {
+    externalUserId: "customer_123",
+    keyAlias: "pro",
+  },
+});
+
+console.log(response.choices[0].message.content);
 ```
 
 ```python
@@ -89,18 +52,93 @@ from zorveus import Zorveus
 
 client = Zorveus(api_key=os.environ["ZORVEUS_ROUTING_KEY"])
 try:
-	response = client.chat.completions.create(
-		model=selected_model_id,
-		messages=[{"role": "user", "content": "Hello"}],
-		extra_headers={
-			"X-Zorveus-External-User-ID": authenticated_user_id,
-			"X-Zorveus-Key-Alias": "pro",
-		},
-	)
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", "content": "Hello"}],
+        extra_headers={
+            "X-Zorveus-External-User-ID": "customer_123",
+            "X-Zorveus-Key-Alias": "pro",
+        },
+    )
+    print(response.choices[0].message.content)
 finally:
-	client.close()
+    client.close()
+```
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.ZORVEUS_ROUTING_KEY!,
+  baseURL: "https://api.zorveus.com/v1",
+});
+
+const response = await client.chat.completions.create(
+  {
+    model: "openai/gpt-4.1-mini",
+    messages: [{ role: "user", content: "Hello" }],
+  },
+  {
+    headers: {
+      "X-Zorveus-Key-Alias": "pro",
+      "X-Zorveus-External-User-ID": "customer_123",
+    },
+  },
+);
+
+console.log(response.choices[0].message.content);
+```
+
+```python
+import os
+from openai import OpenAI
+
+with OpenAI(
+    api_key=os.environ["ZORVEUS_ROUTING_KEY"],
+    base_url="https://api.zorveus.com/v1",
+) as client:
+    response = client.chat.completions.create(
+        model="openai/gpt-4.1-mini",
+        messages=[{"role": "user", "content": "Hello"}],
+        extra_headers={
+            "X-Zorveus-Key-Alias": "pro",
+            "X-Zorveus-External-User-ID": "customer_123",
+        },
+    )
+    print(response.choices[0].message.content)
 ```
 
 </CodeGroup>
 
-For key-scoped discovery and usage, pass `headers: { "X-Zorveus-Key-Alias": "pro" }` in TypeScript request options, or `extra_headers={"X-Zorveus-Key-Alias": "pro"}` in Python. Do not change a shared client's customer identity between concurrent requests
+Always pick the alias on your backend from your own subscription records. Never trust a plan alias sent from the browser, and never mutate customer identity on a shared client across concurrent requests.
+
+---
+
+## Selector precedence and fallback rules
+
+You can pass the alias either in the `X-Zorveus-Key-Alias` header or in the JSON request body under `metadata.key_alias`:
+
+```json
+{
+  "model": "openai/gpt-4.1-mini",
+  "messages": [{ "role": "user", "content": "Hello" }],
+  "metadata": { "key_alias": "pro" }
+}
+```
+
+With the OpenAI Python SDK, send the body selector with `extra_body={"metadata": {"key_alias": "pro"}}`. With the OpenAI TypeScript SDK, pass `metadata` directly in the request body.
+
+- **Body beats header**: If you send both, `metadata.key_alias` takes precedence over `X-Zorveus-Key-Alias`.
+- **Model discovery and key usage use the header**: For `GET /v1/models` and `GET /inference-keys/usage`, pass `X-Zorveus-Key-Alias` (`headers` in TypeScript, `extra_headers` in Python).
+- **Default key**: Omit both selectors to use the routing key's configured default. Without a default, every request must include a selector.
+- **No silent fallback on bad selectors**: A blank, null, malformed, or unknown selector fails instead of falling back to the header or default. Selecting an expired or revoked member key also fails.
+
+---
+
+## Change a customer's plan
+
+Keep the customer's `X-Zorveus-External-User-ID` unchanged and send their new plan alias (for example, `pro` instead of `free`) on the next request.
+
+To prorate eligible allowance increases on upgrades, send `X-Zorveus-Allowance-Change-Policy: prorate_increase` on requests that stay on the same plan or move to a higher allowance, and omit it on downgrades. See [Prorate plan upgrades](/startups/prorated-plan-changes#set-a-default-header-for-proration).
+
+Manage member keys, aliases, default selection, and key rotation in the dashboard.
