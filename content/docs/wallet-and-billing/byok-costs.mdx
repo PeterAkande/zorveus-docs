@@ -1,27 +1,32 @@
 ---
-title: BYOK costs and accounting
-description: Separate upstream provider billing, virtual allowance, and Zorveus platform fees.
+title: BYOK costs
+description: Understand how upstream provider bills, customer allowances, and Zorveus platform fees work with Bring Your Own Key.
 ---
 
-With BYOK, the upstream model provider bills your provider account. Zorveus records usage, applies your spending policy, and can charge a platform routing fee
+When you route requests through your own provider keys (BYOK), the upstream provider bills your provider account directly. Zorveus tracks usage, enforces your spending caps and customer allowances, and charges a platform routing fee once your monthly BYOK volume crosses your organization's free threshold.
+
+---
 
 ## Read the three amounts
 
-| Amount | Meaning for BYOK |
-| --- | --- |
-| `virtual_spend` | Reference-priced usage applied to caps and customer allowance |
-| `provider_cost` | Recorded upstream usage cost, used for reporting and platform-fee calculation |
-| `sell_cost` | Amount charged to your Zorveus wallet, including any platform fee |
+| Field | What it means for BYOK |
+| :--- | :--- |
+| `virtual_spend` | Reference-priced usage counted against spending caps and customer allowances. |
+| `provider_cost` | Estimated upstream provider cost used for reporting and platform-fee math. |
+| `sell_cost` | Amount charged to your Zorveus wallet, including any applicable platform fee. |
 
-Virtual spend uses the same reference pricing for wallet-funded and BYOK usage. Switching to BYOK does not make customer allowance unlimited. Provider cost reported by Zorveus is not a replacement for your provider's invoice
+`virtual_spend` uses the same reference pricing whether a request runs on BYOK or your Zorveus wallet, so switching to BYOK does not make customer allowances unlimited. `provider_cost` in Zorveus is for tracking and fee calculation and does not replace your upstream provider's invoice.
 
-Successful BYOK usage is recorded as `billing_mode: "byok_external"`. A managed fallback request records `wallet` and charges the wallet-funded model price
+- Successful BYOK requests record `billing_mode: "byok_external"`.
+- Requests that fall back to Zorveus's managed route record `billing_mode: "wallet"` and charge the wallet-funded model price.
 
-## Understand the monthly threshold
+---
 
-The monthly free routing threshold and overage fee percentage are configurable. Check the pricing that applies to your organization before forecasting costs. A local backend default is not a guarantee of production pricing
+## Monthly free threshold and platform fee
 
-Only provider cost above the configured monthly threshold contributes to the platform fee:
+The monthly free routing threshold and overage fee percentage are configurable per organization. Check your organization's active pricing in the dashboard before forecasting costs.
+
+Only provider cost above the monthly threshold incurs the platform fee:
 
 ```text
 feeable cost = max(0, monthly cost after request - threshold)
@@ -29,12 +34,20 @@ feeable cost = max(0, monthly cost after request - threshold)
 platform fee = feeable cost * fee percentage / 100
 ```
 
-For example, assume a $100 threshold, a 5% fee, and $99 of provider cost already recorded this month. A request adding $2 crosses the threshold by $1, so its platform fee is $0.05. These are illustrative values, not a pricing offer
+For example, with an illustrative `$100` monthly threshold, a `5%` fee, and `$99` of provider cost already recorded this month, a `$2` request crosses the threshold by `$1` and incurs a `$0.05` platform fee.
 
-## Keep funding separate from allowance
+---
 
-The organization wallet pays applicable platform fees. Product-user credits extend virtual allowance and cannot pay those fees or the upstream bill
+## Keep wallet funds available for fees and fallback
 
-The gateway can reserve an estimated BYOK fee before dispatch. Insufficient wallet funding returns `402` with `zorveus_reservation_insufficient_balance`. Maintain wallet funds for feeable traffic and any configured managed fallback
+Your organization wallet pays any applicable BYOK platform fees and any requests served through wallet fallback. Product-user credit grants only extend customer allowances and cannot pay platform fees or upstream invoices.
 
-For credential ordering and fallback conditions, see [Automatic provider routing](/startups/automatic-routing). For a customer purchase that grants virtual credits, see [Grant credits after a payment](/startups/credit-grants#grant-credits-after-a-payment)
+Before dispatching a feeable BYOK request, Zorveus can reserve the estimated platform fee from your wallet. If your wallet balance is too low, the request returns HTTP `402 Payment Required` (`zorveus_reservation_insufficient_balance`). Keep funds in your wallet whenever you expect feeable BYOK volume or enable `auto_fallback_to_wallet`.
+
+---
+
+## Next steps
+
+- [Provider keys (BYOK)](/startups/provider-credentials): Add and manage upstream provider credentials in the dashboard.
+- [Key priority, rotation, and fallback](/startups/automatic-routing): Configure multi-key priority and optional wallet fallback.
+- [Grant credits after a payment](/startups/credit-grants#grant-credits-after-a-payment): Add customer allowance after a purchase in your app.

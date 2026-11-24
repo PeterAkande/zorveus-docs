@@ -1,48 +1,46 @@
 ---
 title: Usage analytics
-description: Monitor inference volume, inspect cache-aware token breakdowns, and track financial metrics in the Zorveus dashboard.
+description: Filter requests, inspect token and prompt cache breakdowns, and compare virtual spend, wallet charges, and provider cost in the dashboard.
 ---
 
-The [Zorveus Dashboard](https://app.zorveus.com) provides real-time visibility into every inference request processed across your organization
-
-Navigate to **Usage** in the dashboard to analyze token volume, prompt cache savings, and cost metrics
-
----
-
-## Filtering and exploring usage
-
-At the top of the **Usage** page, you can slice and filter metrics using:
-
-- **Date range**: Presets (Today, Last 7 Days, Month to Date) or custom calendar ranges.
-- **Application**: Filter by specific app connections or view aggregate organization traffic.
-- **Model and provider**: Group by provider (OpenAI, Anthropic, Google) or isolate specific models.
-- **Billing mode**: Filter between `wallet` and `byok` traffic.
-- **Product user**: Search by `external_user_id` or customer name to review one customer's consumption
+Open **Usage** in the [Zorveus dashboard](https://app.zorveus.com) to inspect model requests, token volume, prompt cache savings, and costs across your organization.
 
 ---
 
-## The usage events log
+## Filter and find a request
 
-Below the aggregate summary charts, the **Usage events** table logs individual completed requests with their key metrics:
+Use the filters at the top of **Usage** to narrow down traffic or track down a specific call:
 
-| Column | Description |
+- **Date range**: Choose a preset (Today, Last 7 Days, Month to Date) or a custom range.
+- **Application and connection**: Isolate one app or connection, or view organization-wide traffic.
+- **Model and provider**: Group by provider (OpenAI, Anthropic, Google) or filter to one model.
+- **Billing mode**: Separate `wallet` calls from `byok` calls.
+- **Product user**: Search by `external_user_id` or customer name to inspect one customer's history.
+
+Keep the Zorveus request ID and reservation ID in your server logs when available so you can match an event quickly. For programmatic reads from your backend, use [Key usage](/api-reference/usage) for key-level totals or the [product-user API](/api-reference/product-users) for one customer's balance and activity.
+
+---
+
+## Usage events table
+
+Below the summary charts, **Usage events** lists each completed request:
+
+| Column | What it shows |
 | :--- | :--- |
 | **Timestamp** | UTC completion time. |
-| **Model** | Resolved model identifier (such as `anthropic/claude-sonnet-5`). |
-| **Input tokens** | Total input tokens. If prompt caching occurred, cache reads appear as a badge under the count. |
-| **Output tokens** | Generated completion tokens. |
-| **Usage cost** | Reference-priced virtual spend consumed by the call. |
-| **Billed to wallet** | Actual cash charge debited from your organization wallet ($0.00 for BYOK unless a platform fee applied). |
+| **Model** | Resolved model ID (for example, `openai/gpt-4.1-mini` or `anthropic/claude-sonnet-5`). |
+| **Input tokens** | Total input tokens. When prompt caching applies, cache reads appear directly under the total. |
+| **Output tokens** | Generated output tokens. |
+| **Usage cost** | Reference-priced spend counted against caps and customer credits. |
+| **Billed to wallet** | Cash deducted from your organization wallet (`$0.00` for BYOK unless a platform fee applies). |
 | **Mode** | `wallet` or `byok`. |
 | **Status** | `succeeded`, `partially_settled`, or `failed`. |
 
 ---
 
-## Inspecting prompt cache savings
+## Prompt cache savings
 
-When an upstream model provider reports prompt caching, Zorveus highlights the savings in the dashboard
-
-In the usage table, cache reads appear directly under total input:
+When an upstream provider reports prompt caching, cache reads appear under total input in the events table:
 
 ```text
 Input
@@ -50,7 +48,7 @@ Input
 7,000 cache read
 ```
 
-Clicking any row in the table opens the **Event details** drawer with an **Input details** breakdown:
+Click any row to open the **Event details** drawer and view the **Input details** breakdown:
 
 ```text
 Total input                         10,000
@@ -63,31 +61,27 @@ Service tier                      standard
 AI allowance saved                 $0.0105
 ```
 
-### What the cache metrics mean
-
-- **Normal input**: Uncached prompt tokens calculated as total input minus cache reads and cache creations.
-- **Cache read**: Tokens reused from an active prompt cache at discounted provider rates.
-- **Cache creation**: New tokens written to cache for subsequent calls.
-- **AI allowance saved**: Reference-priced allowance saved by prompt caching compared to standard input rates. On BYOK requests, this represents virtual allowance saved rather than discounts on your provider invoice
+- **Normal input**: Uncached prompt tokens (total input minus cache reads and cache creations).
+- **Cache read**: Prompt tokens served from cache at the provider's discounted rate.
+- **Cache creation**: Prompt tokens written to cache for later requests.
+- **AI allowance saved**: Reference-priced allowance saved compared to standard input pricing. On BYOK requests, this reflects virtual allowance saved rather than a discount on your upstream provider invoice.
 
 ---
 
-## Understanding financial amounts in the dashboard
+## Understand the three cost figures
 
-The event detail drawer separates three distinct financial values:
+The **Event details** drawer separates three amounts so you never confuse customer allowance with cash billed to your wallet:
 
-1. **Virtual spend ("Usage cost")**: The reference-priced value of AI usage evaluated against spending caps and user credits. Wallet and BYOK calls compute this value identically.
-2. **Sell cost ("Billed to wallet")**: The actual amount deducted from your organization wallet balance.
-3. **Provider cost**: The raw wholesale amount billed by the model provider
+1. **Usage cost (`virtual_spend`)**: Reference-priced value counted against spending caps and customer credits. Calculated the same way for both wallet and BYOK calls.
+2. **Billed to wallet (`sell_cost`)**: Actual amount charged to your Zorveus organization wallet.
+3. **Provider cost (`provider_cost`)**: Wholesale cost reported for the upstream model provider.
 
-If a call exceeded its allowance under an overrun policy, the drawer also displays:
+If a request finished past its allowance under an overrun policy, the drawer also shows **Uncovered virtual spend** and the active **Overrun policy** (`limit_output`, `allow_overrun`, or `carry_overrun_forward`).
 
-- **Uncovered virtual spend**: The portion of spend exceeding base cap and credits.
-- **Overrun policy**: The policy active for the request (`limit_output`, `allow_overrun`, or `carry_overrun_forward`)
-
+---
 
 ## Business activity metadata
 
-Requests can attach [usage metadata](/inference/product-user-metadata#attach-business-context-to-usage-events), including an activity ID, label, or conversation ID. Authorized usage-event responses expose the captured object as `usage_metadata`. Events without metadata return `null`, and diagnostic access without usage-detail permission redacts it
+Requests can attach [usage metadata](/inference/product-user-metadata#attach-business-context-to-usage-events) such as an activity ID, label, or conversation ID. Authorized usage-event responses return that object as `usage_metadata` (or `null` when none was sent), while callers without usage-detail permission see it redacted.
 
-This preserves context for reporting. Business backends can list combined credit movements and AI usage through [Product-user activity](/startups/product-user-activity). Category aggregation and activity grouping remain separate features
+To list combined credit grants and AI usage for a customer from your backend, see [Product-user activity](/startups/product-user-activity).

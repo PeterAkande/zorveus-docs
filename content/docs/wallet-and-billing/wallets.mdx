@@ -1,22 +1,68 @@
 ---
-title: Wallets and balances
-description: Keep organization funding separate from customer AI allowance.
+title: Wallets and top-ups
+description: Fund your organization wallet, understand available and reserved balances, confirm top-ups, and read the wallet ledger.
 ---
 
-A spendable organization has a wallet that funds managed inference and applicable BYOK platform fees. Fund and inspect it in the [dashboard](https://app.zorveus.com)
+Every spendable organization has a wallet that pays for managed model requests and any applicable BYOK platform fees. Manage your balance, top-ups, promotional codes, and ledger history in the [Zorveus dashboard](https://app.zorveus.com).
 
-## Available and reserved funds
+Your organization wallet is separate from customer AI allowances. Customer credit grants increase a customer's spending allowance inside your product; they do not add cash to your organization wallet.
 
-`available_balance` is available for new reservations. `reserved_balance` is held for in-flight requests. Their sum is the balance before those pending charges settle
+---
 
-For example, a $50 balance with $1.80 held leaves $48.20 available. The hold is an estimate. Settlement charges actual usage and releases any unused amount
+## Available vs. reserved balance
 
-A slow or disconnected request can need later reconciliation before all holds are released. Do not treat a stream disconnect as proof that the provider stopped producing billable output
+Before Zorveus sends a request to a model provider, it holds an estimated charge from your wallet:
 
-## Restore funding
+- **`available_balance`**: Funds ready for new requests.
+- **`reserved_balance`**: Funds temporarily held for requests currently in flight.
 
-If the wallet cannot cover an estimated charge, inference can return `402` with `zorveus_reservation_insufficient_balance`. Top up the funding organization's wallet and confirm the credited available balance before retrying
+For example, a $50.00 wallet with $1.80 held for active calls leaves $48.20 available. When a request completes, Zorveus charges actual usage and releases any unused hold back to `available_balance`.
 
-An organization can also have a billing freeze or outstanding wallet debt. Resolve that state before new inference. A customer credit grant does not clear wallet debt or add cash
+A slow or disconnected stream can keep a hold open until the provider settles or Zorveus reconciles it. Do not assume a client disconnect stopped the upstream model from producing billable output.
 
-See [Wallet top-ups](/wallet-and-billing/top-ups), [BYOK costs](/wallet-and-billing/byok-costs), and [Funding and billing](/concepts/funding-and-billing)
+---
+
+## Fund your wallet
+
+1. Open the [Zorveus dashboard](https://app.zorveus.com) and select the organization that pays for usage.
+2. Open **Wallet** and start a top-up using any payment method and currency offered at checkout.
+3. Confirm that the credited amount appears in your available balance before relying on it for traffic.
+
+### Confirming a top-up
+
+Treat the checkout return page as a status view, not proof of payment. Zorveus verifies provider payment confirmation before crediting your wallet, and pending payments can settle asynchronously.
+
+Wait for either the updated balance in the dashboard or the signed `wallet.payment_credited` webhook before treating funds as available. That webhook tracks a Zorveus organization wallet purchase, not a customer payment to your own product. For customer purchases, see [Grant credits after a payment](/startups/credit-grants#grant-credits-after-a-payment) and [Webhooks](/platform/webhooks).
+
+---
+
+## Promotional credits
+
+When a Zorveus promotion is active, redeem the code in **Wallet** in the dashboard. Eligibility, redemption limits, valid dates, and expiry depend on the campaign, and redeeming a code does not add withdrawable cash.
+
+To issue promotional AI allowance to your own customers, create a [product-user credit grant](/startups/credit-grants) with the appropriate source and expiration instead.
+
+---
+
+## Wallet ledger
+
+Open the **Ledger** tab under **Wallet** in the dashboard to inspect every wallet movement: top-ups, in-flight reservations, settled usage charges, released holds, and adjustments.
+
+Customer credit grants and allowance changes have their own separate history. Use the [product-user API](/api-reference/product-users) or **Product Users** in the dashboard to inspect customer balances and grants.
+
+---
+
+## Fix funding failures
+
+If your wallet cannot cover an estimated reservation, model requests fail with HTTP `402 Payment Required` (`zorveus_reservation_insufficient_balance`). Top up the paying organization's wallet and confirm the credited available balance before retrying.
+
+An organization can also hit HTTP `402` (`zorveus_org_billing_frozen`) if billing is frozen or wallet debt is unresolved. Clear that status in the dashboard before sending new traffic. Granting customer credits does not resolve organization wallet debt.
+
+---
+
+## Next steps
+
+- [Spending caps](/wallet-and-billing/caps): Set daily, monthly, or lifetime limits and overrun policies.
+- [Usage analytics](/wallet-and-billing/usage): Inspect requests, token breakdowns, and prompt cache savings.
+- [BYOK costs](/wallet-and-billing/byok-costs): Understand platform fees and reservations when using your own provider keys.
+- [Funding and billing](/concepts/funding-and-billing): Review how organization funding and customer allowances fit together.
