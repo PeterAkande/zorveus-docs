@@ -14,17 +14,17 @@ Create and manage Business apps in the [Zorveus dashboard](https://app.zorveus.c
 1. Sign in to the [Zorveus dashboard](https://app.zorveus.com) and select your **Business** organization.
 2. Open **Apps** in the sidebar.
 3. Click **Create App**, enter a name (for example, `Production API` or `Customer Portal`), and save.
-4. Open the app to configure its connection rules and create an API key.
+4. Open the app to configure its API key rules and generate a key.
 
 ---
 
-## Configure connection rules
+## Configure API key rules
 
-Each app connection controls every model request sent with its API keys. For defaults, plan layouts, and examples, see [Configure product-user allowances](/startups/configure-product-user-allowances).
+Each API key's policy controls every model request sent with it. For defaults, plan layouts, and examples, see [Configure product-user allowances](/startups/configure-product-user-allowances).
 
 ### Allowed models
 
-Restrict which models requests on this connection can call. Any request for an unapproved model fails with HTTP `403 Forbidden` (`zorveus_model_not_allowed`).
+Restrict which models requests using this key can call. Any request for an unapproved model fails with HTTP `403 Forbidden` (`zorveus_model_not_allowed`).
 
 - `*`: Allows every model available in the Zorveus catalog.
 - `provider/*`: Allows every model from one provider (such as `openai/*` or `anthropic/*`).
@@ -37,7 +37,7 @@ Choose when Zorveus checks customer caps and credits before allowing a request:
 - **`enforce_if_present` (default)**: Checks caps and credits whenever your request includes a customer ID (`X-Zorveus-External-User-ID`). Requests without a customer ID skip per-customer checks, though allowed models and wallet funding still apply.
 - **`enforce`**: Checks allowances on all requests, with or without a customer ID. Your backend should still require a customer ID when per-customer limits matter.
 - **`track_only`**: Logs cap and credit usage without blocking requests. Usage past the cap is recorded as uncovered spend.
-- **`disabled`**: Turns off cap and credit checks for this connection.
+- **`disabled`**: Turns off cap and credit checks for this key.
 
 ### Overrun policy (`overrun_policy`)
 
@@ -49,7 +49,7 @@ Choose what happens when a model reply could cost more than a customer's remaini
 
 ### Spending caps
 
-Set a `daily`, `monthly`, or `lifetime` spending limit on the connection. When you pass `X-Zorveus-External-User-ID`, each customer gets their own separate allowance from that cap. Under `enforce`, requests without a customer ID share a separate connection-level spend total.
+Set a `daily`, `monthly`, or `lifetime` spending limit on the key. When you pass `X-Zorveus-External-User-ID`, each customer gets their own separate allowance from that cap. Under `enforce`, requests without a customer ID share a separate key-level spend total.
 
 ---
 

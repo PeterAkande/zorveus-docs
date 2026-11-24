@@ -3,7 +3,7 @@ title: Spending caps
 description: Set daily, monthly, or lifetime spending caps, understand how caps combine with credits, and configure overrun policies.
 ---
 
-Spending caps limit how much AI usage an organization, app connection, or individual customer can consume in a period. A cap is a spending ceiling, not a prepaid deposit.
+Spending caps limit how much AI usage an organization, API key, or individual customer can consume in a period. A cap is a spending ceiling, not a prepaid deposit.
 
 Configure and monitor caps in the [Zorveus dashboard](https://app.zorveus.com).
 
@@ -12,7 +12,7 @@ Configure and monitor caps in the [Zorveus dashboard](https://app.zorveus.com).
 ## Set a cap in the dashboard
 
 1. Open the [Zorveus dashboard](https://app.zorveus.com) and go to **Apps**.
-2. Select your app and open **Connection settings**.
+2. Select your app and open the **API key** settings.
 3. Under **Spending caps**, set:
    - **Cap amount**: Maximum reference-priced spend allowed in each period (for example, `$50.00`).
    - **Period**: `daily`, `monthly`, or `lifetime`.
@@ -28,7 +28,7 @@ The dashboard shows a live progress bar for each cap with current period spend, 
 Zorveus enforces caps at three levels:
 
 - **Organization cap**: Set under **Settings** → **Billing**. Caps total AI spend across every app and key in the organization.
-- **App-connection cap**: Set on the app connection. When requests include a customer ID (`X-Zorveus-External-User-ID`), each customer gets their own separate allowance from this cap. Under `enforce`, requests without a customer ID share a separate connection-level total.
+- **API key cap**: Set on an API key. When requests include a customer ID (`X-Zorveus-External-User-ID`), each customer gets their own separate allowance from this cap. Under `enforce`, requests without a customer ID share a separate key-level total.
 - **Product-user cap**: Sets an explicit limit for an individual customer within an app. Monitor per-customer spend under **Product Users** in the dashboard.
 
 When more than one cap applies, every cap must have room for the request to go through. Lowering a cap affects future requests and never alters already-settled usage.
@@ -37,59 +37,55 @@ When more than one cap applies, every cap must have room for the request to go t
 
 ## How caps and customer credits combine
 
-When an API key has a cap, a customer's spendable allowance is their remaining base cap plus any active credit grants:
+A customer's available allowance has two parts: what is left in their cap for the current period, plus any extra credits you granted them.
 
-```text
-remaining allowance = remaining base allowance + available product-user credits
-```
+To figure out how much of the cap is left right now, Zorveus starts with the cap amount and subtracts two things:
 
-Where remaining base allowance is:
+- **Finished spend this period**: Total usage already settled since the cap last reset.
+- **In-flight holds**: Estimated amounts temporarily reserved for requests still running. Once a request finishes, Zorveus charges actual usage and releases any unused hold.
 
-```text
-remaining base allowance = max(0, cap amount - completed period spend - active reservations)
-```
+If finished spend and in-flight holds already meet or exceed the cap, the remaining cap is `$0.00` (it never goes negative). Any active customer credits sit on top of that remaining cap.
 
 ### Consumption order
 
-Zorveus draws from a customer's allowance in this order:
+When a new request comes in, Zorveus spends allowance in this order:
 
-1. **Remaining base allowance** from the cap.
-2. **Available product-user credits** (soonest-expiring grants first).
-3. **Uncovered spend** (only in `track_only` mode or when an overrun policy allows a call to finish past the cap).
+1. **Remaining cap** for the current period.
+2. **Customer credits** (soonest-expiring grants first).
+3. **Overrun spend** (only in `track_only` mode or when an overrun policy allows a call to finish past the limit).
 
 Example:
 
 ```text
-Configured monthly cap:        $10.00
-Spend so far this period:       $8.00
-Remaining base allowance:       $2.00
-Available user credits:         $5.00
-
-Incoming request estimate:      $3.00
-Base allowance reserved:        $2.00
-Credits reserved:               $1.00
-Remaining credits after call:   $4.00
+Monthly cap:                     $10.00
+Finished spend this month:       -$7.50
+In-flight request hold:          -$0.50
+---------------------------------------
+Remaining cap:                    $2.00
+Extra customer credits:          +$5.00
+---------------------------------------
+Total available right now:        $7.00
 ```
 
-The base cap covers the first `$2.00`, and customer credits cover the remaining `$1.00`.
+If this customer sends a new request estimated at `$3.00`, Zorveus uses the `$2.00` left in their monthly cap first, then pulls `$1.00` from their credits, leaving `$4.00` in credits.
 
 ---
 
-## Uncapped connections
+## Uncapped API keys
 
-When no cap is configured on a connection:
+When no cap is configured on an API key:
 
 - Customer allowance is unlimited, so requests are not rejected for allowance limits.
 - Usage is still logged in **Usage** analytics.
 - Product-user credits are not consumed.
 
-Customer credits extend a configured cap. They do not act as a limit on an uncapped connection.
+Customer credits extend a configured cap. They do not act as a limit on an uncapped API key.
 
 ---
 
 ## Overrun policies
 
-In **Connection settings**, **Allowance overrun policy** controls what happens when a model reply might exceed the remaining allowance:
+In your API key settings in the dashboard, **Allowance overrun policy** controls what happens when a model reply might exceed the remaining allowance:
 
 | Policy | Dashboard label | During the request | Excess spend |
 | :--- | :--- | :--- | :--- |

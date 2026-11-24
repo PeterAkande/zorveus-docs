@@ -11,11 +11,11 @@ Zorveus only selects between eligible credentials for the exact model you asked 
 
 ## How priority ordering works
 
-For a credential to be eligible, it must be active, match the requested model's provider and model policy, and be accessible to the app connection (`auto_resolve` or explicitly granted).
+For a credential to be eligible, it must be active, match the requested model's provider and model policy, and be accessible to the API key (`auto_resolve` or explicitly granted).
 
 Zorveus orders eligible keys in two tiers:
 
-1. **Explicit connection grants first**: Keys granted directly to the app connection are tried before organization-wide `auto_resolve` keys.
+1. **Explicit grants first**: Credentials granted directly to the API key are tried before organization-wide `auto_resolve` credentials.
 2. **Lower `routing_priority` first**: Within each tier, smaller numbers run first. For example, a key with priority `10` runs before priority `20`, which runs before priority `30`.
 
 A common setup is placing your primary high-quota key at priority `10` and one or more backup keys at priority `20` and `30`. Do not rely on two keys with the same `routing_priority` receiving an even 50/50 split.
