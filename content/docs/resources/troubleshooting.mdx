@@ -1,9 +1,9 @@
 ---
 title: Troubleshooting
-description: Diagnose inference, product-user, service-key, provider, streaming, and OAuth failures.
+description: Diagnose authentication, model access, wallet funding, spending cap, service key, streaming, and OAuth errors.
 ---
 
-Zorveus product API errors use an `error` object with a stable `code` and a safe `message`. Log the HTTP status, error code, and request ID. Never log a key, OAuth code, provider secret, or prompt
+Zorveus errors include a stable `code` and a safe `message`. Always log the HTTP status, `error.code`, and `x-zorveus-request-id` when diagnosing failures, and never log API keys, OAuth codes, provider secrets, or raw prompts.
 
 ```json
 {
@@ -14,39 +14,54 @@ Zorveus product API errors use an `error` object with a stable `code` and a safe
 }
 ```
 
-## Inference authentication fails
+---
 
-For a missing or malformed API key, the API returns `zorveus_malformed_or_missing_key`. For an unknown key, it returns `zorveus_unknown_key`. An inactive key returns `zorveus_key_inactive`
+## Authentication fails (`401` / `403`)
 
-Check that `Authorization` contains the complete API key:
+- `zorveus_malformed_or_missing_key` (`401`): `Authorization` header is missing or malformed.
+- `zorveus_unknown_key` (`401`): Key does not exist in this environment.
+- `zorveus_key_inactive` (`403`): API key or OAuth token was revoked or deactivated.
+
+Confirm your request sends the full key in the header:
 
 ```http
 Authorization: Bearer zrv_your_api_key
 ```
 
-If the key was revoked or lost, rotate it from the app connection and replace the backend secret. Zorveus shows the new raw key only once
+If the key was revoked or lost, create a replacement API key in the dashboard and update your backend secret. For a revoked user OAuth token, clear the token and ask the user to reconnect.
 
-## A model is rejected
+---
 
-`zorveus_model_not_allowed` means the requested model is outside the API key's model policy. `zorveus_unsupported_model` means Zorveus cannot route the model
+## A model is rejected (`400` / `403`)
 
-List the models available to the current key with `GET /v1/models`. Then update the app connection policy or choose a returned model ID. Do not assume that every provider model is routable
+- `zorveus_model_not_allowed` (`403`): The requested model is outside your API key's allowed-model policy.
+- `zorveus_unsupported_model` (`400`): Zorveus does not recognize or route that model ID.
 
-## Wallet funds are insufficient
+Call `GET /v1/models` with your API key to list the exact model IDs available to it, then either pick a returned model ID or update your key's model policy in the dashboard.
 
-`zorveus_reservation_insufficient_balance` means the selected organization cannot reserve enough wallet value for the request. Top up the wallet or configure an eligible provider credential for Bring Your Own Key routing
+---
 
-A provider credential does not guarantee that the request will use it. Its status, model policy, routing priority, and app-connection access must all match
+## Wallet funds are insufficient (`402`)
 
-## A spending cap blocks the request
+`zorveus_reservation_insufficient_balance` means the paying organization wallet cannot reserve the estimated charge (or BYOK platform fee). Top up the wallet in the dashboard or add an eligible BYOK key under **Provider Credentials**.
 
-`zorveus_cap_exceeded` (HTTP 403) means an organization, app-connection, or product-user cap would be exceeded. Inspect the cap named in the error message
+Adding a BYOK key does not guarantee it will be selected for every request. The credential must be active, match the model policy, and be accessible to your API key (`auto_resolve` or explicitly granted). See [Key priority, rotation, and fallback](/startups/automatic-routing).
 
-For attributed Business traffic, a connection cap applies separately to each product user. Under `enforce`, unattributed traffic is evaluated separately. A direct product-user cap belongs to one user in the app
+---
 
-## Product-user allowance blocks the request
+## A spending cap blocks the request (`403`)
 
-When a product user exhausts their base cap and active credits under an enforced credit mode, the gateway rejects the request with `403 Forbidden`:
+`zorveus_cap_exceeded` means an organization, API key, or product-user cap has been reached. Check which cap is named in the error message:
+
+- On requests with `X-Zorveus-External-User-ID`, an API key cap applies separately to each customer.
+- Under `enforce`, requests without a customer ID share a separate key-level spend total.
+- A direct product-user cap applies to one specific customer in the app.
+
+---
+
+## Customer allowance blocks the request (`403`)
+
+When a customer runs out of base cap plus active credits, the gateway returns HTTP `403 Forbidden`:
 
 ```json
 {
@@ -71,14 +86,15 @@ When a product user exhausts their base cap and active credits under an enforced
 }
 ```
 
-The OpenAI Python SDK raises `openai.PermissionDeniedError` for HTTP `403`. Native SDKs expose their own error types. Check the structured code:
+The OpenAI Python SDK raises `openai.PermissionDeniedError` for HTTP `403`. Check `error.provider_specific_fields.error.code` for `zorveus_product_user_allowance_insufficient` (or the legacy code `zorveus_product_user_credits_insufficient`), then grant credits, raise the cap, or prompt the customer to upgrade.
 
-- `zorveus_product_user_allowance_insufficient` (HTTP 403): The product user lacks enough remaining base allowance plus promotional credits. Grant more credit, raise the base cap, or wait for the cap period to reset. Legacy clients may still receive `zorveus_product_user_credits_insufficient`.
-The `enforce` credit mode does not require a customer ID. Require attribution in your own backend when every customer request must have one
+`enforce` mode does not require every request to carry a customer ID; enforce customer authentication in your own backend whenever attribution is mandatory.
 
-## Product-user details do not appear
+---
 
-Use the nested raw request shape:
+## Customer details do not show up
+
+Use the nested `metadata.product_user` shape:
 
 ```json
 {
@@ -87,35 +103,39 @@ Use the nested raw request shape:
     "product_user": {
       "display_name": "Ada Customer",
       "email": "ada@example.com",
-      "metadata": {"plan": "pro"}
+      "metadata": { "plan": "pro" }
     }
   }
 }
 ```
 
-Fields such as `metadata.name`, `metadata.email`, and `metadata.user_metadata` are not canonical product-user fields. The supported flat compatibility fields are `product_user_display_name`, `product_user_email`, and `product_user_metadata`
+Fields such as `metadata.name`, `metadata.email`, and `metadata.user_metadata` are ignored. Flat compatibility fields (`product_user_display_name`, `product_user_email`, `product_user_metadata`) are also supported.
+
+---
 
 ## A service-key request fails
 
-Service keys start with `zrv_svc_`. They authenticate supported management routes at `https://api.zorveus.com`, without an `/api/v1` prefix
+Service keys (`zrv_svc_...`) authenticate routes on `https://api.zorveus.com` (without `/v1` or `/api/v1`):
 
 | Code | Meaning | Fix |
-| --- | --- | --- |
-| `zorveus_malformed_or_missing_service_key` | The header is missing or malformed. | Send `Authorization: Bearer zrv_svc_...`. |
-| `zorveus_unknown_service_key` | No active record matches the key. | Check the secret or create a new key. |
-| `zorveus_service_key_inactive` | The key was revoked or disabled. | Replace it with an active key. |
-| `zorveus_service_key_scope_required` | The key lacks the route's scope. | Create a key with the required read or write scope. |
+| :--- | :--- | :--- |
+| `zorveus_malformed_or_missing_service_key` | Header is missing or malformed. | Send `Authorization: Bearer zrv_svc_...`. |
+| `zorveus_unknown_service_key` | No active service key matches. | Verify the secret or create a new service key. |
+| `zorveus_service_key_inactive` | Service key was revoked or disabled. | Replace it with an active service key. |
+| `zorveus_service_key_scope_required` | Service key lacks the route's required scope. | Create a key with `product_users:read` or `product_users:write`. |
 
-## Streaming stops before completion
+---
 
-Read Server-Sent Events until the stream emits `data: [DONE]` or closes. Preserve incomplete lines between network chunks. If the connection closes early, record the request ID and treat the result as incomplete
+## Streaming stops early
 
-Retry only when your application can tolerate a second provider request. A retry can produce another billable completion
+Read Server-Sent Events until `data: [DONE]` or stream close, buffering partial lines across network chunks. If the stream disconnects early, log `x-zorveus-request-id` and treat the response as incomplete. Only retry if your app can accept a second billable provider request.
+
+---
 
 ## OAuth redirects fail
 
-`zorveus_redirect_uri_mismatch` means the authorization request or token exchange used a URI that does not exactly match a registered redirect URI. Check the scheme, host, port, path, query, and trailing slash
+- `zorveus_redirect_uri_mismatch`: The `redirect_uri` sent to `/oauth/authorize` or `/oauth/token` does not match a registered URL character for character. Check scheme, host, port, path, query, and trailing slash.
+- `zorveus_invalid_code_verifier`: Keep the original PKCE verifier in `sessionStorage` (public browser app) or server session (confidential backend) and send it with the same `redirect_uri` during token exchange.
+- `zorveus_oauth_code_expired` / `zorveus_oauth_code_consumed`: Authorization codes expire in 10 minutes and can only be exchanged once. Start the connect flow again.
 
-For PKCE failures, keep the original verifier in a secure server session. Send the same `redirect_uri` and verifier during the token exchange. Authorization codes are single-use and expire
-
-If the problem continues, include the request ID, endpoint, HTTP status, and stable error code when you contact [support](/resources/support)
+If an issue persists, send the request ID, endpoint, HTTP status, and error code to [support](/resources/support).

@@ -1,17 +1,22 @@
 ---
 title: Security
-description: Protect Zorveus credentials, OAuth flows, provider secrets, and webhook endpoints.
+description: Protect Zorveus credentials, OAuth PKCE flows, BYOK provider keys, and webhook endpoints.
 ---
 
-Use the least-privileged credential for each surface:
+Follow these rules to keep your credentials, customer data, and billing safe:
 
-- Keep service keys, confidential OAuth client secrets, and provider credentials on trusted servers.
-- Scope API keys to the required models and connection.
-- Store returned secrets immediately because key and secret creation responses may be the only time the full value is shown.
-- Rotate and revoke credentials when they are exposed or no longer needed.
+## Credentials and server boundaries
 
-OAuth uses authorization code with S256 PKCE and exact registered redirect URIs. Generate a fresh verifier and state value for each attempt, verify state on return, and exchange the code from a trusted backend for confidential clients.
+- **Keep server secrets off the client**: Never put Business API keys (`zrv_...`), routing keys (`zrv_route_...`), service keys (`zrv_svc_...`), confidential OAuth client secrets (`zrv_client_secret_...`), or webhook signing secrets in browser code, mobile apps, or source control.
+- **Use least privilege**: Give each API key only the allowed models and spending caps it needs, and give service keys only `product_users:read` unless your backend must write profiles or grant credits.
+- **Store secrets on creation**: Raw API keys, service keys, and client secrets are shown once when created. Save them directly into your secret manager.
+- **Rotate leaked credentials immediately**: Replace compromised keys in the dashboard and revoke the old ones. See [Security and connected apps](/account-and-organizations/account-security).
 
-Zorveus stores provider credentials through its protected credential service. Your own logs, traces, and error reports must still redact Authorization headers, API keys, OAuth codes, PKCE verifiers, client secrets, and webhook secrets.
+## Logging and redaction
 
-For webhooks, verify the signature against the raw request body before parsing or processing the event.
+Zorveus encrypts stored BYOK provider credentials at rest. On your side, strip `Authorization` headers, `x-api-key` headers, OAuth authorization codes, PKCE verifiers, client secrets, and webhook signing secrets from application logs, traces, and support tickets.
+
+## OAuth and webhooks
+
+- **OAuth PKCE**: Always generate a fresh `state` and S256 PKCE `code_verifier` for each login attempt, verify `state` on callback, register exact callback URLs, and exchange codes from your backend for confidential apps. See [Connect users and exchange tokens](/oauth/token-exchange).
+- **Webhooks**: Verify `X-Zorveus-Signature` against the raw HTTP body bytes with a constant-time comparison and reject timestamps older than 5 minutes before processing the payload. See [Webhooks](/platform/webhooks).

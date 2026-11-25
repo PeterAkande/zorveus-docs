@@ -1,36 +1,38 @@
 ---
 title: Error handling
-description: Handle product API and OpenAI-compatible gateway errors without relying on message text.
+description: Handle service API and OpenAI-compatible gateway errors using structured error codes instead of message strings.
 ---
 
-Product and management routes return a structured Zorveus error with a stable `code` and human-readable `message`. Gateway routes return an OpenAI-compatible `error` object. Branch on the structured Zorveus code and HTTP status. The gateway can place that code inside `error.provider_specific_fields.error`, while its outer `error.code` can contain a status such as `"403"`
+Service and OAuth routes return a structured Zorveus error with a stable `code` and readable `message`. OpenAI-compatible gateway routes return an OpenAI-style `error` object and can nest the Zorveus error inside `error.provider_specific_fields.error` while putting an HTTP status string such as `"403"` in the outer `error.code`.
+
+Always branch on the structured Zorveus `code` and HTTP status, never on `message` text.
 
 ---
 
 ## Standard error codes
 
-| Code | HTTP status | Meaning | Resolution |
+| Code | HTTP status | Meaning | What to do |
 | :--- | :--- | :--- | :--- |
-| `zorveus_malformed_or_missing_key` | 401 | Missing or malformed Bearer key. | Check API key header configuration. |
-| `zorveus_unknown_key` | 401 | Key does not exist in this environment. | Verify workspace environment and key hash. |
-| `zorveus_key_inactive` | 403 | API key has been revoked or deactivated. | Generate a replacement API key. |
-| `zorveus_unsupported_model` | 400 | Model string is not recognized by Zorveus. | Discover available models with `GET /v1/models`. |
-| `zorveus_reservation_insufficient_balance` | 402 | Organization wallet lacks funds to cover estimated wallet charge or BYOK fee. | Prompt organization admin to top up the wallet balance. |
-| `zorveus_product_user_allowance_insufficient` | 403 | Request estimate exceeds product user remaining base cap and credits. | Reduce request output, increase cap, or grant credits. |
-| `zorveus_cap_exceeded` | 403 | Key or member cap has been reached and no credits are available. | Increase spending cap or wait for cap period reset. |
-| `zorveus_model_not_allowed` | 403 | Model is blocked by the connection allowed models policy. | Adjust model access policies on the app connection. |
-| `zorveus_app_connection_not_found` | 403 | Inference key or connection is invalid or revoked. | Verify app connection configuration. |
-| `zorveus_key_selector_required` | 400 | Routing key has no default and no selector was sent. | Supply `X-Zorveus-Key-Alias`. |
-| `zorveus_invalid_key_selector` | 400 | The supplied selector is blank or malformed. | Use a configured selector. |
-| `zorveus_key_selection_not_allowed` | 403 | The selected routing member is unavailable or not permitted. | Check routing members in the dashboard. |
-| `zorveus_org_billing_frozen` | 402 | Organization billing is frozen or wallet debt remains. | Resolve the funding account status. |
-| `rate_limit_exceeded` | 429 | Upstream model provider rate limit reached. | Retry with exponential backoff. |
+| `zorveus_malformed_or_missing_key` | `401` | Missing or malformed `Authorization: Bearer` key. | Check how your client sets the API key header. |
+| `zorveus_unknown_key` | `401` | Key does not exist in this environment. | Verify the key secret and environment. |
+| `zorveus_key_inactive` | `403` | API key or user OAuth token was revoked or deactivated. | Replace the API key, or prompt an OAuth user to reconnect. |
+| `zorveus_unsupported_model` | `400` | Model ID is not recognized by Zorveus. | Discover available models with `GET /v1/models`. |
+| `zorveus_reservation_insufficient_balance` | `402` | Paying organization wallet lacks funds for the estimated call or BYOK fee. | Top up the organization wallet before retrying. |
+| `zorveus_org_billing_frozen` | `402` | Organization billing is frozen or has unresolved wallet debt. | Resolve the billing status in the dashboard. |
+| `zorveus_product_user_allowance_insufficient` | `403` | Request estimate exceeds the customer's remaining cap and credits. | Lower max output tokens, grant credits, raise the cap, or wait for reset. |
+| `zorveus_cap_exceeded` | `403` | An organization, API key, or customer cap has been reached with no credits left. | Increase the spending cap or wait for the next period reset. |
+| `zorveus_model_not_allowed` | `403` | Requested model is blocked by the API key's allowed-model policy. | Choose an allowed model or update the key's model policy. |
+| `zorveus_app_connection_not_found` | `403` | API key or underlying connection is invalid or revoked. | Check the key configuration in the dashboard. |
+| `zorveus_key_selector_required` | `400` | Routing key has no default and no plan alias was sent. | Send `X-Zorveus-Key-Alias` or `metadata.key_alias`. |
+| `zorveus_invalid_key_selector` | `400` | Plan alias is blank or malformed. | Send a valid alias configured on the routing key. |
+| `zorveus_key_selection_not_allowed` | `403` | Selected routing key member is missing, expired, or revoked. | Check member keys in the dashboard. |
+| `rate_limit_exceeded` | `429` | Upstream provider or route rate limit reached. | Retry with exponential backoff; see [Rate limits and retries](/platform/idempotency). |
 
 ---
 
-## Allowance error payload
+## Customer allowance error payload
 
-When a request is blocked because an attributed product user has insufficient allowance, the gateway returns HTTP `403 Forbidden` with a detailed `params` breakdown:
+When a customer runs out of allowance, the gateway returns HTTP `403 Forbidden` with a `params` breakdown:
 
 ```json
 {
@@ -54,21 +56,23 @@ When a request is blocked because an attributed product user has insufficient al
 }
 ```
 
-The object above shows the underlying Zorveus error. On the OpenAI-compatible gateway, its `error` member can appear at `error.provider_specific_fields.error`. Prefer that nested `code` and `params`, then fall back to the outer `error` object when needed
+On OpenAI-compatible gateway routes, check `error.provider_specific_fields.error` first for `code` and `params`, then fall back to the outer `error` object.
 
-All monetary amounts in `params` are decimal strings with 12 fractional digits. Parse them with an exact decimal type instead of binary floating point
+All monetary fields in `params` are exact decimal strings with 12 fractional digits. Parse them with a decimal library rather than binary floats. During migration, clients should also accept the legacy code `zorveus_product_user_credits_insufficient`.
 
-During migration, clients should also accept the legacy code `zorveus_product_user_credits_insufficient`. New user interfaces should display the allowance error parameters, because available allowance reflects both base cap and promotional credits
+---
 
-See [Troubleshooting](/resources/troubleshooting) for diagnosis by symptom
+## Request validation (`422`)
 
+Missing required query or body fields and schema type mismatches return HTTP `422 Unprocessable Entity` with a `detail` array rather than an application `error.code`.
 
-## Request validation
+---
 
-Missing required query or body fields and schema type errors can return HTTP `422` with a `detail` array. This is distinct from an application error with `error.code`
+## Handling failures in your app
 
-## Handle the failure in your product
+- **Customer allowance failure (`403`)**: Clear loading states and show the customer their remaining allowance, upgrade option, or reset date.
+- **Organization funding failure (`402`)**: Alert your team to top up the organization wallet (or for user-funded OAuth apps, prompt the user to top up their own Zorveus wallet).
+- **Model policy failure (`403`)**: Switch to a permitted model rather than granting extra credits.
+- **Do not retry policy or funding failures blindly**: A positive balance check is only a snapshot. In-flight holds, request size, or wallet state can still block the next request until the underlying cause changes.
 
-For an allowance failure, show the available amount or reset date and end any loading state. For a funding failure, ask the funding account's operator to resolve the wallet. A model-policy rejection needs a permitted model, not more credits
-
-A positive profile allowance is only a snapshot. In-flight reservations, request cost, other applicable caps, and funding can still reject the next request. Retry policy or funding failures only after their cause changes
+See [Troubleshooting](/resources/troubleshooting) for diagnosis by symptom.

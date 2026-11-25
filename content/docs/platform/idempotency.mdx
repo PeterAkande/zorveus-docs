@@ -1,40 +1,62 @@
 ---
-title: Idempotency and retries
-description: Understand which requests can be repeated and how to recover uncertain credit grants.
+title: Rate limits and retries
+description: Handle 429 throttling safely, understand which endpoints are safe to retry, and use external_reference for idempotent credit grants.
 ---
 
-Zorveus does not provide a universal `Idempotency-Key` contract. Credit-grant retries use the JSON field `external_reference`. That guarantee does not apply to inference
+Zorveus does not use a universal `Idempotency-Key` header. Instead, retry safety depends on the operation you are calling, and credit grants use `external_reference` to prevent duplicates.
 
-## Read requests
+---
 
-Repeat profile, credit-summary, grant-list, model-discovery, and key-usage reads as needed. Their results can change between requests
+## Rate limits (`429`)
 
-## Profile updates
+Rate limits vary by route, deployment, and the upstream provider or BYOK account serving your request. When throttled, Zorveus returns HTTP `429 Too Many Requests`.
 
-`PUT /product-users/by-external-id` creates or updates the same user for the app and external ID. Repeating the same profile values does not create a second user. This does not make a separate credit-grant request idempotent
+For retryable requests:
 
-## Credit grants
+1. Honor the `Retry-After` header when present.
+2. Use exponential backoff with random jitter.
+3. Cap total retry attempts and set an overall timeout.
+4. Reduce request concurrency if throttling continues.
 
-Include `external_reference` in `POST /product-users/by-external-id/credit-grants`. Use a stable purchase or award ID, such as `purchase:purchase_123`. Repeating the same reference and normalized grant parameters returns the existing grant, including under concurrent requests
+Do not retry authentication failures (`401`), wallet shortfalls (`402`), or exhausted caps and allowances (`403`) until the underlying issue is fixed.
 
-References are case-sensitive, have surrounding whitespace removed, and contain 1 to 255 characters after trimming. Uniqueness covers the organization and app within credit-grant creation. It does not depend on the service-key secret, user, or grant source. Include your own prefix to distinguish purchases, welcome awards, and imports
+---
 
-The compared parameters are external user ID, numeric amount, currency, source, reason, expiry, all metadata, and an explicit `credit_units_per_usd` when supplied. User IDs and reasons are trimmed, currency is trimmed and uppercased, equivalent decimal amounts compare equally, and expiry timestamps compare in UTC. A timestamp without an offset is interpreted as UTC. JSON object key order does not matter. Missing metadata and an empty object are different values. Equivalent numeric rates compare equally. Omitted or null rate preserves existing references and does not re-resolve a saved grant rate after an app-default change. Display name and email are excluded and are not updated on replay
+## What is safe to retry
 
-Changed parameters return HTTP 409 with `zorveus_product_user_credit_reference_conflict`. Do not create a fresh random reference to bypass that conflict. Correct the reused purchase reference or investigate the original operation
+### Reads
 
-There is no retry-cache expiry. The reference stays attached to an expired, exhausted, or revoked grant. A retry returns its current lifecycle state and remaining amount, rather than restoring the original spendable balance. Profile and summary fields are current reads, not a cached copy of the first HTTP response
+Profile reads, allowance checks, credit-grant lists, model discovery, and key usage reads are safe to retry. Values can change between attempts.
 
-After response loss, repeat the original POST with the same reference and parameters. You can also read the grant directly through `GET /product-users/by-external-id/credit-grants/by-reference` using `app_id`, `external_user_id`, and `external_reference`. This lookup requires `product_users:read` or a scope that includes it and never creates a user
+### Customer profile upserts
 
-A lookup returning 404 does not prove an in-flight transaction failed. Repeat the original referenced POST to wait for the original transaction or create the grant if it rolled back. A timeout while waiting remains an unknown outcome, so keep the same reference on the next attempt
+`PUT /product-users/by-external-id` creates or updates the same customer for `(app_id, external_user_id)`. Repeating the same request does not create duplicate customers.
 
-Calls without `external_reference`, or with null, retain independent creation behavior. Neither `reason`, metadata, nor an idempotency header supplies the guarantee. The SDKs expose the reference and lookup operation without enabling automatic grant POST retries by default. See [Grant credits after a payment](/startups/credit-grants#grant-credits-after-a-payment)
+### Model requests (inference)
 
-## Inference
+Model requests are **not** deduplicated. Retrying after a timeout or dropped stream can trigger a second provider call and a second charge. Bound retries and retry only when your app can tolerate a duplicate completion.
 
-A repeated inference request can generate new output and another charge. A request ID or reservation ID helps trace a call but does not deduplicate a new public request. Bound retries and treat a disconnected stream as an uncertain provider outcome
+### OAuth token exchange and revocation
 
-## OAuth
+Authorization codes are single-use. If token exchange succeeds on Zorveus but your app loses the response, retrying the same code returns `zorveus_oauth_code_consumed`; start the connect flow again to get a new token. Repeating `POST /oauth/revoke` on an already-revoked token safely returns `{ "revoked": false }`.
 
-Authorization codes are single-use. If token exchange succeeds but your client loses the response, repeating the exchange can return `zorveus_oauth_code_consumed`. Start authorization again if you cannot recover the first token. Repeating revocation can return `revoked: false` for an already revoked connection
+---
+
+## Idempotent credit grants (`external_reference`)
+
+Always include `external_reference` when calling `POST /product-users/by-external-id/credit-grants`, such as `purchase:ch_123` or `welcome:customer_42`. Repeating the same `external_reference` with matching parameters returns the existing grant instead of crediting the customer twice, even under concurrent retries.
+
+### Rules for `external_reference`
+
+- Case-sensitive, trimmed of leading/trailing whitespace, 1 to 255 characters.
+- Unique per organization and app across all credit grants (not scoped per service key, user, or source). Add a prefix such as `purchase:` or `welcome:` to separate grant types.
+- **Parameter matching**: Replays must match on external user ID, numeric amount, currency, source, reason, expiry (compared in UTC), all metadata, and explicit `credit_units_per_usd` when provided. Missing metadata and `{}` count as different values. Display name and email are ignored on replay.
+- **Mismatched replay (`409`)**: Reusing an `external_reference` with different parameters returns HTTP `409 Conflict` (`zorveus_product_user_credit_reference_conflict`). Never generate a fresh random reference to bypass a `409`; inspect the original grant first.
+- **Permanent retention**: The reference stays attached even after a grant is spent, expired, or revoked. Replaying returns the grant's current state rather than restoring its balance.
+
+### Recovering from a timeout or lost response
+
+1. Repeat the original `POST /product-users/by-external-id/credit-grants` with the exact same `external_reference` and parameters, or look up the grant with `GET /product-users/by-external-id/credit-grants/by-reference` (`app_id`, `external_user_id`, `external_reference`).
+2. A `404` on lookup does not prove an in-flight `POST` failed. Repeat the original `POST` with the same `external_reference` so Zorveus either returns the committed grant or creates it if the first attempt rolled back.
+
+Calls without `external_reference` (or with `null`) create a new grant every time. The SDKs do not automatically retry credit-grant `POST` requests. See [Grant customer credits](/startups/credit-grants#grant-credits-after-a-payment).

@@ -2,11 +2,7 @@
   "title": "Core concepts",
   "pages": [
     "architecture",
-    "organizations",
-    "apps-connections-and-keys",
     "funding-and-billing",
-    "models-and-routing",
-    "caps-and-credits",
-    "usage-and-cost"
+    "models-and-routing"
   ]
 }

@@ -1,15 +1,60 @@
 ---
-title: Base URLs and environments
-description: Use the correct production host for inference, management, dashboard, and OAuth traffic.
+title: API basics
+description: Base URLs, credentials and headers, decimal money formats, ISO 8601 timestamps, and list response shapes.
 ---
 
-| Surface | Base URL | Use |
-| --- | --- | --- |
-| Inference gateway | `https://api.zorveus.com/v1` | OpenAI-compatible model requests and model discovery. |
-| Product and management API | `https://api.zorveus.com` | Service-key and dashboard-backed management routes. |
-| Dashboard and browser authorization | `https://app.zorveus.com` | Dashboard UI, sign-in, consent, and the browser authorization URL. |
-| Documentation | `https://docs.zorveus.com` | Developer documentation. |
+Shared conventions for calling the Zorveus gateway, service API, and OAuth endpoints.
 
-OAuth token exchange and revocation are API requests under `https://api.zorveus.com/oauth`. Start authorization in the browser at `https://app.zorveus.com/oauth/authorize`.
+---
 
-Do not add `/v1` to management routes. Do add it when configuring an OpenAI-compatible SDK base URL.
+## Base URLs
+
+| Surface | Base URL | What it serves |
+| :--- | :--- | :--- |
+| **Inference gateway (OpenAI-compatible)** | `https://api.zorveus.com/v1` | OpenAI SDK calls (`/v1/chat/completions`, `/v1/responses`, `/v1/models`, embeddings, images, audio). |
+| **Native Anthropic & Gemini routes** | `https://api.zorveus.com` | Native Anthropic SDK (`/v1/messages`, added by the SDK) and Google Gemini wire routes (`/v1beta/models/*`). |
+| **Service & OAuth API** | `https://api.zorveus.com` | Server-side `/product-users/by-external-id`, `/inference-keys/usage`, `/oauth/token`, and `/oauth/revoke`. Do not add `/v1`. |
+| **Dashboard & OAuth browser login** | `https://app.zorveus.com` | Dashboard UI and the browser redirect URL `GET https://app.zorveus.com/oauth/authorize`. |
+
+---
+
+## Credentials and headers
+
+<span id="credentials" />
+
+Send the credential that matches the endpoint you are calling:
+
+| Credential | Prefix | How to send it | Allowed endpoints |
+| :--- | :--- | :--- | :--- |
+| **API key** | `zrv_...` | `Authorization: Bearer zrv_...` (or `x-api-key` for native Anthropic SDKs) | Model calls, `GET /v1/models`, `GET /inference-keys/usage`. |
+| **Routing key** | `zrv_route_...` | Same Bearer header + `X-Zorveus-Key-Alias` | Selects a plan's API key on model calls, discovery, and usage. See [Routing keys](/startups/routing-keys). |
+| **User OAuth token** | `zrv_usr_...` | `Authorization: Bearer zrv_usr_...` | Model calls funded by the connected user's wallet. See [Connect user wallets](/oauth/overview). |
+| **Service key** | `zrv_svc_...` | `Authorization: Bearer zrv_svc_...` | Customer profiles, balances, and credit grants under `/product-users/by-external-id`. Cannot call models. |
+| **OAuth client ID & secret** | `zrv_client_...` | Form body on `/oauth/token` and `/oauth/revoke` | Confidential OAuth backends. Public browser clients omit `client_secret`. |
+
+### Customer and tracing headers
+
+- `X-Zorveus-External-User-ID`: Identifies the signed-in customer on model calls.
+- `X-Zorveus-Allowance-Starts-At`: Sets a customer's subscription billing cycle anchor.
+- `X-Zorveus-Key-Alias`: Selects a member plan key when using a routing key.
+- `x-zorveus-request-id` and `x-zorveus-reservation-id`: Returned on gateway responses. Log these with your own request ID for troubleshooting and support.
+- `X-Zorveus-Signature`: Sent on outbound [Webhooks](/platform/webhooks). Verify it against the raw request bytes before parsing JSON.
+
+See [Product-user metadata](/inference/product-user-metadata) for JSON body alternatives and header/body precedence.
+
+---
+
+## Money and dates
+
+- **Monetary amounts** are returned as exact decimal strings (such as `"10.00"` or `"0.000150000000"`). Parse them with a decimal library instead of binary floating-point numbers when doing billing or reconciliation math. Send decimal fields as strings in requests to prevent client-side rounding.
+- **Timestamps** use ISO 8601 with a timezone offset (for example, `2026-08-13T20:45:00Z`). Always send timezone-aware timestamps for date filters and subscription anchors, and convert returned instants for display in the user's local timezone.
+
+---
+
+## List response shapes
+
+List responses are endpoint-specific. Do not assume one shared cursor pagination contract across all routes:
+
+- **`GET /product-users/by-external-id/credit-grants`**: Returns `{ "credit_grants": [...] }` and accepts `limit` (`1` to `1000`, default `100`), plus `status` and `source` filters. It does not accept or return cursors (`next_cursor`, `has_more`). See [List credit grants](/api-reference/product-users#list-credit-grants).
+- **`GET /v1/models`** (key-scoped): Returns `{ "data": [...] }` matching the OpenAI models schema.
+- **`GET /models`** (public catalog): Returns `{ "items": [...] }`.

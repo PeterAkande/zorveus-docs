@@ -2,12 +2,8 @@
   "title": "API basics and errors",
   "pages": [
     "base-urls",
-    "authentication",
     "errors",
-    "rate-limits",
     "idempotency",
-    "pagination",
-    "money-and-dates",
     "security"
   ]
 }

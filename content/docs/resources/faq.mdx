@@ -1,44 +1,42 @@
 ---
 title: Frequently asked questions
-description: Answers about keys, customer allowances, funding, and model access.
+description: Quick answers about organizations, API keys, customer allowances, wallet funding, and BYOK.
 ---
 
-## Which organization do I need?
+## Which organization type do I need?
 
-Choose Business when your backend pays for AI, including a solo project. Choose Developer to register an OAuth app whose users authorize their own funding. See [Integration options](/getting-started/overview).
+Use a **Business** organization (`startup` in the API) whenever your backend pays for AI, including solo projects. Use a **Developer** organization to register an OAuth app where end users connect their own Zorveus wallets. See [Integration options](/getting-started/overview).
 
-## Which key do I send to inference?
+## Which key do I send for model requests?
 
-Use an inference key, routing key, or scoped OAuth access token. A service key is for backend product-user operations and cannot call inference. See [Authentication](/platform/authentication)
+Send an API key (`zrv_...`), a routing key (`zrv_route_...`), or a user OAuth access token (`zrv_usr_...`). Service keys (`zrv_svc_...`) are for backend customer management only and cannot call models. See [API basics](/platform/base-urls#credentials).
 
-## Does a connection cap give each customer their own allowance?
+## Does an API key cap give each customer their own allowance?
 
-For attributed Business requests, Zorveus evaluates the connection's cap separately for each product user. For example, a $10 monthly connection cap supplies a $10 base allowance to each attributed customer. Usage in that customer's current app allowance window can span plan connections, so switching keys does not erase usage
+Yes. When you pass `X-Zorveus-External-User-ID` on requests from a Business organization, Zorveus tracks the API key's cap separately for each customer. For example, a `$10` monthly cap gives each customer their own `$10` monthly base allowance. Usage in that customer's current window carries across plan keys, so switching plans does not erase spend already used in that window.
 
-Without attribution, an enforced connection cap covers that connection's unattributed traffic. With `enforce_if_present`, missing attribution bypasses virtual allowance checks. Validate the customer ID in your backend. A direct product-user cap can override the allowance shown on their profile, and other applicable caps can still constrain admission
+Without a customer ID, an enforced API key cap applies to unattributed traffic as a shared total, while `enforce_if_present` skips per-customer checks. Always set the customer ID from your authenticated backend session. See [Configure product-user allowances](/startups/configure-product-user-allowances).
 
-See [Configure product-user allowances](/startups/configure-product-user-allowances)
+## Do I need to register customers before their first AI call?
 
-## Must I register product users first?
+No. Sending `X-Zorveus-External-User-ID` on a model request creates the customer record automatically. Before their first request, a service-key profile read returns `404` unless you pass `upsertIfMissing: true` (`X-Zorveus-Upsert-Product-User: true`) or call `createOrUpdate`.
 
-No. Send your authenticated customer ID with inference, for example in `X-Zorveus-External-User-ID`. A service-key profile read returns `404` until that app and ID exist. You can also create the profile with a service-key upsert
+## Do customer credit grants add money to my wallet?
 
-## Do credit grants fund my wallet?
+No. Credit grants extend a customer's AI allowance inside your product. Your organization wallet or BYOK provider account still pays for actual model usage. See [Funding, caps, and credits](/concepts/funding-and-billing).
 
-No. Grants extend a customer's virtual AI allowance. Your wallet or upstream provider account still pays for model usage. See [Funding and billing](/concepts/funding-and-billing)
+## Can I mix BYOK keys and wallet-funded requests?
 
-## Can I mix BYOK and wallet-funded requests?
-
-Yes. Eligible credentials can route requests through your upstream account. Wallet fallback after a BYOK failure depends on its configuration and funding. See [Automatic provider routing](/startups/automatic-routing)
+Yes. Zorveus tries matching BYOK provider keys in priority order first. If no BYOK key matches, or if a BYOK key fails and `auto_fallback_to_wallet` is enabled with available wallet funds, Zorveus routes through its managed wallet path. See [Key priority, rotation, and fallback](/startups/automatic-routing).
 
 ## Is BYOK free?
 
-The upstream provider bills your provider account. Zorveus can charge a configured platform fee above the monthly free routing threshold. See [BYOK costs](/wallet-and-billing/byok-costs)
+Your upstream provider bills your provider account directly. Zorveus applies a configurable platform routing fee once monthly BYOK volume crosses your organization's free threshold. See [BYOK costs](/wallet-and-billing/byok-costs).
 
 ## Does Zorveus add latency?
 
-Requests pass through the gateway for authentication, routing, and accounting. End-to-end latency depends on the model, provider, network, and request. Measure with your workload rather than assuming a fixed gateway overhead
+Requests pass through the gateway for authentication, limit checks, routing, and usage recording. Total latency depends mostly on the model, upstream provider, and payload size, so benchmark with your real workload rather than assuming a fixed number.
 
-## What is in a usage record?
+## What does Zorveus store for each request?
 
-Usage records contain accounting and attribution fields such as model, token counts, costs, status, and identifiers. This does not describe the retention policy of every provider or optional logging integration. Review the data-handling settings for the route you use before sending sensitive data
+Usage events store accounting and attribution metadata: model, token counts, prompt cache breakdown, costs, status, and identifiers. Check your upstream provider's data-retention policy before sending regulated or sensitive data.

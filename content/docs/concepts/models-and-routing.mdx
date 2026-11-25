@@ -1,22 +1,40 @@
 ---
 title: Models and routing
-description: Separate model access, plan selection, and provider credential routing.
+description: Understand how model allowlists, routing keys, and BYOK provider key priority work together on every request.
 ---
 
-Your request names a concrete model. The selected inference key determines which models you may use and which connection's spending policy applies
+Your request always names a concrete model ID (such as `openai/gpt-4.1-mini` or `anthropic/claude-sonnet-5`). Zorveus never swaps your model ID automatically. Instead, three separate layers decide whether the model is allowed, which plan rules apply, and which upstream key executes the call.
 
-## Model access policies
+---
 
-Policies support an exact model ID, `provider/*`, or `*`. A provider wildcard matches model IDs beginning with that provider and a slash. Partial patterns such as `anthropic/claude-*` are not wildcard matches
+## 1. Allowed model policies
 
-Use `GET /v1/models` with the inference key to discover concrete IDs. With a routing key, include `X-Zorveus-Key-Alias` to inspect the selected member. The [public catalog](/api-reference/models) also describes capabilities, but it does not authorize a model for your key
+Every API key defines which models it can call using one of three formats:
 
-## Plan selection
+- `*`: Any model available in the Zorveus catalog.
+- `provider/*`: Any model whose ID starts with that provider and a slash (for example, `openai/*` or `anthropic/*`). Partial prefixes such as `anthropic/claude-*` are not wildcards.
+- `provider/model-name`: One exact model ID.
 
-A [routing key](/startups/routing-keys) selects a member inference key using `X-Zorveus-Key-Alias` or `metadata.key_alias`. Your backend chooses the alias from the customer's subscription. This selects policy, not a different model unless your application also changes `model`
+Call `GET /v1/models` with your API key to list the concrete models allowed for that key. If you use a routing key, include `X-Zorveus-Key-Alias` to inspect a specific plan's models. The [public model catalog](/api-reference/models) shows capabilities across Zorveus, but it does not override your API key's allowed-model policy.
 
-## Provider credential routing
+Allowing a model permits access through Zorveus; it does not create a custom deployment (such as on Azure OpenAI) or guarantee upstream provider capacity.
 
-For the requested model, Zorveus resolves eligible BYOK credentials or uses a managed route. [Automatic provider routing](/startups/automatic-routing) explains credential ordering and wallet fallback
+---
 
-A model policy permits access. It does not create a deployment, guarantee that every endpoint works for that model, or guarantee upstream capacity
+## 2. Plan selection with routing keys
+
+A [routing key](/startups/routing-keys) (`zrv_route_...`) lets your backend use one secret across multiple subscription plans. Pass `X-Zorveus-Key-Alias` (or `metadata.key_alias` in the body), and Zorveus applies the matching plan key's allowed models and spending cap.
+
+A routing key selects **policy**, not a different model. Your backend still chooses the `model` field in the request.
+
+---
+
+## 3. Upstream key priority and fallback (BYOK)
+
+Once the model and plan rules pass, Zorveus chooses how to reach the upstream provider:
+
+- If your organization has active [BYOK provider keys](/startups/provider-credentials) matching that model, Zorveus tries them in priority order (explicit grants first, then lowest `routing_priority` number).
+- If a key hits an eligible upstream error or rate limit, Zorveus rotates to the next healthy backup key.
+- If no BYOK key matches, or if `auto_fallback_to_wallet` is enabled after eligible BYOK failures, Zorveus routes through its managed wallet path.
+
+See [Key priority, rotation, and fallback](/startups/automatic-routing) for the exact ordering and fallback rules.

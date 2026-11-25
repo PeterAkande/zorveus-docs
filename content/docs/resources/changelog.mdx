@@ -1,14 +1,14 @@
 ---
-title: Changelog and release notes
-description: Track documentation-visible changes to Zorveus integration contracts.
+title: Changelog
+description: Notable updates to Zorveus APIs, SDKs, dashboard workflows, and documentation.
 ---
 
 ## August 2026
 
-- Added organization webhook configuration, delivery inspection, and retry documentation.
-- Documented product-user credit grants and the four app-connection credit modes.
-- Added OAuth cap policy, test-user, app-review, reauthorization, and revocation guidance.
-- Added realtime client-secret, Responses, audio, image, moderation, embedding, rerank, and streaming guides.
-- Added application API reference pages for product users, OAuth, model discovery, and key usage
+- Added organization outbound webhooks with HMAC-SHA256 verification, delivery logs, and manual retries.
+- Documented product-user credit grants, idempotent `external_reference` retries, and the four credit enforcement modes.
+- Consolidated user-funded OAuth app guides, spending cap policies, test users, app review, and revocation flows.
+- Added guides for Responses API, streaming, tool calling, embeddings, rerank, images, audio, moderation, and realtime audio.
+- Added application API reference pages for product users, OAuth, model discovery, and key usage.
 
-Model availability and provider configuration can change independently of these notes. Use `GET /v1/models` for key-scoped discovery and **Provider Credentials** in the dashboard for credential configuration
+Model availability and provider options can change independently of release notes. Use `GET /v1/models` to check models enabled for your API key, and check **Provider Credentials** in the dashboard for active BYOK providers.

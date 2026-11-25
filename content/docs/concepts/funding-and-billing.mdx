@@ -1,57 +1,77 @@
 ---
-title: Funding and billing
-description: Understand wallet-funded inference, BYOK routing, and credit enforcement modes.
+title: Funding, caps, and credits
+description: Separate who pays for AI requests (wallet or BYOK) from how much each customer is allowed to spend (caps, credits, and cost tracking).
 ---
 
-Zorveus provides two main routing modes: organization wallet funding and Bring Your Own Key (BYOK) routing. Both modes record reference-priced virtual spend and enforce spending caps
+The most important rule in Zorveus billing is separating **funding** from **allowance**:
 
-<KeyInserter type="api" label="API Key Tester" placeholder="zrv_your_api_key" />
+- **Funding** answers: *Who pays the model provider?* (Your Zorveus organization wallet, your own BYOK provider account, or a connected user's wallet.)
+- **Allowance** answers: *How much AI usage may this customer consume?* (Their spending cap plus any extra customer credits.)
 
----
-
-## Wallet-funded inference
-
-In wallet mode, Zorveus routes inference requests through Zorveus-managed credentials. The organization wallet pays the applicable sell price for model tokens
-
-When a request arrives, Zorveus checks the wallet available balance and the virtual allowance:
-
-1. The gateway places a temporary hold on the estimated wallet charge.
-2. The model provider executes the request.
-3. Upon stream completion, Zorveus settles the actual wallet charge, releases unused holds, and records virtual spend in the ledger
-
-If the organization wallet lacks funds to cover the estimated reservation, the gateway rejects the request with HTTP `402 Payment Required` and error code `zorveus_reservation_insufficient_balance`
+Because these two layers are independent, a customer can still have allowance left while your organization wallet is empty (`402 Payment Required`), or your wallet can be funded while a customer hits their personal limit (`403 Forbidden`).
 
 ---
 
-## Bring Your Own Key (BYOK)
+## Two ways to fund requests
 
-With BYOK, Zorveus routes requests using your organization credentials for OpenAI, Anthropic, Google Gemini, and other providers
+### 1. Zorveus wallet
 
-- **Upstream billing**: The model provider bills your provider account directly for raw token costs.
-- **Virtual spend**: BYOK calls consume spending caps and product-user credits at the exact same reference rates as wallet-funded calls.
-- **Platform fees**: A configured monthly threshold determines free BYOK routing volume. An overage percentage applies above that threshold. Check the pricing that applies to your organization
-- **Fee settlement**: Platform fees are deducted from your organization wallet. Product-user credits never pay platform fees. If the wallet lacks funds to cover an estimated fee, the request returns `402 Payment Required`
+Zorveus routes the request through managed provider access and bills your organization wallet:
+
+1. Before calling the model, Zorveus temporarily holds an estimated charge from your available balance.
+2. After the model finishes, Zorveus charges actual token usage and releases any unused hold.
+3. If your wallet cannot cover the estimate, the gateway rejects the call with HTTP `402 Payment Required` (`zorveus_reservation_insufficient_balance`).
+
+### 2. Bring Your Own Key (BYOK)
+
+Zorveus injects your organization's own provider key (OpenAI, Anthropic, Gemini, and others) at request time:
+
+- Your upstream provider bills your provider account directly.
+- Customer caps and credits still run on the exact same reference pricing as wallet-funded calls.
+- Once monthly BYOK volume exceeds your organization's free threshold, Zorveus deducts a platform routing fee from your organization wallet. Customer credit grants never pay platform fees.
+
+See [Provider keys (BYOK)](/startups/provider-credentials) and [BYOK costs](/wallet-and-billing/byok-costs) for setup and fee details.
 
 ---
 
-## Product-user credit enforcement modes
+## Caps vs. customer credits
 
-App connections configure a `credit_mode` that dictates how virtual caps and credits are enforced:
+| | Spending cap | Credit grant |
+| :--- | :--- | :--- |
+| **Purpose** | Repeating or lifetime base allowance on an organization, API key, or customer. | Extra consumable allowance granted to one customer. |
+| **Reset behavior** | Daily and monthly caps reset automatically. Lifetime caps do not reset. | Does not replenish; spent down to zero or expires on its end date. |
+| **Consumption order** | Consumed first. | Consumed after the base cap runs out (soonest-expiring grant first). |
+| **Funding effect** | Ceiling only, not cash. | Extends customer allowance only; does not add cash to your wallet. |
 
-| Mode | With product user | Without product user | Behavior |
+If an API key has no spending cap configured, customer allowance is unlimited and customer credits are not consumed. See [Spending caps](/wallet-and-billing/caps) for worked examples and overrun policies (`limit_output`, `allow_overrun`, `carry_overrun_forward`).
+
+---
+
+## Credit enforcement modes (`credit_mode`)
+
+Each API key configures how Zorveus enforces caps and customer credits:
+
+| Mode | With customer ID | Without customer ID | Behavior |
 | :--- | :--- | :--- | :--- |
-| `enforce_if_present` (default) | Enforces base cap plus credits | Bypasses cap checks, records virtual spend | Recommended for mixed keys serving internal and customer traffic. |
-| `enforce` | Enforces base cap plus credits | Enforces key-level cap | Strict enforcement across all requests. |
-| `track_only` | Allocates cap and credits without blocking | Allocates cap without blocking | Never rejects for allowance. Records `uncovered_virtual_spend`. |
-| `disabled` | Bypasses cap checks and credits | Bypasses cap checks | Records virtual spend for reporting without quota limits. |
+| `enforce_if_present` (default) | Enforces cap + credits | Skips cap checks, still logs usage | Recommended for keys serving both customer and internal requests. |
+| `enforce` | Enforces cap + credits | Enforces key-level cap | Enforces limits on every request. |
+| `track_only` | Tracks usage without blocking | Tracks usage without blocking | Never rejects for allowance; logs spend past the cap as uncovered. |
+| `disabled` | Skips cap and credit checks | Skips cap and credit checks | Logs usage for analytics with no quota enforcement. |
 
-User OAuth connections always use `enforce`. You cannot change the credit mode for a user OAuth connection
+User-funded OAuth tokens always run in `enforce` mode.
 
 ---
 
-## Independence of wallet and allowance
+## The three cost figures and prompt caching
 
-Organization wallet balance and product-user virtual allowance are independent:
+Every completed request records an immutable usage event with three separate dollar figures (always stored as exact decimal strings):
 
-- A request can have plenty of virtual allowance but fail with `402 Payment Required` because the organization wallet cannot fund a wallet-routed call or BYOK platform fee.
-- A request can have plenty of wallet funds but fail with `403 Forbidden` (`zorveus_product_user_allowance_insufficient`) because the product user's combined cap and credit allowance is exhausted
+| Field | What it tracks | Wallet mode | BYOK mode |
+| :--- | :--- | :--- | :--- |
+| `virtual_spend` | Reference-priced usage counted against caps and customer credits. | Yes | Yes |
+| `sell_cost` | Actual cash deducted from your Zorveus organization wallet. | Yes | Platform fee only (`$0.00` below threshold) |
+| `provider_cost` | Wholesale upstream provider cost for reporting and fee math. | Yes | Yes |
+
+When a provider reports prompt caching, Zorveus also records `cache_read_input_tokens`, `cache_creation_input_tokens`, `cache_creation_1h_input_tokens`, and `cache_savings`. On BYOK requests, `cache_savings` measures reference-priced allowance saved rather than a discount on your upstream invoice.
+
+See [Usage analytics](/wallet-and-billing/usage) to inspect these fields in the dashboard.

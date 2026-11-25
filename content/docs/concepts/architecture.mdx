@@ -1,80 +1,64 @@
 ---
-title: System architecture
-description: Understand how your application, Zorveus, model providers, and user allowances fit together.
+title: How Zorveus works
+description: Understand how your app, Zorveus, AI model providers, and customer allowances fit together.
 ---
 
-Zorveus sits between your application and AI model providers. Your application sends model requests to Zorveus. Zorveus checks access and spending rules, routes each request, and records usage against your app and, when attributed, your customer
+Zorveus sits between your app and AI model providers. Your backend sends model requests to Zorveus, which checks access and spending limits, routes each call to the provider, and records usage against your organization and customer.
 
-You configure the rules in the dashboard. Your application does not need to build its own provider routing or per-user AI spend accounting
+You configure apps, API keys, spending caps, and provider credentials in the [Zorveus dashboard](https://app.zorveus.com). Your app does not need to build its own provider routing or per-customer AI metering.
+
+---
 
 ## The system at a glance
 
 <ArchitectureDiagram />
 
-The three paths have different jobs:
+Each surface uses its own credential:
 
-| Path | What you do | Credential |
-| --- | --- | --- |
-| Dashboard setup | Configure apps, connections, keys, caps, provider credentials, and webhooks | Dashboard sign-in |
-| Inference | Send chat, media, embedding, or other supported model requests | API key, `zrv_...` |
-| Product-user management | Read allowance, update customer details, or grant credits through supported `/product-users/by-external-id` routes | Server-only service key, `zrv_svc_...` |
+| Surface | What you do | Credential |
+| :--- | :--- | :--- |
+| **Dashboard** | Configure apps, API keys, spending caps, BYOK provider keys, team roles, and webhooks. | Dashboard sign-in |
+| **Inference gateway** | Send chat, image, audio, embedding, or other model requests to `https://api.zorveus.com/v1`. | API key (`zrv_...`), routing key (`zrv_route_...`), or user OAuth token (`zrv_usr_...`) |
+| **Service API** | Read balances, update customer profiles, and grant credits under `/product-users/by-external-id`. | Server-only service key (`zrv_svc_...`) |
 
-Use the service client for product-user and allowance management. Configure organizations, apps, connections, caps, BYOK credentials, and webhooks in the dashboard. See [Service clients](/startups/service-keys)
+---
 
-## The core concepts, with one example
+## Building blocks with one example
 
-Imagine you are adding AI to a customer-support product. Your organization pays for inference and tracks each customer's usage
+Suppose you are adding AI to a customer-support product where your company pays for model usage and gives each customer a monthly limit:
 
-| Concept | Meaning | Example |
-| --- | --- | --- |
-| **Organization** | The workspace that owns funding, credentials, and access | Your Business organization |
-| **App** | The identity of the product you integrate | Support product |
-| **App connection** | Links an app to its funding organization and request policies | A connection with models and spending rules for your Pro tier |
-| **API key** | Authenticates inference under a connection | The key your backend selects for a Pro customer |
-| **Product user** | Your customer, identified by your existing user ID | `cus_123`, not a dashboard team member |
-| **Model** | The model identifier your request asks Zorveus to run | A model selected from [the model catalog](https://www.zorveus.com/models) |
-| **Provider credential** | Upstream provider credentials for Bring Your Own Key routing | Your OpenAI credentials, saved in the dashboard |
-| **Wallet** | Funds that pay for wallet-routed inference and applicable platform fees | Your organization wallet |
-| **Cap and credits** | Rules that determine a customer's available AI allowance | A monthly base allowance, plus a purchased credit grant |
+| Concept | What it is | Example |
+| :--- | :--- | :--- |
+| **Organization** | Workspace that owns funding, credentials, and team access. | Your Business organization |
+| **App** | Identity for the product you are integrating. | Support Assistant |
+| **API key** | Secret that authenticates model calls and carries allowed models, spending caps, and credit rules. | Your Pro plan key (`zrv_...`) |
+| **Product user** | Your end customer, identified by your own user ID. | `customer_123` (not a Zorveus dashboard member) |
+| **Provider key (BYOK)** | Optional upstream API key for OpenAI, Anthropic, Gemini, or another provider. | Your company OpenAI key in **Provider Credentials** |
+| **Wallet** | Cash balance that pays for managed model calls and applicable BYOK platform fees. | Your Business wallet |
+| **Cap and credits** | Rules that control how much AI a customer can use. | `$10/month` cap plus a `$5` credit grant |
 
-An app is not an API key. A connection holds the policies; the API key authenticates requests under that connection. You can rotate the key without creating a different product identity
+---
 
-### Attribute requests to your customer
+## Follow one request end to end
 
-Send your customer ID on every attributed request, using either the `X-Zorveus-External-User-ID` header or `metadata.external_user_id` in the body. Either creates the product user on their first request. You do not need to pre-register them
+Your customer `customer_123` asks the assistant a question:
 
-Use the same identifier across inference and product-user management calls. Your backend selects the connection's API key for the customer's plan and supplies the customer ID for attribution
+1. Your backend selects the Zorveus API key (or routing key + plan alias) for that customer's plan.
+2. Your backend sends the model request with `X-Zorveus-External-User-ID: customer_123` (or `metadata.external_user_id` in the body). Zorveus creates the customer record automatically on their first request.
+3. Zorveus checks the API key's allowed models, the customer's remaining cap and credits, and available funding.
+4. For wallet-funded requests, Zorveus holds an estimated charge from your wallet. For BYOK requests, Zorveus picks the highest-priority eligible provider key and holds any applicable platform fee.
+5. The model provider runs the request and Zorveus returns the response (or streams tokens back).
+6. Zorveus records actual token usage, settles the final charge, and releases any unused hold.
 
-### Separate allowance from funding
+Streaming changes how output reaches your app, not how limits or billing work. If a stream disconnects early, Zorveus reconciles the hold once the upstream call settles.
 
-Allowance answers **“How much AI usage may this customer consume?”** Funding answers **“Who pays for that usage?”**
+To show a customer's balance in your UI before they send a request, use [Show a customer's balance](/startups/check-allowance). That read is a point-in-time snapshot; Zorveus still checks the live request before running the model. To react to events such as a customer reaching a cap or a top-up settling, configure [Webhooks](/platform/webhooks).
 
-For a capped product user, available allowance combines the remaining base allowance and eligible product-user credits. Credit grants extend that allowance. They do not deposit money into your organization wallet or pay a model provider
+---
 
-With wallet-funded routing, the organization wallet pays Zorveus for inference. With BYOK, the upstream provider bills your provider account. Applicable Zorveus platform fees use your organization wallet
+## Next steps
 
-A customer can have allowance left while the organization lacks funding. The reverse can also happen. See [Funding and billing](/concepts/funding-and-billing) and [Caps and credits](/concepts/caps-and-credits)
-
-## Follow one request
-
-Your customer `cus_123` asks the support assistant a question:
-
-1. Your backend selects the Zorveus API key configured for the customer's plan.
-2. The backend sends the model request and the customer's external user ID.
-3. Zorveus authenticates the key, resolves its connection, and attributes the request to the product user.
-4. Zorveus checks model access, applicable caps, credit mode, and available funding. Enforcement depends on the connection's settings.
-5. For wallet-funded requests, Zorveus reserves an estimated charge before provider work. BYOK uses an eligible provider credential and checks applicable funding requirements.
-6. The provider runs the model. Zorveus returns the response, including streamed output when requested.
-7. Zorveus records actual usage, settles charges, and releases unused reservations
-
-Streaming changes how output reaches your app, not the spending rules. Interrupted requests can require later release or reconciliation of reservations
-
-Your backend can [check available allowance](/startups/check-allowance) before accepting work. That check is a snapshot, not a reservation. Zorveus still checks the actual inference request. [Webhooks](/platform/webhooks) notify your backend of supported events, such as a product user reaching a cap
-
-## Choose where to start
-
-If your company pays for customers' AI usage, start with [Manage customer AI usage](/getting-started/integrate-your-product). Configure a Business organization, app, connection, and API key in the dashboard. Fund the wallet or add provider credentials, then make an attributed request
-
-If users connect their own Zorveus accounts to your tool, start with [Let users fund their AI usage](/getting-started/oauth-app-quickstart). OAuth consent creates the connection to the user's funding context
-
-For more detail, continue with [Organizations](/concepts/organizations), [Apps, connections, and keys](/concepts/apps-connections-and-keys), and [Models and routing](/concepts/models-and-routing)
+- [Funding, caps, and credits](/concepts/funding-and-billing): Separate who pays from how much each customer can use.
+- [Models and routing](/concepts/models-and-routing): Understand allowed models, routing keys, and BYOK key priority.
+- [Organizations and team access](/account-and-organizations/organizations): Review Personal, Business, and Developer workspaces and team roles.
+- [API keys](/startups/api-keys): Compare every Zorveus credential type and how to rotate keys.
