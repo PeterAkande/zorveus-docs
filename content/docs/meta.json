@@ -15,6 +15,7 @@
     "---Manage your setup---",
     "app-setup",
     "wallet-and-billing",
+    "platform/webhooks",
     "account-and-organizations",
     "---Learn and troubleshoot---",
     "concepts",

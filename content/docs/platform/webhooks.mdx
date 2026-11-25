@@ -1,77 +1,156 @@
 ---
-title: Outbound Webhooks
-description: Receive real-time HTTP event notifications for balance alerts, payment events, and product user spending caps.
+title: Webhooks
+description: Receive signed HTTP POST events on your server for wallet activity, customer spending caps, credit grants, and BYOK quota limits.
 ---
 
-Zorveus Outbound Webhooks send real-time HTTP event notifications to your server whenever state changes occur within your organization workspace
-
-Instead of polling Zorveus REST endpoints, your server registers a webhook URL to receive event payloads automatically
-
----
-
-## Architecture and Delivery Guarantees
-
-Zorveus uses the Transactional Outbox Pattern to persist events and retry eligible delivery failures without adding network latency to core API calls
-
-<Steps>
-  <Step title="1. Atomic Event Persistence">
-    Core API transactions write events directly to a PostgreSQL outbox table in the same database transaction
-  </Step>
-  <Step title="2. Outbox Worker Processing">
-    An asynchronous worker polls pending outbox events, checks active organization subscriptions, and computes an HMAC SHA-256 signature
-  </Step>
-  <Step title="3. HTTP POST Delivery">
-    Zorveus sends an HTTP POST request containing the event payload to your registered webhook URL
-  </Step>
-  <Step title="4. Retry Policy">
-    If your endpoint returns a 5xx status or times out, Zorveus makes up to 10 total delivery attempts using exponential backoff
-  </Step>
-</Steps>
+Webhooks push real-time HTTP `POST` notifications from Zorveus to your server when important events happen in your organization, such as a wallet top-up settling, a customer hitting a spending cap, or a BYOK provider key running out of quota.
 
 ---
 
-## Webhook Event Catalog
+## 1. Set up a webhook endpoint
 
-Zorveus categorizes webhook events by product area:
+1. Open your organization in the [Zorveus dashboard](https://app.zorveus.com) and go to **Webhooks**.
+2. Enter your HTTPS endpoint URL and choose the events you want to receive.
+3. Enable the endpoint and copy the **Signing Secret** (`HMAC SHA-256`). Store it as `ZORVEUS_WEBHOOK_SECRET` on your server.
 
-| Feature Area | Event Type | Description |
+You can pause delivery at any time by toggling the endpoint off, or rotate the secret with **Rotate Secret** if it is compromised. After rotating, update `ZORVEUS_WEBHOOK_SECRET` on your server right away so signature verification continues to pass.
+
+---
+
+## 2. Verify webhook signatures
+
+Every delivery includes these headers:
+
+- `Content-Type: application/json`
+- `User-Agent: Zorveus/1.0`
+- `X-Zorveus-Signature: t=<unix_timestamp>,v1=<hex_hmac_sha256>`
+
+Example signature header:
+
+```text
+X-Zorveus-Signature: t=1756249200,v1=5d41402abc4b2a76b9719d911017c59205d41402abc4b2a76b9719d911017c5920
+```
+
+Verify every request before parsing or acting on its JSON:
+
+1. Extract `t` (Unix timestamp in seconds) and `v1` (64-character hex digest) from `X-Zorveus-Signature`.
+2. Reject malformed values and timestamps more than 5 minutes (300 seconds) away from the current time to block replay attacks.
+3. Concatenate `t`, a literal `.`, and the **raw HTTP request body bytes** (`<t>.<raw_body>`). Do not parse and reserialize the JSON before hashing.
+4. Compute `HMAC-SHA256` using your `ZORVEUS_WEBHOOK_SECRET` and compare against `v1` with a constant-time comparison function.
+
+<CodeGroup titles={["Node.js (Express)", "Python (FastAPI / Flask)"]}>
+
+```javascript
+const crypto = require("crypto");
+
+// In Express, mount express.raw({ type: "application/json" }) on your webhook route
+// so req.body stays a Buffer of the original bytes.
+function verifyZorveusSignature(rawBody, sigHeader, secret) {
+  if (!sigHeader || !Buffer.isBuffer(rawBody)) return false;
+
+  const parts = {};
+  for (const item of sigHeader.split(",")) {
+    const idx = item.indexOf("=");
+    if (idx !== -1) {
+      parts[item.slice(0, idx).trim()] = item.slice(idx + 1).trim();
+    }
+  }
+
+  const timestamp = parts.t;
+  const signature = parts.v1;
+  if (!timestamp || !signature) return false;
+  if (!/^\d{1,12}$/.test(timestamp) || !/^[a-f0-9]{64}$/i.test(signature)) return false;
+
+  const signedAt = Number(timestamp);
+  if (!Number.isSafeInteger(signedAt) || Math.abs(Date.now() / 1000 - signedAt) > 300) {
+    return false;
+  }
+
+  const signedPayload = Buffer.concat([
+    Buffer.from(`${timestamp}.`, "utf-8"),
+    rawBody,
+  ]);
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(signedPayload)
+    .digest("hex");
+
+  const sigBuf = Buffer.from(signature.toLowerCase(), "utf-8");
+  const expBuf = Buffer.from(expected, "utf-8");
+  if (sigBuf.length !== expBuf.length) return false;
+
+  return crypto.timingSafeEqual(sigBuf, expBuf);
+}
+```
+
+```python
+import hashlib
+import hmac
+import re
+import time
+
+
+def verify_zorveus_signature(raw_body: bytes, sig_header: str, secret: str) -> bool:
+    if not sig_header:
+        return False
+
+    header_parts = {}
+    for part in sig_header.split(","):
+        if "=" in part:
+            key, value = part.split("=", 1)
+            header_parts[key.strip()] = value.strip()
+
+    timestamp = header_parts.get("t")
+    received_sig = header_parts.get("v1")
+    if not timestamp or not received_sig:
+        return False
+    if not re.fullmatch(r"[0-9]{1,12}", timestamp) or not re.fullmatch(r"[a-fA-F0-9]{64}", received_sig):
+        return False
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
+
+    signed_payload = f"{timestamp}.".encode("utf-8") + raw_body
+    expected = hmac.new(
+        secret.encode("utf-8"),
+        signed_payload,
+        hashlib.sha256,
+    ).hexdigest()
+
+    return hmac.compare_digest(received_sig.lower(), expected)
+```
+
+</CodeGroup>
+
+---
+
+## 3. Event catalog
+
+| Area | Event type | When it fires |
 | :--- | :--- | :--- |
-| **Wallet** | `wallet.low_balance` | Available organization wallet balance drops below alert threshold. |
-| **Wallet** | `wallet.payment_credited` | Wallet top-up purchase or credit succeeds. |
-| **Wallet** | `wallet.payment_failed` | Wallet top-up transaction fails. |
-| **Product User** | `product_user.cap_reached` | An attributed request is blocked by a direct or connection cap for the configured period. |
-| **Product User** | `product_user.credits_granted` | Credits are granted to a product user. |
-| **App Connection** | `app_connection.cap_reached` | Unattributed traffic is blocked by an app-connection cap for its configured period. |
-| **Provider Credential** | `provider_credential.quota_exhausted` | An upstream provider credential reports exhausted quota. |
+| **Wallet** | `wallet.low_balance` | Available organization wallet balance drops to or below your alert threshold. |
+| **Wallet** | `wallet.payment_credited` | A wallet top-up payment is verified and credited to your organization wallet. |
+| **Wallet** | `wallet.payment_failed` | A wallet top-up payment attempt fails. |
+| **Customer** | `product_user.cap_reached` | A request with a customer ID is blocked by a customer cap or API key cap for the period. |
+| **Customer** | `product_user.credits_granted` | Credits are granted to a customer in one of your apps. |
+| **API key** | `app_connection.cap_reached` | A request without a customer ID is blocked by an API key spending cap for the period. |
+| **BYOK** | `provider_credential.quota_exhausted` | One of your BYOK provider keys hits rate limiting or quota exhaustion. |
+
+### Envelope structure
+
+Every event uses the same top-level JSON envelope:
+
+- `id`: Stable event ID across retries. Use this field to deduplicate deliveries.
+- `event`: Event type name (for example, `wallet.payment_credited`).
+- `org_id`: Organization that owns the event.
+- `timestamp`: UTC timestamp for the delivery attempt (changes on retries; do not use for deduplication).
+- `data`: Event-specific payload fields.
 
 ---
 
-## Retry Rules and Status Codes
+## 4. Example payloads
 
-Zorveus evaluates response HTTP status codes returned by your receiver endpoint:
-
-* **`2xx` (200-299):** Success. Event marked as delivered.
-* **`5xx` (Server Error):** Retryable. Zorveus schedules retries with exponential backoff up to 10 total attempts.
-* **`429` (Rate Limited):** Retryable. Zorveus backs off before retrying.
-* **Timeouts and Connection Refused:** Retryable.
-* **`4xx` (Client Error except 429):** Non-retryable. Requests returning `400`, `401`, or `404` are marked as failed immediately.
-* **Disabled Webhooks (`enabled: false`):** Non-retryable. When an organization sets `"enabled": false`, the outbox worker skips HTTP delivery cleanly (`reason: "webhook_disabled_or_not_configured"`)
-
----
-
-## Configure delivery
-
-Set the URL, secret, enabled status, and event subscriptions in the dashboard. Keep the signing secret on your server
-
-The envelope `id` is stable across retries. The envelope `timestamp` and signature timestamp describe the delivery attempt and can change. Deduplicate by `id`, not by timestamp or signature. Delivery order is not guaranteed
-
----
-
-## Example event payloads
-
-Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signature` header
-
-### 1. `wallet.low_balance`
+### `wallet.low_balance`
 
 ```json
 {
@@ -81,14 +160,18 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "timestamp": "2026-08-28T06:34:56.110229Z",
   "data": {
     "org_id": "org_7k9xq2fm",
+    "wallet_account_id": "wa_123",
+    "reservation_id": "res_456",
+    "app_connection_id": "conn_456",
+    "model": "openai/gpt-4.1-mini",
+    "currency": "USD",
     "available_balance": "4.50",
-    "threshold": "10.00",
-    "currency": "USD"
+    "threshold": "10.00"
   }
 }
 ```
 
-### 2. `wallet.payment_credited`
+### `wallet.payment_credited`
 
 ```json
 {
@@ -98,16 +181,16 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "timestamp": "2026-08-28T06:34:56.110229Z",
   "data": {
     "org_id": "org_7k9xq2fm",
-    "amount": "50.00",
-      "currency": "USD",
-    "payment_provider": "stripe",
     "credit_purchase_id": "cp_123",
-    "wallet_account_id": "wa_123"
+    "wallet_account_id": "wa_123",
+    "amount": "50.00",
+    "currency": "USD",
+    "payment_provider": "stripe"
   }
 }
 ```
 
-### 3. `wallet.payment_failed`
+### `wallet.payment_failed`
 
 ```json
 {
@@ -117,17 +200,17 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "timestamp": "2026-08-28T06:34:56.110229Z",
   "data": {
     "org_id": "org_7k9xq2fm",
+    "credit_purchase_id": "cp_124",
+    "wallet_account_id": "wa_123",
     "amount": "50.00",
     "currency": "USD",
     "payment_provider": "stripe",
-    "reason": "payment.failed",
-    "credit_purchase_id": "cp_124",
-    "wallet_account_id": "wa_123"
+    "reason": "payment.failed"
   }
 }
 ```
 
-### 4. `product_user.cap_reached`
+### `product_user.cap_reached`
 
 ```json
 {
@@ -146,19 +229,19 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
     "cap_target_type": "app_connection",
     "cap_target_id": "conn_456",
     "cap_rule_id": "cap_123",
-    "model": "openai/gpt-6-sol",
+    "model": "openai/gpt-4.1-mini",
+    "currency": "USD",
     "cap_amount": "100.00",
     "spent_this_period": "99.99",
     "requested_amount": "0.02",
     "projected_spend": "100.01",
-    "currency": "USD",
     "period_start": "2026-08-01T00:00:00Z",
     "period_end": "2026-09-01T00:00:00Z"
   }
 }
 ```
 
-### 5. `product_user.credits_granted`
+### `product_user.credits_granted`
 
 ```json
 {
@@ -168,19 +251,19 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "timestamp": "2026-08-28T06:34:56.110229Z",
   "data": {
     "org_id": "org_7k9xq2fm",
-    "app_id": "app_6b541d674ddc40df99485589985b22a9",
-    "product_end_user_id": "peu_99e504f9565f454fbde4a8abec010cd1",
-    "external_user_id": "sarah.jenkins@example.com",
+    "app_id": "app_123",
+    "product_end_user_id": "peu_987",
+    "external_user_id": "customer_42",
     "credit_grant_id": "pucg_246b817030cb4a0fbf4ec2811736ed49",
     "granted_amount": "10.00",
     "currency": "USD",
-    "reason": "Candidate Career Grant",
+    "reason": "Pro plan top-up",
     "expires_at": null
   }
 }
 ```
 
-### 6. `app_connection.cap_reached`
+### `app_connection.cap_reached`
 
 ```json
 {
@@ -190,141 +273,61 @@ Zorveus sends event payloads in standard JSON format with an `X-Zorveus-Signatur
   "timestamp": "2026-08-28T06:34:56.110229Z",
   "data": {
     "org_id": "org_7k9xq2fm",
-    "app_connection_id": "conn_456",
+    "cap_rule_id": "cap_456",
     "target_type": "app_connection",
     "target_id": "conn_456",
-    "cap_rule_id": "cap_456",
-    "model": "openai/gpt-6-sol",
+    "app_connection_id": "conn_456",
+    "model": "openai/gpt-4.1-mini",
+    "currency": "USD",
     "cap_amount": "500.00",
     "spent_this_period": "499.99",
     "requested_amount": "0.02",
     "projected_spend": "500.01",
-    "currency": "USD",
     "period_start": "2026-08-01T00:00:00Z",
     "period_end": "2026-09-01T00:00:00Z"
   }
 }
 ```
 
----
+### `provider_credential.quota_exhausted`
 
-## Signature Verification
-
-Reject malformed timestamps and signatures. Reject timestamps outside a five-minute tolerance before processing the body. Compute the signature over the original body bytes, not parsed or reserialized JSON. The digest is a 64-character SHA-256 hexadecimal string
-
-Every request includes an `X-Zorveus-Signature` header containing a UNIX timestamp (`t`) and an HMAC SHA-256 digest (`v1`):
-
-```text
-X-Zorveus-Signature: t=1756249200,v1=5d41402abc4b2a76b9719d911017c59205d41402abc4b2a76b9719d911017c5920
-```
-
-To verify the signature:
-
-1. Extract `t` and `v1` from the header.
-2. Concatenate the timestamp string, a dot, and the raw HTTP request body bytes (`timestamp_bytes + b"." + raw_http_body`).
-3. Compute `HMAC-SHA256(webhook_secret, signed_payload)` as a hex string.
-4. Compare expected and received signatures using a constant-time comparison function
-
-<CodeGroup titles={["Node.js (Express)", "Python (FastAPI / Flask)"]}>
-
-```javascript
-const crypto = require('crypto');
-
-function verifyZorveusSignature(req, secret) {
-  const sigHeader = req.headers['x-zorveus-signature'];
-  if (!sigHeader) return false;
-
-  const parts = {};
-  for (const item of sigHeader.split(',')) {
-    const idx = item.indexOf('=');
-    if (idx !== -1) {
-      parts[item.slice(0, idx).trim()] = item.slice(idx + 1).trim();
-    }
+```json
+{
+  "id": "outbox_evt_107",
+  "event": "provider_credential.quota_exhausted",
+  "org_id": "org_7k9xq2fm",
+  "timestamp": "2026-08-28T06:34:56.110229Z",
+  "data": {
+    "org_id": "org_7k9xq2fm",
+    "provider_credential_id": "pcred_123",
+    "provider": "openai",
+    "credential_name": "Primary OpenAI key",
+    "exhausted_at": "2026-08-28T06:34:56.110229Z"
   }
-
-  const timestamp = parts.t;
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
-  if (!/^\d{1,12}$/.test(timestamp) || !/^[a-f0-9]{64}$/i.test(signature)) return false;
-  const signedAt = Number(timestamp);
-  if (!Number.isSafeInteger(signedAt) || Math.abs(Date.now() / 1000 - signedAt) > 300) return false;
-
-  const rawBody = req.body;
-  if (!Buffer.isBuffer(rawBody)) return false;
-
-  const signedPayload = Buffer.concat([
-    Buffer.from(`${timestamp}.`, 'utf-8'),
-    rawBody
-  ]);
-
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('hex');
-
-  const sigBuf = Buffer.from(signature.toLowerCase(), 'utf-8');
-  const expBuf = Buffer.from(expectedSignature, 'utf-8');
-
-  if (sigBuf.length !== expBuf.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(sigBuf, expBuf);
 }
 ```
 
-```python
-import hmac
-import hashlib
-import re
-import time
+---
 
-def verify_zorveus_signature(raw_body: bytes, sig_header: str, secret: str) -> bool:
-    header_parts = {}
-    for part in sig_header.split(","):
-        if "=" in part:
-            k, v = part.split("=", 1)
-            header_parts[k.strip()] = v.strip()
+## 5. Retries, delivery logs, and manual replay
 
-    timestamp = header_parts.get("t")
-    received_sig = header_parts.get("v1")
+Zorveus delivers events asynchronously with a 10-second request timeout:
 
-    if not timestamp or not received_sig:
-        return False
-    if not re.fullmatch(r"[0-9]{1,12}", timestamp) or not re.fullmatch(r"[a-fA-F0-9]{64}", received_sig):
-        return False
-    if abs(time.time() - int(timestamp)) > 300:
-        return False
+| Response from your server | Behavior |
+| :--- | :--- |
+| `2xx` | Marked `succeeded`. |
+| `429`, `5xx`, timeout, or connection error | Retried with exponential backoff up to 10 total attempts. |
+| Other `4xx` (`400`, `401`, `403`, `404`) | Marked `failed` immediately without retrying. |
+| Endpoint disabled | Skipped without making an HTTP call. |
 
-    signed_payload = f"{timestamp}.".encode("utf-8") + raw_body
-    computed_sig = hmac.new(
-        secret.encode("utf-8"),
-        signed_payload,
-        hashlib.sha256
-    ).hexdigest()
-
-    return hmac.compare_digest(received_sig.lower(), computed_sig)
-```
-
-</CodeGroup>
+In the dashboard under **Webhooks → Deliveries**, you can filter deliveries by status (`succeeded`, `failed`, `pending`, `retrying`), search by event ID or error message, inspect the sent JSON payload and attempt count, and click **Retry** on any failed delivery.
 
 ---
 
-## Receiver Best Practices
+## 6. Receiver checklist
 
-For product-user events, resolve your customer through `data.external_user_id` and verify `data.app_id` and the envelope's organization. Do not use an internal Zorveus ID as your application's customer ID. An attributed request that reaches a connection cap can emit `product_user.cap_reached`; inspect `cap_target_type` to identify that cap
-
-Use one allowance service for webhook events and inference errors. Recheck [available allowance](/startups/check-allowance) when access may have recovered. A credit grant alone does not guarantee the next request will fit
-
-`provider_credential.quota_exhausted` contains `org_id`, `provider_credential_id`, `provider`, `credential_name`, and `exhausted_at` in `data`. Treat it as an upstream credential issue, not a customer allowance failure
-
-* **Acknowledge quickly.** Return HTTP `200` or `204` within 3 seconds. Queue long-running tasks asynchronously.
-* **Prevent replay attacks.** Reject payloads with timestamps older than 5 minutes.
-* **Deduplicate using event IDs.** Delivery can repeat, and retries are bounded. Use the `id` property in the JSON payload to skip duplicate processing
-
-
-Accept the event into durable storage before acknowledging it. If your receiver is Express, use `express.raw({ type: "application/json" })` on this route before a JSON parser and verify those body bytes. A parsed and reserialized body will not have the same signature
-
-After accepting the event, return a `2xx` promptly and process it asynchronously. Keep event handling idempotent so duplicate deliveries cannot create duplicate credit grants or customer notifications. Use the current profile or wallet state to resolve out-of-order events
-
-A cap event reports a blocked request, not a complete stream of every allowance change. Do not permanently block a customer based only on that event. Recheck current allowance when they retry
+- **Acknowledge fast**: Persist the event to your queue or database and return HTTP `200` or `204` well within the 10-second timeout. Run slow follow-up work asynchronously.
+- **Deduplicate on `id`**: Delivery is at-least-once and order is not guaranteed. Ignore events whose `id` you already processed; never deduplicate on `timestamp` or `X-Zorveus-Signature`.
+- **Match customers by `external_user_id`**: On `product_user.*` events, look up your customer by `data.external_user_id` and check `data.app_id` and `org_id`.
+- **Recheck live balance instead of caching locks**: A `product_user.cap_reached` event reports one blocked request, not a permanent lock. When the customer retries or receives credits, check [available allowance](/startups/check-allowance) directly.
+- **Keep BYOK alerts separate from customer caps**: Treat `provider_credential.quota_exhausted` as an upstream provider key issue; see [Key priority, rotation, and fallback](/startups/automatic-routing).
