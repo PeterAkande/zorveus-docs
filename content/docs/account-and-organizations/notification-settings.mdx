@@ -1,23 +1,35 @@
 ---
 title: Notification settings
-description: Configure email alerts for spending cap thresholds, wallet low-balance warnings, and invites.
+description: Configure personal email and in-app dashboard alerts for wallet balance, spending caps, payments, and credentials.
 ---
 
-Notification settings belong to the current dashboard user. They do not configure organization outbound webhooks.
+Notification settings control alerts for **your own Zorveus user account** in the [dashboard](https://app.zorveus.com). They are separate from organization [Webhooks](/platform/webhooks), which deliver signed HTTP events to your backend server.
 
-## Channels
+---
 
-The supported channels are `email` and `in_app`.
+## Delivery channels
 
-## Events
+You can configure preferences across two channels:
 
-You can enable or disable these event preferences:
+- **`email`**: Sends alert emails to your account email address.
+- **`in_app`**: Shows alerts in your dashboard notification inbox.
 
-- `low_balance`
-- `cap_reached`
-- `app_connected` and `app_revoked`
-- `payment_credited` and `payment_failed`
-- `provider_credential_added` and `provider_credential_rotated`
-- `monthly_summary`
+---
 
-To deliver organization events to your own server, configure [outbound webhooks](/platform/webhooks).
+## Alert events
+
+Turn each event on or off in your account's **Notification settings**:
+
+| Event | When it triggers |
+| :--- | :--- |
+| `low_balance` | Your organization wallet drops below its low-balance alert threshold. |
+| `cap_reached` | A spending cap blocks a request. |
+| `payment_credited` | A wallet top-up payment is verified and credited. |
+| `payment_failed` | A wallet top-up payment attempt fails. |
+| `app_connected` | An OAuth app is authorized on your account or organization. |
+| `app_revoked` | A connected OAuth app is disconnected or revoked. |
+| `provider_credential_added` | A new BYOK provider credential is added to your organization. |
+| `provider_credential_rotated` | An existing BYOK provider credential is rotated. |
+| `monthly_summary` | Monthly usage digest for your workspace. |
+
+To automate server-side reactions to billing, cap, or BYOK events, configure [Webhooks](/platform/webhooks) instead.

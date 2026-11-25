@@ -1,8 +1,41 @@
 ---
-title: Account security
-description: Protect dashboard access and application credentials.
+title: Security and connected apps
+description: Protect server credentials, rotate exposed keys, and manage connected OAuth apps in the Zorveus dashboard.
 ---
 
-Use the [dashboard](https://app.zorveus.com) to manage your account and credentials. Keep inference keys, routing keys, service keys, and confidential OAuth secrets in your server's secret store
+Manage your account security, server credentials, and authorized OAuth apps in the [Zorveus dashboard](https://app.zorveus.com).
 
-Rotate exposed credentials and replace them in your application. Never include live keys or tokens in support requests. See [Security](/platform/security) for OAuth and webhook guidance
+---
+
+## Keep server credentials off the client
+
+Store these secrets only on your backend server and never ship them in browser bundles, mobile apps, or public repositories:
+
+- API keys (`zrv_...`)
+- Routing keys (`zrv_route_...`)
+- Service keys (`zrv_svc_...`)
+- Confidential OAuth client secrets (`zrv_client_secret_...`)
+- Webhook signing secrets
+
+Never include live keys or user tokens in support requests, bug reports, or logs.
+
+---
+
+## Rotate exposed credentials
+
+If a secret leaks, replace it right away in the dashboard:
+
+- **API keys**: Create a replacement key, deploy it, verify a request, then revoke the old key. See [API keys](/startups/api-keys#rotate-an-api-key).
+- **BYOK provider keys**: Rotate the key with your upstream provider first, then update the credential under **Provider Credentials**. See [Provider keys (BYOK)](/startups/provider-credentials#rotate-or-remove-a-key).
+- **Webhook signing secret**: Click **Rotate Secret** under **Webhooks** and update `ZORVEUS_WEBHOOK_SECRET` on your server. See [Webhooks](/platform/webhooks).
+- **Confidential OAuth client secret**: Click **Rotate secret** on your OAuth app page and update `ZORVEUS_CLIENT_SECRET` on your server.
+
+---
+
+## Manage connected OAuth apps
+
+Any Zorveus user can view and disconnect authorized third-party apps from **Connected Apps** in the [dashboard](https://app.zorveus.com). Revoking an app stops its access tokens from making further model requests immediately.
+
+If you are building a user-funded app with a **Disconnect** button, call `POST https://api.zorveus.com/oauth/revoke` before clearing the saved token; see [Disconnect and reauthorize](/oauth/revocation).
+
+For OAuth PKCE validation, webhook HMAC verification, and backend trust boundaries, see [Security](/platform/security).

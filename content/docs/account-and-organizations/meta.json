@@ -2,10 +2,7 @@
   "title": "Teams and accounts",
   "pages": [
     "organizations",
-    "members-and-invites",
-    "../startups/members",
-    "account-security",
-    "connected-apps",
-    "notification-settings"
+    "notification-settings",
+    "account-security"
   ]
 }

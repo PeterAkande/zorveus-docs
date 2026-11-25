@@ -409,6 +409,20 @@ code {
   overflow-wrap: anywhere !important;
 }
 
+/* Keep table headers and inline code tokens readable without mid-word breaks. */
+.prose table {
+  width: 100%;
+}
+
+.prose table th {
+  white-space: nowrap;
+}
+
+.prose table td code:not(pre code) {
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+}
+
 .prose .zorveus-nowrap-first-column :is(th, td):first-child {
   white-space: nowrap;
 }

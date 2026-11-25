@@ -1,14 +1,45 @@
 ---
-title: Organizations
-description: Create and manage Business workspaces and personal funding accounts.
+title: Organizations and team access
+description: Choose the right organization type, invite team members with scoped roles, and keep dashboard access separate from product users.
+---
+
+Every app, wallet, API key, BYOK credential, and customer record in Zorveus belongs to an organization. You can belong to multiple organizations with different roles in each.
+
 ---
 
 ## Organization types
 
-| Type | Use |
-| --- | --- |
-| `personal` | A personal wallet that can fund connected OAuth apps. |
-| `startup` | Business organization. A company workspace that funds its own product's inference. |
-| `developer` | A workspace that owns OAuth-connectable apps. |
+| Type | API value | What it is for |
+| :--- | :--- | :--- |
+| **Personal** | `personal` | Individual wallet for funding your own connected OAuth apps. |
+| **Business** | `startup` | Company workspace that funds AI requests for your product, manages API keys and BYOK credentials, and tracks customer allowances. |
+| **Developer** | `developer` | Workspace for registering and publishing OAuth apps where end users fund their own usage. |
 
-Removing or suspending an organization is not exposed as a public self-service operation. Contact [support](/resources/support) if you need help with an organization lifecycle change.
+Removing or suspending an organization is not self-service. Contact [support](/resources/support) if you need an organization lifecycle change.
+
+---
+
+## Team members vs. product users
+
+- **Team members** are colleagues who sign in to your organization in the [Zorveus dashboard](https://app.zorveus.com) to configure apps, keys, billing, or support.
+- **Product users** are your application's end customers. They do not need Zorveus dashboard accounts. Your backend identifies them with `X-Zorveus-External-User-ID` (or request metadata) on model calls and manages their balances with [product users](/startups/product-users).
+
+Do not invite your application's customers as organization members.
+
+---
+
+## Member roles
+
+Owners and admins invite team members under **Members** in the [Zorveus dashboard](https://app.zorveus.com) and assign the lowest role needed for their job:
+
+| Role | What they can do | What they cannot do |
+| :--- | :--- | :--- |
+| **Owner**<br />`owner` | Full access: manage members, apps, keys, BYOK credentials, webhooks, wallet top-ups, and organization caps. | None. |
+| **Admin**<br />`admin` | Manage apps, members, BYOK credentials, webhooks, and product users. View wallet history and set app caps. | Top up the wallet or change organization-level spending caps. |
+| **Developer**<br />`developer` | Create and configure apps, API keys, and their own service keys. View redacted diagnostics. | Access customer records or manage company funds. |
+| **Billing admin**<br />`billing_admin` | Top up the wallet, read wallet history, set organization and app spending caps, and disconnect connected apps. | Access customer records or BYOK provider credentials. |
+| **Member**<br />`member` | View apps, member directory, usage totals, and webhook status. Authorize and disconnect their own connected apps using the org wallet. | Change organization settings or manage customer records. |
+| **Spender**<br />`spender` | Use approved AI access through their own connected apps and view only their own usage. | View organization settings, member directory, or company funds. |
+| **Viewer**<br />`viewer` | Read-only access to the org profile, member directory, apps, and usage totals. | Change settings or read wallet history, customer records, or BYOK credentials. |
+
+You can change a member's role or remove them from **Members** at any time. Pending invitations can be revoked before they are accepted.
