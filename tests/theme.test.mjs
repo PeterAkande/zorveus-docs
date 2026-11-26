@@ -31,3 +31,11 @@ test('code blocks use always-dark Dracula Shiki theme and dark container tokens'
   assert.match(css, /--docs-codeblock-bg:\s*#282a36;/);
   assert.match(css, /--docs-codeblock-fg:\s*#f8f8f2;/);
 });
+
+test('page header has reset title margins and balanced vertical spacing', () => {
+  const css = fs.readFileSync('app/globals.css', 'utf8');
+  assert.match(css, /\.zorveus-page-title\s*\{[^}]*margin:\s*0\s*!important/);
+  assert.match(css, /\.zorveus-breadcrumb/);
+  assert.match(css, /\.zorveus-page-description\s*\{[^}]*margin-top:\s*18px\s*!important/);
+  assert.match(css, /\.zorveus-page-actions\s*\{[^}]*margin-top:\s*20px/);
+});

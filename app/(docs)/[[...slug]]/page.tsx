@@ -27,13 +27,16 @@ export default async function Page(props: {
         style: 'clerk',
         single: false,
       }}
+      breadcrumb={{
+        className: 'zorveus-breadcrumb',
+      }}
     >
       <div className="zorveus-page-header">
         <DocsTitle className="zorveus-page-title">
           {page.data.title}
         </DocsTitle>
         {page.data.description && (
-          <DocsDescription className="text-zinc-400 text-sm sm:text-base leading-relaxed mt-3 mb-0">
+          <DocsDescription className="zorveus-page-description text-zinc-400 text-sm sm:text-base leading-relaxed mb-0">
             {page.data.description}
           </DocsDescription>
         )}
