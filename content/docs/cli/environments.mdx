@@ -14,7 +14,7 @@ zorveus plan --config zorveus.dev.json
 zorveus apply --plan zorveus.dev.plan.json --yes
 ```
 
-Clone preserves configuration and aliases while removing app, inference-key, and routing-key IDs. Applying the copy creates separate resources. The source is unchanged, and the destination must be new.
+Clone preserves configuration and aliases while removing `organizationId`, `_state`, and app, inference-key, and routing-key IDs. Applying the copy creates separate resources (pass `--org` if targeting a different organization). The source is unchanged, and the destination must be new.
 
 Clone rejects manifests containing service keys or provider credentials because those resources are shared across the organization. Prepare a manifest without those sections before cloning.
 
@@ -197,4 +197,4 @@ For an offline file update before a separate plan:
 zorveus promote --from zorveus.dev.json --to zorveus.prod.json --keep-names
 ```
 
-This command updates the target JSON immediately, retaining its IDs. `--keep-names` also preserves existing target display names; omit the flag to copy source names. It validates the merged result and leaves the source unchanged. Use `plan --from` when you want the target JSON preserved until apply.
+This command updates the target JSON immediately, retaining its `organizationId`, `_state`, and resource IDs. `--keep-names` also preserves existing target display names; omit the flag to copy source names. It validates the merged result and leaves the source unchanged. Use `plan --from` when you want the target JSON preserved until apply.

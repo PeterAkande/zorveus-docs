@@ -1,6 +1,6 @@
 ---
 title: Sign in and select an organization
-description: Authorize the CLI through browser consent and manage its shared local session.
+description: Authorize the CLI through browser consent, manage multiple organization logins, and target local or custom backends.
 ---
 
 ```sh
@@ -9,27 +9,64 @@ zorveus whoami
 zorveus apps list
 ```
 
-Login opens the Zorveus dashboard, where you choose an organization and approve access. It uses `https://api.zorveus.com` and `https://app.zorveus.com` by default.
+`zorveus login` opens the Zorveus dashboard in your browser (`https://app.zorveus.com`, targeting `https://api.zorveus.com`), where you pick an organization and approve CLI access.
 
-By default, login requests all CLI management permissions for apps, inference connections, routing keys, spending caps, service keys, and provider credentials. These include creation, updates, credential rotation, and supported deletion or revocation operations. Choose the organization and approve access in the browser. For a local server, use `zorveus login --local`.
-
-To request fewer permissions, pass an explicit scope list. For example, to view apps only:
+By default, login requests all CLI management permissions (apps, API keys, routing keys, spending caps, service keys, and BYOK provider credentials). To request fewer permissions, pass `--scope`:
 
 ```sh
 zorveus login --scope "apps:read"
 ```
 
-The CLI keeps one saved login. Signing in again replaces it. To request different permissions or switch organizations, run `login` again. Your organization role still determines which operations you can perform.
+Use `zorveus login --no-browser` to print the authorization URL instead of opening a browser automatically.
 
-Use `login --no-browser` to print the authorization URL and open it in your preferred browser. To end the CLI session:
+---
+
+## Work with multiple organizations
+
+The CLI saves a **separate login per API origin and organization** in your OS credential store. Signing in to a second organization keeps your earlier login intact. Signing in to the same organization on the same API origin replaces only that session.
+
+After each sign-in, the CLI asks **Use this organization as your default?**. Answer `n` to keep your current default.
+
+To authorize multiple organizations and target one explicitly:
+
+```sh
+zorveus login --org org_development
+zorveus login --org org_production
+zorveus apps list --org org_production
+zorveus whoami --org org_development
+```
+
+Commands pick the organization in this order:
+
+1. Explicit `--org`, when passed.
+2. `organizationId` recorded in the manifest or saved plan (set automatically by `setup`, `import`, and `apply`).
+3. The only saved organization matching the API origin.
+4. Your saved default organization for that API origin.
+
+An explicit `--org` must match the manifest's `organizationId`. It cannot move existing resources to a different organization.
+
+Organization IDs, cached names, API origins, and your default choice are indexed in `zorveus/logins.json` inside your OS user config directory. That index contains no tokens; every session's tokens stay in separate OS credential-store entries.
+
+To sign out of the selected organization (leaving other saved organizations signed in):
 
 ```sh
 zorveus logout
+zorveus logout --org org_development
 ```
 
-## Use a local backend
+---
 
-To connect to a local Zorveus server with its management API on port 8000 and dashboard on port 3000:
+## Automatic sign-in and session renewal
+
+In an interactive terminal, if a command needs a login or your session expires without renewal, the CLI explains why and waits for Enter before opening browser consent. Once you approve, the command picks up where it left off (`setup` keeps your answers; `apply` keeps its journal progress).
+
+Non-interactive commands (`--non-interactive`), pipelines without a terminal, and MCP tools never open a browser. They return `login_required` or `authorization_required` instead; run `zorveus login` in a terminal and retry.
+
+---
+
+## Use a local or custom backend
+
+To connect to a local Zorveus server (management API on port `8000`, dashboard on port `3000`):
 
 ```sh
 zorveus login --local
@@ -37,18 +74,16 @@ zorveus whoami
 zorveus apps list
 ```
 
-`--local` selects `http://localhost:8000` and `http://localhost:3000`. Subsequent commands use the saved login's API origin. Local login requests the same full set of CLI permissions by default. Use `--scope` to request fewer permissions.
+`--local` targets `http://localhost:8000` and `http://localhost:3000`. Subsequent commands reuse the saved login's API origin.
 
-For other environments, use `--api-url` and `login --dashboard-url`. Custom HTTP origins must use loopback addresses and require `--allow-insecure-loopback`.
+For other environments, pass `--api-url` and `login --dashboard-url`. Custom `http://` origins must use loopback addresses and require `--allow-insecure-loopback`.
 
-## Credential storage and permissions
+---
 
-Login and credential creation require an available OS credential store: Keychain on macOS, Secret Service on Linux, or Credential Manager on Windows. Tokens and generated secrets stay out of manifests and command output.
+## Credential storage and roles
 
-The default login requests all CLI management scopes. Browser consent chooses the organization and approved permissions; your organization role still applies. If a command reports `authorization_required`, sign in again with the required scopes. Existing consent does not gain new scopes automatically.
+Login and secret storage require an available, unlocked OS credential store (Keychain on macOS, Secret Service on Linux, or Credential Manager on Windows). Tokens and generated secrets never appear in manifests or command output.
 
-Renewal is optional during browser consent. Without renewal, sign in again after the access token expires. The CLI and MCP server coordinate refreshes through the same credential lock. A new successful login replaces the saved login for both.
+Browser consent grants OAuth scopes to the CLI, and your organization role still controls which actions you can run. See [Organizations and team access](/account-and-organizations/organizations#member-roles) for role permissions.
 
-Login requires an interactive terminal. Scripts and coding agents can use the saved login, but cannot complete browser consent through `--non-interactive`.
-
-Continue with [your first app](/cli/quickstart) or [connect a coding agent](/cli/mcp).
+Next, [create your first app](/cli/quickstart) or [connect a coding agent with MCP](/cli/mcp).

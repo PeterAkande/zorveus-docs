@@ -16,7 +16,9 @@ zorveus whoami
 
 Choose the organization that owns your app. For a local backend, use `zorveus login --local` instead.
 
-The MCP server shares the CLI's saved login and refresh lock. It does not open a login browser. If a remote tool reports `login_required` or `authorization_required`, log in from a terminal and retry the tool. The server reads the current saved login for each operation, so a new login does not require a server restart.
+The MCP server shares the CLI's saved per-organization logins and refresh lock. Manifest tools pick the organization recorded in `organizationId`; `zorveus_apply` uses the saved plan's organization; account tools use your only saved organization or default. Pass `--org org_example` in the server arguments to select an organization explicitly (it must match any manifest or saved plan being used).
+
+The server never opens a login browser or prompts for input. If a remote tool returns `login_required` or `authorization_required`, run `zorveus login` in a terminal and retry. New or renewed logins are picked up automatically without restarting the MCP server.
 
 Init, validation, clone, and promotion work offline without login. The server never returns management tokens or generated secrets to the agent.
 
@@ -52,7 +54,9 @@ Replace both paths. Use the installed executable, or `bin/zorveus` from a local 
 
 `--directory` defaults to the process's working directory. Setting it explicitly avoids depending on the directory chosen by an editor or desktop client. Relative tool paths resolve against it; absolute paths also work. This option chooses a base directory, not a filesystem sandbox. Apply also uses the absolute manifest path recorded in its saved plan.
 
-The server normally uses the saved login's API origin. Add `--local` to the server arguments to require the local API, or use `--api-url` with the existing CLI origin rules.
+The server normally uses the saved login's API origin. Add `--local` to require the local API, `--api-url` for a custom origin, or `--org org_example` to pin one organization.
+
+Manifest tools also honor an S3-compatible `_state` backend. Initialize durable state with `zorveus state init` in a terminal first, and pass `--state-config /path/to/backend.json` in the server arguments if your backend config lives in a separate file. State inspection, backups, manual unlocking, `retrieve`, `destroy`, and `apply --resume` remain terminal-only commands; see [Durable state and destroy](/cli/state-and-destroy).
 
 For BYOK, make the manifest's `secretFromEnv` variables available to the MCP process when your client launches it. An export in an unrelated terminal may not reach an editor or desktop client. The CLI does not load `.env` files automatically. Pass environment-variable names in the manifest, never secret values in tool arguments.
 

@@ -1,11 +1,11 @@
 ---
-title: Install the CLI
-description: Install a prebuilt Zorveus executable, update it, and configure shell completion.
+title: Install and update the CLI
+description: Install a prebuilt Zorveus CLI binary on macOS, Linux, or Windows, update it with zorveus update, and configure shell completion.
 ---
 
-You do not need Go or a source checkout to run the CLI.
+You do not need Go or a source checkout to run `zorveus`. Prebuilt binaries are published through [Zorveus CLI releases](https://github.com/zorveus/zorveus-cli/releases).
 
-Prebuilt executables are distributed through [Zorveus CLI releases](https://github.com/zorveus/zorveus-cli/releases). The installer and download URLs below select the latest published release.
+---
 
 ## macOS and Linux
 
@@ -13,32 +13,41 @@ Prebuilt executables are distributed through [Zorveus CLI releases](https://gith
 curl -fsSL https://zorveus.com/install.sh | sh
 ```
 
-The installer detects macOS or Linux and selects the x86-64 or ARM64 binary. It verifies the download's SHA-256 checksum and installs `zorveus` into `~/.local/bin` without `sudo`. Linux binaries are built without cgo, so the installer does not depend on a distribution's package manager or choice of glibc or musl.
+The installer detects macOS or Linux and x86-64 or ARM64, verifies the SHA-256 checksum, and installs `zorveus` to `~/.local/bin` without `sudo`. Linux binaries are built without cgo, so they do not depend on glibc or musl.
 
-You need `curl`, CA certificates, and either `sha256sum` or `shasum`. Other operating systems and processor architectures are not supported by the shell installer.
+You need `curl`, CA certificates, and either `sha256sum` or `shasum`.
 
-If `zorveus` is not found after installation, add its directory to your current shell:
+The installer also sets up tab completion automatically for zsh, bash, or fish based on `$SHELL`. Open a new terminal after installing so completion loads. To choose a shell explicitly or skip completion:
+
+```sh
+curl -fsSL https://zorveus.com/install.sh | sh -s -- --shell zsh
+curl -fsSL https://zorveus.com/install.sh | sh -s -- --no-completion
+```
+
+If `zorveus` is not found in your current terminal, add `~/.local/bin` to your `PATH`:
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 zorveus --help
 ```
 
-Add that `export PATH` line to your shell's startup file, such as `~/.zshrc` for zsh or `~/.bashrc` for Bash, to keep it available in new terminals.
+Add that `export PATH` line to `~/.zshrc` or `~/.bashrc` to keep it in future terminals.
 
-Run the installer again to update to the latest release. To inspect the script, choose a version, or change the destination, download it first:
+To inspect the script, pin a version, or install into a custom directory:
 
 ```sh
 curl -fsSL https://zorveus.com/install.sh -o install-zorveus.sh
 sh install-zorveus.sh --help
-sh install-zorveus.sh --version v1.2.3 --bin-dir "$HOME/.local/bin"
+sh install-zorveus.sh --version v0.1.0 --bin-dir "$HOME/.local/bin"
 ```
 
-Replace `v1.2.3` with the release you want to install. A failed download or checksum check leaves your current executable untouched. The installer does not modify your shell configuration or saved login.
+A failed download or checksum check leaves your existing binary untouched. Reinstalling refreshes completion without duplicating startup lines and preserves your saved logins.
+
+---
 
 ## Windows
 
-Download the Windows binary in PowerShell, then verify it before installation. This example selects x86-64; replace `amd64` with `arm64` for Windows on ARM:
+Download and verify the binary in PowerShell. Replace `amd64` with `arm64` for Windows on ARM:
 
 ```powershell
 Invoke-WebRequest https://zorveus.com/cli/latest -OutFile zorveus-version.txt
@@ -60,15 +69,41 @@ $env:Path = "$installDir;$env:Path"
 zorveus --help
 ```
 
-For new terminals, add `%LOCALAPPDATA%\Zorveus\bin` to your user's `Path` through Windows Environment Variables.
+Add `%LOCALAPPDATA%\Zorveus\bin` to your user `Path` in Windows Environment Variables so `zorveus` stays available in new terminals.
 
-Login and credential creation use Keychain on macOS, Secret Service on Linux, or Credential Manager on Windows. Your credential store must be available and unlocked.
+Login and secret storage require an available, unlocked OS credential store: Keychain on macOS, Secret Service on Linux, or Credential Manager on Windows.
 
-After installation, [sign in](/cli/authentication) and [create your first app](/cli/quickstart).
+---
 
-## Shell completion
+## Update the CLI
 
-Load zsh completion in your current terminal:
+Update to the latest stable release:
+
+```sh
+zorveus update
+```
+
+Install a specific version:
+
+```sh
+zorveus update --version v0.1.0
+```
+
+`zorveus update` detects your OS and architecture, verifies the SHA-256 checksum, and replaces the binary you invoked without requiring a Zorveus login. Saved logins, stored secrets, and project files are preserved. If a download or checksum check fails, your current binary stays intact. Use `--json --non-interactive` in scripts.
+
+---
+
+## Manual shell completion
+
+On macOS and Linux, the installer sets up completion automatically:
+
+| Shell | What the installer writes |
+| :--- | :--- |
+| **zsh** | `~/.local/share/zorveus/completions/zorveus.zsh` and a loader in `~/.zshrc` |
+| **bash** | `~/.local/share/bash-completion/completions/zorveus` and a loader in `.bashrc` (requires `bash-completion`) |
+| **fish** | `~/.config/fish/completions/zorveus.fish` (loaded automatically) |
+
+To load zsh completion manually in your current shell:
 
 ```zsh
 autoload -Uz compinit
@@ -76,8 +111,6 @@ compinit
 source <(zorveus completion zsh)
 ```
 
-For future terminals, add the `source` line to `~/.zshrc` after your shell's completion setup. If your shell already runs `compinit`, keep its existing setup. Bash, fish, and PowerShell are also supported:
+For bash, fish, or PowerShell completion scripts, run `zorveus completion --help`.
 
-```sh
-zorveus completion --help
-```
+Next, [sign in and select an organization](/cli/authentication) or [create your first app](/cli/quickstart).

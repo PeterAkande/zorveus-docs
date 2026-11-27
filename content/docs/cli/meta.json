@@ -8,6 +8,7 @@
     "manifest",
     "examples",
     "environments",
+    "state-and-destroy",
     "commands",
     "mcp"
   ]

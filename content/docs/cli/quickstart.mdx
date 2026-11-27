@@ -1,45 +1,57 @@
 ---
 title: Create and update your first app
-description: Provision an app from JSON, inspect the plan, apply changes, and verify the result.
+description: Run the interactive zorveus setup wizard or provision an app from zorveus.json, apply changes, and retrieve saved secrets.
 ---
 
-Install the CLI using the [installation guide](/cli/installation). Run the following commands from a new project directory.
+[Install the CLI](/cli/installation), then run these commands from your project directory.
 
-This walkthrough creates one app, a capped inference key, and a router. It then renames the app while keeping the same resource IDs.
+---
 
-## Sign in
+## Option 1: Interactive wizard (`zorveus setup`)
+
+For a guided setup that configures your app, allowed models, customer allowance plans, optional routing key, and a read-only customer service key in one pass, run:
+
+```sh
+zorveus setup
+```
+
+For a local Zorveus backend, run `zorveus setup --local`.
+
+The wizard handles sign-in if needed, asks for your app name, allowed models (`*` by default), credit units per USD (`100` by default), one or more monthly plans (such as `plus` at `$10/month`), and whether to add a routing key. It then writes `zorveus.json` (including `organizationId`), previews the plan, and creates the resources after you confirm.
+
+Run `zorveus setup` again anytime to review or edit an existing `zorveus.json` while keeping your resource IDs intact.
+
+---
+
+## Option 2: Manual manifest workflow
+
+If you prefer editing JSON directly, follow the four-step `init` → `validate` → `plan` → `apply` workflow.
+
+### 1. Sign in
 
 ```sh
 zorveus login
 zorveus whoami
 ```
 
-Choose the organization that should own the app. Confirm that `whoami` reports the expected organization. For your local backend, use `zorveus login --local` instead.
+Choose the organization that owns the app. Confirm `whoami` shows the right organization. (Use `zorveus login --local` for a local backend.)
 
-## Configure the app
-
-For a complete starting configuration, choose one of the [example manifests](/cli/examples): a minimal app, an internal tool, subscription tiers, business credits, OAuth consent, OpenAI BYOK, or a service-key backend.
-
-Create a starter manifest:
+### 2. Create and validate a manifest
 
 ```sh
 zorveus init --name "Assistant"
 ```
 
-`init` refuses to overwrite an existing file. For a separate exercise, use a new filename with `--config` and pass that filename to subsequent commands.
+`init` creates `zorveus.json` with `allowedModels: ["*"]` and refuses to overwrite an existing file. Pass `--starter saas` to generate a SaaS plan starter, or copy one of the [example manifests](/cli/examples).
 
-The default file is `zorveus.json`. New apps allow all models with `allowedModels: ["*"]`. To select specific models, repeat `--model` when running `init`.
-
-Edit the manifest to describe the resources you need. This example creates an app, an inference key with a monthly USD cap, and a routing key that selects it:
+Edit `zorveus.json` to add an API key with a monthly `$100` cap and a routing key:
 
 ```json
 {
   "version": 1,
   "app": {
     "name": "Assistant",
-    "allowedModels": [
-      "*"
-    ]
+    "allowedModels": ["*"]
   },
   "keys": {
     "backend": {
@@ -54,102 +66,102 @@ Edit the manifest to describe the resources you need. This example creates an ap
   "routingKeys": {
     "primary": {
       "name": "Assistant router",
-      "members": [
-        "backend"
-      ],
+      "members": ["backend"],
       "defaultSelector": "backend"
     }
   }
 }
 ```
 
-Resource object keys connect manifest entries. A routing key's members refer to the names in `keys`, such as `backend`. Each inference key also works directly, without a router. Write monetary amounts as strings to preserve decimal precision.
-
-Validate the file:
+Validate the JSON offline:
 
 ```sh
 zorveus validate
 ```
 
-`init`, `validate`, `clone`, and `promote` work offline without login. Validation checks the file's structure and references; planning checks remote resources and access.
+### 3. Review and apply changes
 
-See the [manifest reference](/cli/manifest) for OAuth settings, consent defaults, pricing defaults, key policies, and the full update rules.
-
-## Review and apply changes
+<span id="review-and-apply-changes" />
 
 ```sh
 zorveus plan --config zorveus.json
 ```
 
-Plan shows resource blocks with `+` for additions, `~` for updates, and `-` for removals or revocations. Updates show changed fields as `old -> new` and hide unchanged fields. The summary counts planned additions, updates, and removals. Plan saves these changes without changing remote resources.
+`plan` saves `zorveus.plan.json` without changing remote resources, showing `+` for additions, `~` for updates (`old -> new`), and `-` for removals. Pass `--no-color` or set `NO_COLOR=1` to disable ANSI colors.
 
-Terminal output uses green, yellow, and red for these actions. Use `--no-color` or set `NO_COLOR` to disable colors. Piped output and `--json` results contain no color codes.
-
-Review the output, then apply that saved plan:
+Apply the saved plan and confirm everything is in sync:
 
 ```sh
 zorveus apply --plan zorveus.plan.json --yes
 zorveus status --config zorveus.json
 ```
 
-Apply creates or updates the resources and writes their IDs back into your manifest. Keep those IDs when editing existing resources. Running plan again after a successful apply produces zero changes when the configuration matches.
+`apply` creates or updates the resources, writes `organizationId` and the created resource IDs back into `zorveus.json`, and saves generated secrets into your OS credential store. Secrets never appear in manifests, saved plans, or apply output.
 
-The CLI saves newly generated secrets in your OS credential store and reports their account names. Secrets do not appear in the manifest, saved plans, or command output. On macOS, use Keychain Access to find entries under `com.zorveus.cli.resources` with the reported account name.
+---
 
-If you edit the manifest or a planned remote value changes, run `zorveus plan` again before applying. A successful plan replaces the existing plan for that manifest at the same output path. If planning fails, the previous file is preserved. The default plan filename follows the manifest: `zorveus.dev.json` produces `zorveus.dev.plan.json` in the same directory. With `--from`, the filename follows the target `--config` file. Use `--out` to choose another path.
+## Retrieve saved secrets
 
-### Check the result and make an update
-
-Check that the applied configuration matches:
+Use `zorveus retrieve` to print a saved secret from your OS credential store by its manifest reference or backend ID:
 
 ```sh
-zorveus status --config zorveus.json --json
-zorveus plan --config zorveus.json --out check.plan.json
+zorveus retrieve keys.backend
+zorveus retrieve routingKeys.primary
+zorveus retrieve serviceKeys.customers
+zorveus retrieve app
 ```
 
-Expect `result.in_sync: true` in the status result and `No changes.` from plan. You can also check the app and its keys in the dashboard for the same organization.
+| Reference | Secret returned |
+| :--- | :--- |
+| `app` | OAuth client secret (confidential apps only). |
+| `keys.<name>` | API key (`zrv_...`). |
+| `routingKeys.<name>` | Routing key (`zrv_route_...`). |
+| `serviceKeys.<name>` | Service key (`zrv_svc_...`). |
 
-Next, change only `app.name` in `zorveus.json` to `Assistant renamed`. Keep all resource IDs. Inspect the difference before applying it:
+Pass `--config zorveus.dev.json` for non-default manifests, or pipe directly to your clipboard on macOS (`zorveus retrieve keys.backend | pbcopy`). Use `--json` in scripts to receive `{ item, id, secret }` in the standard envelope. `retrieve` never rotates a key and is not exposed through MCP.
+
+---
+
+## Make an update and check drift
+
+Edit `app.name` in `zorveus.json` (keeping all resource IDs intact), then check drift, plan, and apply:
 
 ```sh
 zorveus status --config zorveus.json --json
 zorveus plan --config zorveus.json --out rename.plan.json
-```
-
-Status should report `in_sync: false` with the name difference. Plan should propose a name update without creating another app or rotating keys. Apply it and check again:
-
-```sh
 zorveus apply --plan rename.plan.json --yes
 zorveus status --config zorveus.json --json
 ```
 
-Expect `in_sync: true` again and the same resource IDs. The name update requires `apps:update`, which is included in the default login request.
+Before apply, `status` reports `result.in_sync: false` with the name diff. After apply, `result.in_sync` returns `true` with the same resource IDs.
 
-### Remove managed resources
+### Removing resources
 
-Omitted fields and resource sections preserve existing values. Removing a previously managed key or router from an explicit resource object proposes its revocation. An empty object removes all resources recorded for that section of the manifest. Unrelated resources are left alone.
-
-Planned revocations, cap removal, and redirect removal need an additional flag:
+- Omitting an optional field or whole section preserves existing values.
+- Removing a managed key or router from an explicit `keys` or `routingKeys` object proposes revoking it.
+- Plans with revocations, cap removals, or redirect removals require `--allow-delete`:
 
 ```sh
 zorveus apply --plan removal.plan.json --yes --allow-delete
 ```
 
-Service keys and provider credentials belong to the organization. Removing their entries from a manifest leaves those shared resources intact.
+Removing `serviceKeys` or `providerCredentials` entries from a manifest leaves those shared organization resources active. To tear down an entire app and all listed credentials at once, use [`zorveus destroy`](/cli/state-and-destroy#destroy-a-deployment).
 
 ### Resume an interrupted apply
 
-Keep the saved plan and the `.zorveus/` directory beside your manifest, then repeat the same apply command:
+Keep the saved plan and `.zorveus/` directory beside your manifest, then run the same apply command again:
 
 ```sh
 zorveus apply --plan zorveus.plan.json --yes
 ```
 
-The CLI uses its recorded progress to resume. If a resource ID is known but its generated secret was not saved, recovery can rotate the credential. If a creation or rotation outcome is unknown, apply stops to avoid repeating an uncertain operation. Inspect the resource and reported journal before continuing. An unfinished apply blocks a new plan for the same manifest.
+With S3-compatible durable state, another machine can resume without the local plan file using `zorveus apply --resume --config zorveus.json --yes`.
 
-## Adopt an existing app instead
+---
 
-If the app already exists, import it into a new manifest rather than declaring a new app without an ID:
+## Adopt an existing app
+
+If your app already exists in the dashboard, import it into a new manifest instead of creating a duplicate:
 
 ```sh
 zorveus import --app-id app_example --config imported.json
@@ -157,8 +169,6 @@ zorveus status --config imported.json
 zorveus plan --config imported.json
 ```
 
-Replace `app_example` with the existing app ID. Import adopts active programmatic inference connections and routing keys. It excludes secrets, customer OAuth connections, service keys, and provider credentials. Both the destination manifest and its CLI state must be new.
+`import` records `organizationId`, app settings, active programmatic API keys, and routing keys while leaving secrets, end-user OAuth connections, service keys, and BYOK credentials out. Both the destination manifest and its local state must be new.
 
-Before comparing imported files across environments, review the generated resource object names. Import preserves routing selectors where possible; unrouted keys and routers receive names such as `key_1` and `router_1`.
-
-Next, try another [example manifest](/cli/examples), [prepare a development copy](/cli/environments), or [connect an MCP client](/cli/mcp).
+Next, browse [example manifests](/cli/examples), [promote settings across environments](/cli/environments), configure [durable state and destroy](/cli/state-and-destroy), or [connect a coding agent with MCP](/cli/mcp).

@@ -1,0 +1,144 @@
+---
+title: Durable state and destroy
+description: Share provisioning state and locks in S3 or Cloudflare R2 across machines, resume interrupted applies, and tear down deployments with zorveus destroy.
+---
+
+By default, the CLI stores applied resource IDs and recovery journals locally in `.zorveus/`. When multiple developers or machines manage the same app, configure an S3-compatible `_state` backend. When you need to tear down a deployment cleanly, use `zorveus destroy`.
+
+---
+
+## Share state in S3 or Cloudflare R2
+
+An S3-compatible backend stores the last applied resource IDs, policies, lock metadata, and apply journal in one object protected by conditional writes (`If-None-Match` and `If-Match`). No DynamoDB table is required.
+
+S3 state **never** contains login tokens, API keys, routing keys, client secrets, service keys, or BYOK secrets. Those stay in your OS credential store or shell environment.
+
+### 1. Configure `_state`
+
+Create a private bucket (enable versioning on AWS S3) and add `_state` to your manifest:
+
+```json
+{
+  "version": 1,
+  "organizationId": "org_production",
+  "_state": {
+    "backend": "s3",
+    "bucket": "zorveus-state",
+    "key": "apps/assistant/prod.json",
+    "region": "us-east-1"
+  },
+  "app": {
+    "name": "Production assistant",
+    "allowedModels": ["*"]
+  },
+  "keys": {
+    "backend": {
+      "name": "Backend",
+      "cap": {
+        "amount": "100",
+        "currency": "USD",
+        "period": "monthly"
+      }
+    }
+  }
+}
+```
+
+The CLI uses the standard AWS SDK credential chain (environment variables, shared AWS config, or IAM role). Grant `s3:GetObject` and `s3:PutObject` on the object key (plus KMS permissions if your bucket uses KMS encryption).
+
+For Cloudflare R2 or another S3-compatible store, add `endpoint` and `usePathStyle: true`:
+
+```json
+{
+  "backend": "s3",
+  "bucket": "zorveus-state",
+  "key": "apps/assistant/prod.json",
+  "region": "auto",
+  "endpoint": "https://account-id.r2.cloudflarestorage.com",
+  "usePathStyle": true
+}
+```
+
+You can also store the backend object in a separate JSON file and pass `--state-config backend.json` on each command.
+
+### 2. Initialize or reconnect
+
+For a new app (or a fresh checkout reconnecting to existing durable state):
+
+```sh
+zorveus state init --config zorveus.prod.json
+zorveus plan --config zorveus.prod.json
+zorveus apply --plan zorveus.prod.plan.json --yes
+```
+
+`state init` never overwrites existing durable state. To migrate an already-applied local app into a new S3 object, copy its local tracking explicitly:
+
+```sh
+zorveus state init --config zorveus.prod.json --copy-local
+```
+
+To back up old local tracking under `.zorveus/` before initializing fresh state on a reused filename, pass `--force` (cannot be combined with `--copy-local`).
+
+### 3. Resume, inspect, back up, and unlock
+
+If an `apply` is interrupted on another machine, inspect the state and resume without needing the original local plan file:
+
+```sh
+zorveus state inspect --config zorveus.prod.json --json
+zorveus apply --resume --config zorveus.prod.json --yes --non-interactive
+```
+
+Locks do not expire automatically. If a process crashes and leaves a lock behind, verify the old process has completely stopped, inspect the exact lock ID, and release it:
+
+```sh
+zorveus state unlock --config zorveus.prod.json --lock-id exact-lock-id --yes
+```
+
+To export a local snapshot backup of the state object:
+
+```sh
+zorveus state pull --config zorveus.prod.json --out prod-state-backup.json
+```
+
+---
+
+## Destroy a deployment
+
+<span id="destroy-a-deployment" />
+
+`zorveus destroy` removes the app identified by a manifest, revokes its API keys and routing keys, removes its programmatic caps, and revokes every service key and BYOK provider credential listed with an ID in that manifest.
+
+Deleting an app also revokes all end-user OAuth connections for that app. Listed service keys and provider credentials belong to the organization and may be shared with other apps; unlisted organization credentials are untouched.
+
+### 1. Preview the teardown
+
+```sh
+zorveus destroy --config zorveus.dev.json --dry-run
+```
+
+`--dry-run` prints the API origin, organization, resource IDs, and every planned removal, and writes `zorveus.dev.destroy.plan.json` without changing any remote resources.
+
+### 2. Confirm destruction
+
+```sh
+zorveus destroy --config zorveus.dev.json
+```
+
+Review the preview and confirm at the prompt (defaults to no). For scripts:
+
+```sh
+zorveus destroy --config zorveus.dev.json --yes --non-interactive
+```
+
+Or execute a saved destroy plan explicitly:
+
+```sh
+zorveus apply --plan zorveus.dev.destroy.plan.json --yes --allow-delete
+```
+
+Destroy revokes routing keys first, then removes caps and API keys, then removes listed shared credentials, and deletes the app last. Deleting a BYOK provider credential in Zorveus does not revoke that key at OpenAI or another upstream provider.
+
+### 3. Resume or recreate after destroy
+
+- **Interrupted destroy**: Re-run the same `zorveus destroy` command (or `zorveus apply --resume --config zorveus.dev.json --yes --allow-delete` with durable state) to finish without repeating completed steps.
+- **Recreate later**: The manifest and state object remain as a record of the destroyed deployment. Running `zorveus plan` and `zorveus apply` on the same manifest ignores the destroyed IDs, creates fresh resources, writes the new IDs back, and marks the deployment active again.
