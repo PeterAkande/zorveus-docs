@@ -47,29 +47,31 @@ A failed download or checksum check leaves your existing binary untouched. Reins
 
 ## Windows
 
-Download and verify the binary in PowerShell. Replace `amd64` with `arm64` for Windows on ARM:
+Run this command in PowerShell:
 
 ```powershell
-Invoke-WebRequest https://zorveus.com/cli/latest -OutFile zorveus-version.txt
-$version = (Get-Content zorveus-version.txt -Raw).Trim()
-$binary = "zorveus-windows-amd64.exe"
-$releaseUrl = "https://zorveus.com/cli/$version"
-Invoke-WebRequest "$releaseUrl/$binary" -OutFile $binary
-Invoke-WebRequest "$releaseUrl/SHA256SUMS" -OutFile SHA256SUMS
-$checksumLine = Get-Content SHA256SUMS | Where-Object { ($_ -split '\s+')[1] -eq $binary }
-if (@($checksumLine).Count -ne 1) { throw "Missing or duplicate release checksum" }
-$expected = ($checksumLine -split '\s+')[0]
-$actual = (Get-FileHash $binary -Algorithm SHA256).Hash
-if ($actual -ne $expected) { throw "Checksum verification failed" }
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://zorveus.com/install.ps1 | iex"
+```
 
-$installDir = Join-Path $env:LOCALAPPDATA "Zorveus\bin"
-New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Copy-Item $binary (Join-Path $installDir "zorveus.exe")
-$env:Path = "$installDir;$env:Path"
+The installer supports Windows PowerShell 5.1 and PowerShell 7. It detects x86-64 or ARM64, verifies the SHA-256 checksum, and installs `zorveus.exe` into `%LOCALAPPDATA%\Zorveus\bin` without administrator access. It adds that directory to your user `Path` automatically.
+
+Open a new terminal, then check the installation:
+
+```powershell
 zorveus --help
 ```
 
-Add `%LOCALAPPDATA%\Zorveus\bin` to your user `Path` in Windows Environment Variables so `zorveus` stays available in new terminals.
+If `zorveus` is not found, restart your terminal application so it picks up the updated PATH. If the installer reports that PATH setup failed, add `%LOCALAPPDATA%\Zorveus\bin` to your user `Path` in Windows Environment Variables.
+
+To inspect the script, pin a version, or install into a custom directory, download the script first:
+
+```powershell
+Invoke-WebRequest https://zorveus.com/install.ps1 -OutFile install-zorveus.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install-zorveus.ps1 -Help
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install-zorveus.ps1 -Version v0.1.0 -BinDir "$env:LOCALAPPDATA\Zorveus\bin"
+```
+
+Replace `v0.1.0` with the release you want to install. A failed download or checksum check preserves your existing executable. Reinstalling preserves your saved logins and avoids duplicate PATH entries. Close running Zorveus processes before reinstalling if Windows reports that the executable is in use.
 
 Login and secret storage require an available, unlocked OS credential store: Keychain on macOS, Secret Service on Linux, or Credential Manager on Windows.
 
